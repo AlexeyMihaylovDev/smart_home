@@ -46,18 +46,41 @@ const WidgetGrid = () => {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const savedLayout = getDashboardLayout()
-    setLayout(savedLayout.layouts.map(l => ({
-      i: l.i,
-      x: l.x,
-      y: l.y,
-      w: l.w,
-      h: l.h,
-      minW: l.minW,
-      minH: l.minH,
-      maxW: l.maxW,
-      maxH: l.maxH,
-    })))
+    const loadLayout = () => {
+      const savedLayout = getDashboardLayout()
+      setLayout(savedLayout.layouts.map(l => ({
+        i: l.i,
+        x: l.x,
+        y: l.y,
+        w: l.w,
+        h: l.h,
+        minW: l.minW,
+        minH: l.minH,
+        maxW: l.maxW,
+        maxH: l.maxH,
+      })))
+    }
+    
+    loadLayout()
+    
+    // Слушаем изменения в localStorage для обновления layout при изменении enabled виджетов
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'widget_config' || e.key === 'dashboard_layout') {
+        loadLayout()
+      }
+    }
+    
+    // Слушаем кастомное событие для обновления при изменении виджетов
+    const handleWidgetsChanged = () => {
+      loadLayout()
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('widgets-changed', handleWidgetsChanged)
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('widgets-changed', handleWidgetsChanged)
+    }
   }, [])
 
   const handleLayoutChange = useCallback((newLayout: Layout[]) => {

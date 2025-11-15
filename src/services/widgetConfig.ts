@@ -19,6 +19,9 @@ export interface WidgetConfig {
     entityId: string | null
     name: string
   }
+  enabledWidgets: {
+    [widgetId: string]: boolean
+  }
 }
 
 const DEFAULT_CONFIG: WidgetConfig = {
@@ -35,7 +38,8 @@ const DEFAULT_CONFIG: WidgetConfig = {
   ac: {
     entityId: null,
     name: 'Кондиционер'
-  }
+  },
+  enabledWidgets: {}
 }
 
 const STORAGE_KEY = 'widget_config'
@@ -80,4 +84,26 @@ export const updateACConfig = (acConfig: ACConfig): void => {
 export const getACConfig = (): ACConfig => {
   const config = getWidgetConfig()
   return config.ac || DEFAULT_CONFIG.ac
+}
+
+export const isWidgetEnabled = (widgetId: string): boolean => {
+  const config = getWidgetConfig()
+  return config.enabledWidgets?.[widgetId] === true
+}
+
+export const setWidgetEnabled = (widgetId: string, enabled: boolean): void => {
+  const config = getWidgetConfig()
+  if (!config.enabledWidgets) {
+    config.enabledWidgets = {}
+  }
+  config.enabledWidgets[widgetId] = enabled
+  saveWidgetConfig(config)
+}
+
+export const getAllEnabledWidgets = (): string[] => {
+  const config = getWidgetConfig()
+  if (!config.enabledWidgets) {
+    return []
+  }
+  return Object.keys(config.enabledWidgets).filter(id => config.enabledWidgets[id] === true)
 }

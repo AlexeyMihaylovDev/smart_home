@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
-import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind } from 'lucide-react'
-import { getAmbientLightingConfig, updateAmbientLightingConfig, LightConfig, getACConfig, updateACConfig, ACConfig } from '../services/widgetConfig'
+import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music } from 'lucide-react'
+import { getAmbientLightingConfig, updateAmbientLightingConfig, LightConfig, getACConfig, updateACConfig, ACConfig, isWidgetEnabled, setWidgetEnabled } from '../services/widgetConfig'
 
 type Tab = 'devices' | 'widgets'
 type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | null
@@ -57,6 +57,76 @@ const Settings = () => {
       color: 'bg-blue-500'
     },
     {
+      id: 'media-player',
+      name: 'Media Player Widget',
+      description: 'Управление медиаплеерами',
+      icon: Tv,
+      color: 'bg-purple-500'
+    },
+    {
+      id: 'spotify',
+      name: 'Spotify Widget',
+      description: 'Управление Spotify',
+      icon: Music,
+      color: 'bg-green-500'
+    },
+    {
+      id: 'media-room',
+      name: 'Media Room Widget',
+      description: 'Управление медиа комнатой',
+      icon: Tv,
+      color: 'bg-blue-500'
+    },
+    {
+      id: 'canvas',
+      name: 'Canvas Widget',
+      description: 'Управление Canvas',
+      icon: Tv,
+      color: 'bg-purple-500'
+    },
+    {
+      id: 'tv-preview',
+      name: 'TV Preview Widget',
+      description: 'Превью телевизора',
+      icon: Tv,
+      color: 'bg-orange-500'
+    },
+    {
+      id: 'plex',
+      name: 'Plex Widget',
+      description: 'Управление Plex',
+      icon: Tv,
+      color: 'bg-orange-500'
+    },
+    {
+      id: 'tv-duration',
+      name: 'TV Duration Widget',
+      description: 'Статистика времени просмотра',
+      icon: Tv,
+      color: 'bg-blue-500'
+    },
+    {
+      id: 'weather-calendar',
+      name: 'Weather Calendar Widget',
+      description: 'Погода и календарь',
+      icon: Gauge,
+      color: 'bg-cyan-500'
+    },
+    {
+      id: 'living-room',
+      name: 'Living Room Widget',
+      description: 'Управление гостиной',
+      icon: Tv,
+      color: 'bg-blue-500'
+    },
+    {
+      id: 'ac',
+      name: 'AC Widget',
+      description: 'Управление кондиционером',
+      icon: Wind,
+      color: 'bg-cyan-500'
+    },
+    {
       id: 'sensors',
       name: 'Sensors Widget',
       description: 'Управление датчиками',
@@ -69,13 +139,6 @@ const Settings = () => {
       description: 'Управление камерами',
       icon: Camera,
       color: 'bg-purple-500'
-    },
-    {
-      id: 'ac',
-      name: 'AC Widget',
-      description: 'Управление кондиционером',
-      icon: Wind,
-      color: 'bg-cyan-500'
     }
   ]
 
@@ -329,22 +392,50 @@ const Settings = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {widgetOptions.map((widget) => {
                   const Icon = widget.icon
+                  const enabled = isWidgetEnabled(widget.id || '')
                   return (
-                    <button
+                    <div
                       key={widget.id}
-                      onClick={() => setSelectedWidget(widget.id)}
-                      className="p-6 bg-dark-bg hover:bg-dark-cardHover border border-dark-border rounded-lg transition-all hover:border-blue-500 hover:shadow-lg text-left group"
+                      className="p-6 bg-dark-bg border border-dark-border rounded-lg transition-all hover:border-blue-500 hover:shadow-lg group"
                     >
                       <div className="flex items-start gap-4">
                         <div className={`${widget.color} p-3 rounded-lg group-hover:scale-110 transition-transform`}>
                           <Icon size={24} className="text-white" />
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-lg mb-1">{widget.name}</h3>
-                          <p className="text-sm text-dark-textSecondary">{widget.description}</p>
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className="font-semibold text-lg">{widget.name}</h3>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={enabled}
+                                onChange={(e) => {
+                                  e.stopPropagation()
+                                  setWidgetEnabled(widget.id || '', e.target.checked)
+                                  // Отправляем событие для обновления dashboard
+                                  window.dispatchEvent(new Event('widgets-changed'))
+                                }}
+                                className="sr-only peer"
+                              />
+                              <div className={`w-11 h-6 rounded-full transition-colors ${
+                                enabled ? 'bg-blue-600' : 'bg-gray-600'
+                              } peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500`}>
+                                <div className={`w-5 h-5 bg-white rounded-full transition-transform mt-0.5 ${
+                                  enabled ? 'translate-x-5' : 'translate-x-0.5'
+                                }`}></div>
+                              </div>
+                            </label>
+                          </div>
+                          <p className="text-sm text-dark-textSecondary mb-3">{widget.description}</p>
+                          <button
+                            onClick={() => setSelectedWidget(widget.id)}
+                            className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                          >
+                            Настроить →
+                          </button>
                         </div>
                       </div>
-                    </button>
+                    </div>
                   )
                 })}
               </div>
