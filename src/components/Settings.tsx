@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
-import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet } from 'lucide-react'
-import { getAmbientLightingConfig, updateAmbientLightingConfig, LightConfig, getACConfigs, updateACConfigs, ACConfig, getWaterHeaterConfig, updateWaterHeaterConfig, WaterHeaterConfig, isWidgetEnabled, setWidgetEnabled } from '../services/widgetConfig'
+import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User } from 'lucide-react'
+import { getAmbientLightingConfig, updateAmbientLightingConfig, LightConfig, getACConfigs, updateACConfigs, ACConfig, getWaterHeaterConfig, updateWaterHeaterConfig, WaterHeaterConfig, getSensorsConfig, updateSensorsConfig, SensorConfig, isWidgetEnabled, setWidgetEnabled } from '../services/widgetConfig'
 import ToggleSwitch from './ui/ToggleSwitch'
 import Toast from './ui/Toast'
 
@@ -45,6 +45,13 @@ const Settings = () => {
       return getWaterHeaterConfig()
     } catch {
       return { entityId: null, name: 'Водонагреватель' }
+    }
+  })
+  const [sensorConfigs, setSensorConfigs] = useState<SensorConfig[]>(() => {
+    try {
+      return getSensorsConfig()
+    } catch {
+      return []
     }
   })
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
@@ -196,6 +203,8 @@ const Settings = () => {
     setACConfigs(acs && Array.isArray(acs) ? acs : [])
     const wh = getWaterHeaterConfig()
     setWaterHeaterConfig(wh)
+    const sensors = getSensorsConfig()
+    setSensorConfigs(sensors && Array.isArray(sensors) ? sensors : [])
   }
 
   const loadEntities = async () => {
@@ -680,24 +689,227 @@ const Settings = () => {
             </div>
           )}
           {selectedWidget === 'sensors' && (
-            <div className="bg-dark-card rounded-lg border border-dark-border p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <button
-                  onClick={() => setSelectedWidget(null)}
-                  className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
-                  title="Вернуться к выбору виджета"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-                <div>
-                  <h2 className="font-medium text-lg">Sensors Widget</h2>
-                  <p className="text-sm text-dark-textSecondary mt-1">
-                    Настройка виджета датчиков
-                  </p>
+            <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
+              <div className="p-4 border-b border-dark-border">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setSelectedWidget(null)}
+                      className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
+                      title="Вернуться к выбору виджета"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                      <h2 className="font-medium text-lg">Sensors Widget</h2>
+                      <p className="text-sm text-dark-textSecondary mt-1">
+                        Настройка датчиков движения и присутствия
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const newSensor: SensorConfig = {
+                          name: `Датчик движения ${sensorConfigs.filter(s => s.type === 'motion').length + 1}`,
+                          entityId: null,
+                          type: 'motion'
+                        }
+                        setSensorConfigs([...sensorConfigs, newSensor])
+                        setHasUnsavedChanges(true)
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                      title="Добавить датчик движения"
+                    >
+                      <Activity size={16} />
+                      Добавить движение
+                    </button>
+                    <button
+                      onClick={() => {
+                        const newSensor: SensorConfig = {
+                          name: `Датчик присутствия ${sensorConfigs.filter(s => s.type === 'presence').length + 1}`,
+                          entityId: null,
+                          type: 'presence'
+                        }
+                        setSensorConfigs([...sensorConfigs, newSensor])
+                        setHasUnsavedChanges(true)
+                      }}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                      title="Добавить датчик присутствия"
+                    >
+                      <User size={16} />
+                      Добавить присутствие
+                    </button>
+                    {hasUnsavedChanges && (
+                      <button
+                        onClick={() => {
+                          try {
+                            updateSensorsConfig(sensorConfigs)
+                            setHasUnsavedChanges(false)
+                            window.dispatchEvent(new Event('widgets-changed'))
+                            setToast({ message: 'Настройки датчиков сохранены!', type: 'success' })
+                          } catch (error) {
+                            console.error('Ошибка сохранения:', error)
+                            setToast({ message: 'Ошибка сохранения настроек', type: 'error' })
+                          }
+                        }}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
+                        title="Сохранить изменения"
+                      >
+                        <Save size={16} />
+                        Сохранить
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="text-center text-dark-textSecondary py-8">
-                Настройки Sensors Widget (в разработке)
+              <div className="p-4 space-y-4">
+                {sensorConfigs && sensorConfigs.length > 0 ? sensorConfigs.map((sensor, index) => (
+                  <div key={index} className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className={`p-2 rounded-lg ${
+                          sensor.type === 'motion' ? 'bg-blue-500/20' : 'bg-green-500/20'
+                        }`}>
+                          {sensor.type === 'motion' ? (
+                            <Activity size={16} className="text-blue-400" />
+                          ) : (
+                            <User size={16} className="text-green-400" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-xs text-dark-textSecondary mb-1">
+                            Название датчика:
+                          </label>
+                          <input
+                            type="text"
+                            value={sensor.name}
+                            onChange={(e) => {
+                              const newConfigs = [...sensorConfigs]
+                              newConfigs[index].name = e.target.value
+                              setSensorConfigs(newConfigs)
+                              setHasUnsavedChanges(true)
+                            }}
+                            className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Название датчика"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={sensor.type}
+                            onChange={(e) => {
+                              const newConfigs = [...sensorConfigs]
+                              newConfigs[index].type = e.target.value as 'motion' | 'presence'
+                              setSensorConfigs(newConfigs)
+                              setHasUnsavedChanges(true)
+                            }}
+                            className="bg-dark-card border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="motion">Движение</option>
+                            <option value="presence">Присутствие</option>
+                          </select>
+                          <button
+                            onClick={() => {
+                              if (confirm('Удалить этот датчик?')) {
+                                const newConfigs = sensorConfigs.filter((_, i) => i !== index)
+                                setSensorConfigs(newConfigs)
+                                setHasUnsavedChanges(true)
+                              }
+                            }}
+                            className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0"
+                            title="Удалить этот датчик"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-dark-textSecondary mb-1">
+                        Entity ID датчика: {sensor.entityId || 'Не привязано'}
+                      </label>
+                      <div className="flex gap-2">
+                        <select
+                          value={sensor.entityId || ''}
+                          onChange={(e) => {
+                            const selectedEntityId = e.target.value || null
+                            let friendlyName = sensor.name
+                            if (selectedEntityId) {
+                              const entity = entities.find(e => e.entity_id === selectedEntityId)
+                              if (entity && entity.attributes.friendly_name) {
+                                friendlyName = entity.attributes.friendly_name
+                              }
+                            }
+                            const newConfigs = [...sensorConfigs]
+                            newConfigs[index] = { ...sensor, entityId: selectedEntityId, name: friendlyName }
+                            setSensorConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }}
+                          className="flex-1 bg-dark-card border border-dark-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">-- Выберите датчик --</option>
+                          {entities
+                            .filter(e => {
+                              const domain = e.entity_id.split('.')[0]
+                              return domain === 'binary_sensor' || domain === 'sensor'
+                            })
+                            .map(entity => (
+                              <option key={entity.entity_id} value={entity.entity_id}>
+                                {entity.attributes.friendly_name || entity.entity_id} ({entity.entity_id})
+                              </option>
+                            ))}
+                        </select>
+                        {sensor.entityId && (
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(sensor.entityId || '')
+                            }}
+                            className="text-xs bg-dark-cardHover hover:bg-dark-border px-3 py-2 rounded transition-colors flex-shrink-0 whitespace-nowrap"
+                            title="Копировать entity_id"
+                          >
+                            Копировать
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="text-center text-dark-textSecondary py-8">
+                    <p className="mb-4">Нет датчиков в виджете</p>
+                    <div className="flex gap-2 justify-center">
+                      <button
+                        onClick={() => {
+                          const newSensor: SensorConfig = {
+                            name: 'Датчик движения 1',
+                            entityId: null,
+                            type: 'motion'
+                          }
+                          setSensorConfigs([newSensor])
+                          setHasUnsavedChanges(true)
+                        }}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                      >
+                        <Activity size={16} />
+                        Добавить датчик движения
+                      </button>
+                      <button
+                        onClick={() => {
+                          const newSensor: SensorConfig = {
+                            name: 'Датчик присутствия 1',
+                            entityId: null,
+                            type: 'presence'
+                          }
+                          setSensorConfigs([newSensor])
+                          setHasUnsavedChanges(true)
+                        }}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                      >
+                        <User size={16} />
+                        Добавить датчик присутствия
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -38,6 +38,7 @@ const DEFAULT_LAYOUTS: Record<string, Omit<WidgetLayout, 'i'>> = {
   'living-room': { x: 0, y: 10, w: 4, h: 3, minW: 2, minH: 2 },
   'ac': { x: 4, y: 10, w: 4, h: 5, minW: 3, minH: 4 },
   'water-heater': { x: 8, y: 10, w: 4, h: 5, minW: 3, minH: 4 },
+  'sensors': { x: 0, y: 13, w: 4, h: 4, minW: 2, minH: 3 },
 }
 
 export const getDashboardLayout = (): DashboardLayout => {

@@ -16,6 +16,7 @@ import LivingRoomWidget from './widgets/LivingRoomWidget'
 import WeatherCalendarWidget from './widgets/WeatherCalendarWidget'
 import ACWidget from './widgets/ACWidget'
 import WaterHeaterWidget from './widgets/WaterHeaterWidget'
+import SensorsWidget from './widgets/SensorsWidget'
 import { getDashboardLayout, updateWidgetLayout, WidgetLayout } from '../services/widgetLayout'
 import { GripVertical, Pencil, X } from 'lucide-react'
 
@@ -34,6 +35,7 @@ const widgetComponents: Record<string, React.ComponentType<any>> = {
   'living-room': LivingRoomWidget,
   'ac': ACWidget,
   'water-heater': WaterHeaterWidget,
+  'sensors': SensorsWidget,
 }
 
 const WidgetGrid = () => {

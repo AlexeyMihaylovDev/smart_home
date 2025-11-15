@@ -16,6 +16,12 @@ export interface WaterHeaterConfig {
   name: string
 }
 
+export interface SensorConfig {
+  name: string
+  entityId: string | null
+  type: 'motion' | 'presence'
+}
+
 export interface WidgetConfig {
   ambientLighting: {
     lights: LightConfig[]
@@ -24,6 +30,9 @@ export interface WidgetConfig {
     airConditioners: ACConfig[]
   }
   waterHeater: WaterHeaterConfig
+  sensors: {
+    sensors: SensorConfig[]
+  }
   enabledWidgets: {
     [widgetId: string]: boolean
   }
@@ -46,6 +55,9 @@ const DEFAULT_CONFIG: WidgetConfig = {
   waterHeater: {
     entityId: null,
     name: 'Водонагреватель'
+  },
+  sensors: {
+    sensors: []
   },
   enabledWidgets: {}
 }
@@ -182,6 +194,20 @@ export const getWaterHeaterConfig = (): WaterHeaterConfig => {
 export const updateWaterHeaterConfig = (waterHeaterConfig: WaterHeaterConfig): void => {
   const config = getWidgetConfig()
   config.waterHeater = waterHeaterConfig
+  saveWidgetConfig(config)
+}
+
+export const getSensorsConfig = (): SensorConfig[] => {
+  const config = getWidgetConfig()
+  return config.sensors?.sensors || []
+}
+
+export const updateSensorsConfig = (sensors: SensorConfig[]): void => {
+  const config = getWidgetConfig()
+  if (!config.sensors) {
+    config.sensors = { sensors: [] }
+  }
+  config.sensors.sensors = sensors
   saveWidgetConfig(config)
 }
 
