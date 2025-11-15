@@ -132,6 +132,7 @@ app.get('/api/config/widget', requireAuth, async (req, res) => {
       // Возвращаем дефолтную конфигурацию
       const defaultConfig = {
         ambientLighting: {
+          style: 'list',
           lights: [
             { name: 'Clock Light', entityId: null, icon: 'clock' },
             { name: 'TV Ambilight', entityId: null, icon: 'lightbulb' },

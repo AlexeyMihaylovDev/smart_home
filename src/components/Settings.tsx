@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
 import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock } from 'lucide-react'
-import { getAmbientLightingConfigSync, updateAmbientLightingConfig, LightConfig, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getMotorConfigsSync, updateMotorConfigs, MotorConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
+import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getMotorConfigsSync, updateMotorConfigs, MotorConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
 import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 import ToggleSwitch from './ui/ToggleSwitch'
 import Toast from './ui/Toast'
 import SearchableSelect from './ui/SearchableSelect'
+import { ListStyle, CardsStyle, CompactStyle, MinimalStyle } from './widgets/AmbientLightingStyles'
 
 type Tab = 'devices' | 'widgets' | 'home-assistant'
 type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | 'water-heater' | 'motors' | null
@@ -17,6 +18,45 @@ interface WidgetOption {
   description: string
   icon: React.ComponentType<{ size?: number; className?: string }>
   color: string
+}
+
+// Preview компонент для настроек
+const PreviewContent = ({ lights, entities, style }: { lights: LightConfig[], entities: Map<string, Entity>, style: AmbientLightingStyle }) => {
+  const getEntityState = (entityId: string | null): boolean => {
+    if (!entityId) return false
+    const entity = entities.get(entityId)
+    if (!entity) return false
+    return entity.state === 'on'
+  }
+
+  const getDisplayName = (light: LightConfig): string => {
+    return light.name || 'Без названия'
+  }
+
+  const getIcon = (iconType: 'clock' | 'lightbulb') => {
+    return iconType === 'clock' ? Clock : Lightbulb
+  }
+
+  const styleProps = {
+    lights,
+    entities,
+    onToggle: () => {}, // Preview не должен переключать
+    getEntityState,
+    getDisplayName,
+    getIcon
+  }
+
+  switch (style) {
+    case 'cards':
+      return <CardsStyle {...styleProps} />
+    case 'compact':
+      return <CompactStyle {...styleProps} />
+    case 'minimal':
+      return <MinimalStyle {...styleProps} />
+    case 'list':
+    default:
+      return <ListStyle {...styleProps} />
+  }
 }
 
 const Settings = () => {
@@ -33,6 +73,13 @@ const Settings = () => {
       return getAmbientLightingConfigSync()
     } catch {
       return []
+    }
+  })
+  const [ambientLightingStyle, setAmbientLightingStyle] = useState<AmbientLightingStyle>(() => {
+    try {
+      return getAmbientLightingStyleSync()
+    } catch {
+      return 'list'
     }
   })
   const [acConfigs, setACConfigs] = useState<ACConfig[]>(() => {
@@ -671,32 +718,54 @@ const Settings = () => {
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={autoFillFromSwitches}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
-                    title="Автоматически заполнить все переключатели из switch устройств"
-                  >
-                    <RefreshCw size={16} />
-                    Автозаполнить из Switch
-                  </button>
-                  <button
-                    onClick={handleAddNew}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
-                    title="Добавить новый переключатель"
-                  >
-                    +
-                  </button>
-                  {hasUnsavedChanges && (
-                    <button
-                      onClick={handleSave}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
-                      title="Сохранить изменения"
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Выбор стиля виджета */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-dark-textSecondary whitespace-nowrap">Стиль виджета:</label>
+                    <select
+                      value={ambientLightingStyle}
+                      onChange={async (e) => {
+                        const newStyle = e.target.value as AmbientLightingStyle
+                        setAmbientLightingStyle(newStyle)
+                        await updateAmbientLightingStyle(newStyle)
+                        setHasUnsavedChanges(true)
+                        window.dispatchEvent(new Event('widgets-changed'))
+                      }}
+                      className="bg-dark-bg border border-dark-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <Save size={16} />
-                      Сохранить
+                      <option value="list">Список</option>
+                      <option value="cards">Карточки</option>
+                      <option value="compact">Компактный</option>
+                      <option value="minimal">Минималистичный</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={autoFillFromSwitches}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                      title="Автоматически заполнить все переключатели из switch устройств"
+                    >
+                      <RefreshCw size={16} />
+                      Автозаполнить из Switch
                     </button>
-                  )}
+                    <button
+                      onClick={handleAddNew}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                      title="Добавить новый переключатель"
+                    >
+                      +
+                    </button>
+                    {hasUnsavedChanges && (
+                      <button
+                        onClick={handleSave}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
+                        title="Сохранить изменения"
+                      >
+                        <Save size={16} />
+                        Сохранить
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
               {lightConfigs.length > 0 && (
@@ -829,34 +898,11 @@ const Settings = () => {
                       </div>
                       <div className="font-medium text-white">תאורה סביבתית</div>
                     </div>
-                    <div className="space-y-2">
-                      {lightConfigs.map((light, index) => {
-                        const isOn = light.entityId ? (previewEntities.get(light.entityId)?.state === 'on') : false
-                        const hasEntity = light.entityId !== null
-                        const Icon = light.icon === 'clock' ? Clock : Lightbulb
-
-                        return (
-                          <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors flex-shrink-0">
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <Icon size={16} className={`${isOn ? 'text-yellow-400' : 'text-dark-textSecondary'} flex-shrink-0`} />
-                              <span className={`text-sm truncate ${isOn ? 'text-white' : 'text-dark-textSecondary'}`} title={light.name}>
-                                {light.name || 'Без названия'}
-                              </span>
-                              {!hasEntity && (
-                                <span className="text-xs text-red-400 ml-2 flex-shrink-0">Не настроено</span>
-                              )}
-                            </div>
-                            <div className={`w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
-                              isOn ? 'bg-blue-600' : 'bg-gray-600'
-                            } ${!hasEntity ? 'opacity-50' : ''}`}>
-                              <div className={`w-5 h-5 rounded-full bg-white transition-transform mt-0.5 ${
-                                isOn ? 'translate-x-4' : 'translate-x-0.5'
-                              }`} />
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
+                    <PreviewContent
+                      lights={lightConfigs}
+                      entities={previewEntities}
+                      style={ambientLightingStyle}
+                    />
                   </div>
                 </div>
               )}

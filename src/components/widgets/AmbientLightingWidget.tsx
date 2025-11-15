@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { Clock, Lightbulb } from 'lucide-react'
 import { useHomeAssistant } from '../../context/HomeAssistantContext'
-import { getAmbientLightingConfigSync, LightConfig } from '../../services/widgetConfig'
+import { getAmbientLightingConfigSync, getAmbientLightingStyleSync, LightConfig, AmbientLightingStyle } from '../../services/widgetConfig'
 import { Entity } from '../../services/homeAssistantAPI'
-import ToggleSwitch from '../ui/ToggleSwitch'
+import { ListStyle, CardsStyle, CompactStyle, MinimalStyle } from './AmbientLightingStyles'
 
 const AmbientLightingWidget = () => {
   const { api } = useHomeAssistant()
   const [lights, setLights] = useState<LightConfig[]>([])
+  const [style, setStyle] = useState<AmbientLightingStyle>('list')
   const [entities, setEntities] = useState<Map<string, Entity>>(new Map())
   const [loading, setLoading] = useState(true)
 
@@ -36,7 +37,9 @@ const AmbientLightingWidget = () => {
 
   const loadConfig = () => {
     const config = getAmbientLightingConfigSync()
+    const widgetStyle = getAmbientLightingStyleSync()
     setLights(config)
+    setStyle(widgetStyle)
     setLoading(false)
   }
 
@@ -114,6 +117,29 @@ const AmbientLightingWidget = () => {
     )
   }
 
+  const styleProps = {
+    lights,
+    entities,
+    onToggle: handleToggle,
+    getEntityState,
+    getDisplayName,
+    getIcon
+  }
+
+  const renderStyle = () => {
+    switch (style) {
+      case 'cards':
+        return <CardsStyle {...styleProps} />
+      case 'compact':
+        return <CompactStyle {...styleProps} />
+      case 'minimal':
+        return <MinimalStyle {...styleProps} />
+      case 'list':
+      default:
+        return <ListStyle {...styleProps} />
+    }
+  }
+
   return (
     <div className="h-full p-4 flex flex-col">
       <div className="flex items-center gap-2 mb-4 flex-shrink-0">
@@ -122,32 +148,7 @@ const AmbientLightingWidget = () => {
         </div>
         <div className="font-medium text-white">תאורה סביבתית</div>
       </div>
-      <div className="space-y-2 overflow-y-auto flex-1 min-h-0" style={{ maxHeight: 'calc(5 * (2.5rem + 0.5rem))' }}>
-        {Array.isArray(lights) && lights.map((light, index) => {
-          const Icon = getIcon(light.icon)
-          const isOn = getEntityState(light.entityId)
-          const hasEntity = light.entityId !== null
-
-          const displayName = getDisplayName(light)
-
-          return (
-            <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors flex-shrink-0">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <Icon size={16} className={`${isOn ? 'text-yellow-400' : 'text-dark-textSecondary'} flex-shrink-0`} />
-                <span className={`text-sm truncate ${isOn ? 'text-white' : 'text-dark-textSecondary'}`} title={displayName}>{displayName}</span>
-                {!hasEntity && (
-                  <span className="text-xs text-red-400 ml-2 flex-shrink-0">Не настроено</span>
-                )}
-              </div>
-              <ToggleSwitch
-                checked={isOn}
-                onChange={() => handleToggle(light)}
-                disabled={!hasEntity}
-              />
-            </div>
-          )
-        })}
-      </div>
+      {renderStyle()}
     </div>
   )
 }

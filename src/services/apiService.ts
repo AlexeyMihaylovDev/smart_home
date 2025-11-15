@@ -60,6 +60,7 @@ export interface WidgetConfig {
       entityId: string | null
       icon: 'clock' | 'lightbulb'
     }>
+    style?: 'list' | 'cards' | 'compact' | 'minimal'
   }
   ac: {
     airConditioners: Array<{

@@ -28,9 +28,12 @@ export interface MotorConfig {
   name: string
 }
 
+export type AmbientLightingStyle = 'list' | 'cards' | 'compact' | 'minimal'
+
 export interface WidgetConfig {
   ambientLighting: {
     lights: LightConfig[]
+    style?: AmbientLightingStyle
   }
   ac: {
     airConditioners: ACConfig[]
@@ -49,6 +52,7 @@ export interface WidgetConfig {
 
 const DEFAULT_CONFIG: WidgetConfig = {
   ambientLighting: {
+    style: 'list',
     lights: [
       { name: 'Clock Light', entityId: null, icon: 'clock' },
       { name: 'TV Ambilight', entityId: null, icon: 'lightbulb' },
@@ -171,6 +175,22 @@ export const getAmbientLightingConfig = async (): Promise<LightConfig[]> => {
 export const getAmbientLightingConfigSync = (): LightConfig[] => {
   const config = getWidgetConfigSync()
   return config.ambientLighting.lights
+}
+
+export const getAmbientLightingStyle = async (): Promise<AmbientLightingStyle> => {
+  const config = await getWidgetConfig()
+  return config.ambientLighting.style || 'list'
+}
+
+export const getAmbientLightingStyleSync = (): AmbientLightingStyle => {
+  const config = getWidgetConfigSync()
+  return config.ambientLighting.style || 'list'
+}
+
+export const updateAmbientLightingStyle = async (style: AmbientLightingStyle): Promise<void> => {
+  const config = await getWidgetConfig()
+  config.ambientLighting.style = style
+  await saveWidgetConfig(config)
 }
 
 export const updateACConfigs = async (airConditioners: ACConfig[]): Promise<void> => {
