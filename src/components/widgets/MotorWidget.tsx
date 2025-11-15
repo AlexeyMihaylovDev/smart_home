@@ -155,10 +155,10 @@ const MotorUnit = ({ motorConfig, entity, api, loading, onLoadingChange }: Motor
 
       {/* Позиция в процентах */}
       {position !== null && (
-        <div className="mb-1.5">
+        <div className="mb-1">
           <div className="flex items-center justify-between mb-0.5">
-            <span className="text-[10px] text-dark-textSecondary">מיקום</span>
-            <span className="text-xs font-bold text-white">{position}%</span>
+            <span className="text-[9px] text-dark-textSecondary">מיקום</span>
+            <span className="text-[10px] font-bold text-white">{position}%</span>
           </div>
           <input
             type="range"
@@ -178,7 +178,7 @@ const MotorUnit = ({ motorConfig, entity, api, loading, onLoadingChange }: Motor
               handleSetPosition(newPos)
             }}
             disabled={localLoading || loading || !entity}
-            className="w-full h-1.5 bg-dark-card rounded-lg appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-1 bg-dark-card rounded appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${position}%, #1f2937 ${position}%, #1f2937 100%)`
             }}
@@ -187,30 +187,30 @@ const MotorUnit = ({ motorConfig, entity, api, loading, onLoadingChange }: Motor
       )}
 
       {/* Кнопки управления */}
-      <div className="flex gap-1.5">
+      <div className="flex gap-1">
         <button
           onClick={handleOpen}
           disabled={localLoading || loading || !entity}
-          className="flex-1 px-2 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed text-white rounded transition-colors flex items-center justify-center"
+          className="flex-1 px-1 py-1 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed text-white rounded transition-colors flex items-center justify-center min-w-0"
           title="פתוח"
         >
-          <ChevronUp size={14} />
+          <ChevronUp size={12} />
         </button>
         <button
           onClick={handleStop}
           disabled={localLoading || loading || !entity}
-          className="px-2 py-1.5 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-800 disabled:cursor-not-allowed text-white rounded transition-colors flex items-center justify-center"
+          className="px-1 py-1 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-800 disabled:cursor-not-allowed text-white rounded transition-colors flex items-center justify-center flex-shrink-0"
           title="עצור"
         >
-          <Square size={14} />
+          <Square size={12} />
         </button>
         <button
           onClick={handleClose}
           disabled={localLoading || loading || !entity}
-          className="flex-1 px-2 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed text-white rounded transition-colors flex items-center justify-center"
+          className="flex-1 px-1 py-1 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed text-white rounded transition-colors flex items-center justify-center min-w-0"
           title="סגור"
         >
-          <ChevronDown size={14} />
+          <ChevronDown size={12} />
         </button>
       </div>
     </div>
