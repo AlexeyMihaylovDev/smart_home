@@ -121,7 +121,7 @@ const AmbientLightingWidget = () => {
   if (loading) {
     return (
       <div className="h-full p-4">
-        <div className="font-medium mb-4 text-white">Ambient Lighting</div>
+        <div className="font-medium mb-4 text-white">תאורה סביבתית</div>
         <div className="text-sm text-dark-textSecondary">Загрузка...</div>
       </div>
     )
@@ -133,7 +133,7 @@ const AmbientLightingWidget = () => {
         <div className="p-2 bg-yellow-500/20 rounded-lg">
           <Lightbulb size={18} className="text-yellow-400" />
         </div>
-        <div className="font-medium text-white">Ambient Lighting</div>
+        <div className="font-medium text-white">תאורה סביבתית</div>
       </div>
       <div className="space-y-2 overflow-y-auto flex-1 min-h-0" style={{ maxHeight: 'calc(5 * (2.5rem + 0.5rem))' }}>
         {Array.isArray(lights) && lights.map((light, index) => {

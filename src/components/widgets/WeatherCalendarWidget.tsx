@@ -67,7 +67,7 @@ const WeatherCalendarWidget = () => {
         const forecast = attrs.forecast ? attrs.forecast.slice(0, 5).map((f: any, index: number) => {
           const date = new Date()
           date.setDate(date.getDate() + index + 1)
-          const dayNamesShort = ['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ']
+          const dayNamesShort = ['א\'', 'ב\'', 'ג\'', 'ד\'', 'ה\'', 'ו\'', 'ש\'']
           return {
             day: dayNamesShort[date.getDay()],
             condition: f.condition || 'sunny',
@@ -166,9 +166,9 @@ const WeatherCalendarWidget = () => {
     return days
   }
 
-  const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
-    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
-  const dayNames = ['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ']
+  const monthNames = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 
+    'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר']
+  const dayNames = ['א\'', 'ב\'', 'ג\'', 'ד\'', 'ה\'', 'ו\'', 'ש\'']
 
   const navigateMonth = (direction: number) => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1))
@@ -188,7 +188,7 @@ const WeatherCalendarWidget = () => {
     <div className="h-full overflow-hidden flex flex-col">
       {/* Погода */}
       {weatherData && (
-        <div className="p-4 border-b border-dark-border">
+        <div className="p-2 border-b border-dark-border flex-shrink-0">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
               {getWeatherIcon(weatherData.condition)}
@@ -223,30 +223,41 @@ const WeatherCalendarWidget = () => {
       )}
 
       {/* Календарь */}
-      <div className="p-4">
-        <div className="mb-4">
-          <h3 className="text-xl font-bold mb-1">Calendar</h3>
+      <div className="p-2 flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="mb-1 flex-shrink-0">
+          <h3 className="text-sm font-bold">לוח שנה</h3>
         </div>
-        <div className="flex items-center justify-between mb-4">
+        
+        {/* Текущее время - перемещено вверх */}
+        <div className="mb-1.5 pb-1.5 border-b border-dark-border text-center flex-shrink-0">
+          <div className="text-sm font-bold">
+            {currentTime.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </div>
+          <div className="text-[10px] text-dark-textSecondary leading-tight">
+            {currentTime.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between mb-1 flex-shrink-0">
           <button
             onClick={() => setCurrentDate(new Date())}
-            className="px-3 py-1 text-xs bg-dark-cardHover hover:bg-dark-border rounded transition-colors"
+            className="px-1.5 py-0.5 text-[10px] bg-dark-cardHover hover:bg-dark-border rounded transition-colors"
           >
-            СЕГОДНЯ
+            היום
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => navigateMonth(-1)}
-              className="p-1 hover:bg-dark-cardHover rounded transition-colors"
+              className="p-0.5 hover:bg-dark-cardHover rounded transition-colors text-xs"
             >
               ←
             </button>
-            <span className="font-medium min-w-[120px] text-center">
+            <span className="font-medium min-w-[80px] text-center text-xs">
               {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
             </span>
             <button
               onClick={() => navigateMonth(1)}
-              className="p-1 hover:bg-dark-cardHover rounded transition-colors"
+              className="p-0.5 hover:bg-dark-cardHover rounded transition-colors text-xs"
             >
               →
             </button>
@@ -254,21 +265,21 @@ const WeatherCalendarWidget = () => {
         </div>
 
         {/* Дни недели */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
+        <div className="grid grid-cols-7 gap-0.5 mb-0.5 flex-shrink-0">
           {dayNames.map(day => (
-            <div key={day} className="text-xs text-dark-textSecondary text-center py-1">
+            <div key={day} className="text-[10px] text-dark-textSecondary text-center py-0.5">
               {day}
             </div>
           ))}
         </div>
 
         {/* Календарная сетка */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-0.5 flex-1 min-h-0">
           {days.map((day, index) => (
             <button
               key={index}
               onClick={() => day && setSelectedDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), day))}
-              className={`aspect-square flex items-center justify-center text-sm rounded transition-colors ${
+              className={`flex items-center justify-center text-[10px] rounded transition-colors ${
                 !day 
                   ? 'cursor-default' 
                   : isToday(day)
@@ -279,20 +290,11 @@ const WeatherCalendarWidget = () => {
                   ? 'bg-dark-cardHover text-white'
                   : 'hover:bg-dark-cardHover text-dark-textSecondary'
               }`}
+              style={{ minHeight: '20px' }}
             >
               {day}
             </button>
           ))}
-        </div>
-
-        {/* Текущее время */}
-        <div className="mt-4 pt-4 border-t border-dark-border text-center">
-          <div className="text-2xl font-bold">
-            {currentTime.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-          </div>
-          <div className="text-sm text-dark-textSecondary">
-            {currentTime.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </div>
         </div>
       </div>
     </div>
