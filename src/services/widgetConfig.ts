@@ -21,6 +21,8 @@ export interface SensorConfig {
   name: string
   entityId: string | null
   type: 'motion' | 'presence'
+  powerType?: 'battery' | 'electric'
+  batteryEntityId?: string | null
 }
 
 export interface MotorConfig {

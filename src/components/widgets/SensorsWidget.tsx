@@ -51,15 +51,22 @@ const SensorsWidget = () => {
       const entityIds = sensors
         .map(s => s.entityId)
         .filter((id): id is string => id !== null)
+      
+      const batteryEntityIds = sensors
+        .filter(s => s.powerType === 'battery' && s.batteryEntityId)
+        .map(s => s.batteryEntityId)
+        .filter((id): id is string => id !== null)
 
-      if (entityIds.length === 0) return
+      const allEntityIds = [...new Set([...entityIds, ...batteryEntityIds])]
+
+      if (allEntityIds.length === 0) return
 
       const states = await Promise.all(
-        entityIds.map(id => api.getState(id).catch(() => null))
+        allEntityIds.map(id => api.getState(id).catch(() => null))
       )
 
       const newEntities = new Map<string, Entity>()
-      entityIds.forEach((id, index) => {
+      allEntityIds.forEach((id, index) => {
         const state = states[index]
         if (state) {
           newEntities.set(id, state)
@@ -91,16 +98,56 @@ const SensorsWidget = () => {
     return 'Неизвестный датчик'
   }
 
-  const getBatteryLevel = (entityId: string | null): number | null => {
-    if (!entityId) return null
-    const entity = entities.get(entityId)
+  const getBatteryLevel = (sensor: SensorConfig): number | null => {
+    // Если есть отдельный entity ID для батареи, используем его
+    if (sensor.powerType === 'battery' && sensor.batteryEntityId) {
+      const batteryEntity = entities.get(sensor.batteryEntityId)
+      if (batteryEntity) {
+        const attrs = batteryEntity.attributes || {}
+        
+        // Пробуем разные варианты получения значения батареи
+        let battery: number | null = null
+        
+        // Проверяем атрибуты
+        if (attrs.battery_level !== undefined) {
+          battery = typeof attrs.battery_level === 'number' ? attrs.battery_level : parseFloat(String(attrs.battery_level))
+        } else if (attrs.battery !== undefined) {
+          battery = typeof attrs.battery === 'number' ? attrs.battery : parseFloat(String(attrs.battery))
+        } else if (attrs.battery_percentage !== undefined) {
+          battery = typeof attrs.battery_percentage === 'number' ? attrs.battery_percentage : parseFloat(String(attrs.battery_percentage))
+        }
+        
+        // Если в атрибутах не нашли, проверяем state
+        if (battery === null || isNaN(battery)) {
+          const stateValue = batteryEntity.state
+          if (stateValue !== undefined && stateValue !== null && stateValue !== 'unknown' && stateValue !== 'unavailable') {
+            battery = typeof stateValue === 'number' ? stateValue : parseFloat(String(stateValue))
+          }
+        }
+        
+        if (battery !== null && !isNaN(battery)) {
+          return Math.max(0, Math.min(100, battery))
+        }
+      }
+    }
+    
+    // Fallback: проверяем атрибуты основного entity
+    if (!sensor.entityId) return null
+    const entity = entities.get(sensor.entityId)
     if (!entity) return null
     
-    // Проверяем различные варианты атрибутов батареи
-    const attrs = entity.attributes
-    const battery = attrs.battery_level ?? attrs.battery ?? attrs.battery_percentage ?? null
+    const attrs = entity.attributes || {}
+    let battery: number | null = null
     
-    if (typeof battery === 'number') {
+    if (attrs.battery_level !== undefined) {
+      battery = typeof attrs.battery_level === 'number' ? attrs.battery_level : parseFloat(String(attrs.battery_level))
+    } else if (attrs.battery !== undefined) {
+      battery = typeof attrs.battery === 'number' ? attrs.battery : parseFloat(String(attrs.battery))
+    } else if (attrs.battery_percentage !== undefined) {
+      battery = typeof attrs.battery_percentage === 'number' ? attrs.battery_percentage : parseFloat(String(attrs.battery_percentage))
+    }
+    
+    if (battery !== null && !isNaN(battery)) {
       return Math.max(0, Math.min(100, battery))
     }
     
@@ -153,6 +200,10 @@ const SensorsWidget = () => {
               const isActive = getEntityState(sensor.entityId)
               const hasEntity = sensor.entityId !== null
               const displayName = getDisplayName(sensor)
+              const powerType = sensor.powerType || 'electric'
+              const batteryLevel = powerType === 'battery' ? getBatteryLevel(sensor) : null
+              const BatteryIcon = batteryLevel !== null ? getBatteryIcon(batteryLevel) : null
+              const batteryColor = getBatteryColor(batteryLevel)
 
               return (
                 <div
@@ -177,7 +228,25 @@ const SensorsWidget = () => {
                       {displayName}
                     </span>
                     {!hasEntity && (
-                      <span className="text-xs text-red-400 ml-2 flex-shrink-0">Не настроено</span>
+                      <span className="text-xs text-red-400 ml-2 flex-shrink-0">לא מוגדר</span>
+                    )}
+                    {powerType === 'electric' && (
+                      <div className="flex items-center gap-1 ml-2 flex-shrink-0 px-2 py-0.5 rounded-full bg-dark-card border border-dark-border text-green-400" title="חשמל">
+                        <span className="text-xs font-medium">∞</span>
+                      </div>
+                    )}
+                    {powerType === 'battery' && (
+                      batteryLevel !== null && BatteryIcon ? (
+                        <div className={`flex items-center gap-1 ml-2 flex-shrink-0 px-2 py-0.5 rounded-full bg-dark-card border border-dark-border ${batteryColor}`} title={`סוללה: ${batteryLevel}%`}>
+                          <BatteryIcon size={12} />
+                          <span className="text-xs font-medium">{batteryLevel}%</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 ml-2 flex-shrink-0 px-2 py-0.5 rounded-full bg-dark-card border border-dark-border text-gray-400" title="סוללה: אין נתונים">
+                          <Battery size={12} />
+                          <span className="text-xs font-medium">--</span>
+                        </div>
+                      )
                     )}
                   </div>
                   <div className={`px-2 py-1 rounded text-xs font-medium flex-shrink-0 ${
@@ -185,7 +254,7 @@ const SensorsWidget = () => {
                       ? 'bg-blue-500/20 text-blue-400'
                       : 'bg-gray-500/20 text-gray-400'
                   }`}>
-                    {isActive ? 'Активен' : 'Неактивен'}
+                    {isActive ? 'פעיל' : 'לא פעיל'}
                   </div>
                 </div>
               )
@@ -208,7 +277,8 @@ const SensorsWidget = () => {
               const isActive = getEntityState(sensor.entityId)
               const hasEntity = sensor.entityId !== null
               const displayName = getDisplayName(sensor)
-              const batteryLevel = getBatteryLevel(sensor.entityId)
+              const powerType = sensor.powerType || 'electric'
+              const batteryLevel = powerType === 'battery' ? getBatteryLevel(sensor) : null
               const BatteryIcon = batteryLevel !== null ? getBatteryIcon(batteryLevel) : null
               const batteryColor = getBatteryColor(batteryLevel)
 
@@ -242,13 +312,25 @@ const SensorsWidget = () => {
                       {displayName}
                     </span>
                     {!hasEntity && (
-                      <span className="text-xs text-red-400 ml-2 flex-shrink-0">Не настроено</span>
+                      <span className="text-xs text-red-400 ml-2 flex-shrink-0">לא מוגדר</span>
                     )}
-                    {batteryLevel !== null && BatteryIcon && (
-                      <div className="flex items-center gap-1 ml-2 flex-shrink-0" title={`Батарея: ${batteryLevel}%`}>
-                        <BatteryIcon size={14} className={batteryColor} />
-                        <span className={`text-xs ${batteryColor}`}>{batteryLevel}%</span>
+                    {powerType === 'electric' && (
+                      <div className="flex items-center gap-1 ml-2 flex-shrink-0 px-2 py-0.5 rounded-full bg-dark-card border border-dark-border text-green-400" title="חשמל">
+                        <span className="text-xs font-medium">∞</span>
                       </div>
+                    )}
+                    {powerType === 'battery' && (
+                      batteryLevel !== null && BatteryIcon ? (
+                        <div className={`flex items-center gap-1 ml-2 flex-shrink-0 px-2 py-0.5 rounded-full bg-dark-card border border-dark-border ${batteryColor}`} title={`סוללה: ${batteryLevel}%`}>
+                          <BatteryIcon size={12} />
+                          <span className="text-xs font-medium">{batteryLevel}%</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 ml-2 flex-shrink-0 px-2 py-0.5 rounded-full bg-dark-card border border-dark-border text-gray-400" title="סוללה: אין נתונים">
+                          <Battery size={12} />
+                          <span className="text-xs font-medium">--</span>
+                        </div>
+                      )
                     )}
                   </div>
                   <div className={`px-2 py-1 rounded text-xs font-medium flex-shrink-0 ${
@@ -256,7 +338,7 @@ const SensorsWidget = () => {
                       ? 'bg-green-500/20 text-green-400'
                       : 'bg-gray-500/20 text-gray-400'
                   }`}>
-                    {isActive ? 'Присутствует' : 'נעדר'}
+                    {isActive ? 'נוכח' : 'נעדר'}
                   </div>
                 </div>
               )

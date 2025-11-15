@@ -956,7 +956,9 @@ const Settings = () => {
                         const newSensor: SensorConfig = {
                           name: `חיישן תנועה ${sensorConfigs.filter(s => s.type === 'motion').length + 1}`,
                           entityId: null,
-                          type: 'motion'
+                          type: 'motion',
+                          powerType: 'electric',
+                          batteryEntityId: null
                         }
                         setSensorConfigs([...sensorConfigs, newSensor])
                         setHasUnsavedChanges(true)
@@ -972,7 +974,9 @@ const Settings = () => {
                         const newSensor: SensorConfig = {
                           name: `חיישן נוכחות ${sensorConfigs.filter(s => s.type === 'presence').length + 1}`,
                           entityId: null,
-                          type: 'presence'
+                          type: 'presence',
+                          powerType: 'electric',
+                          batteryEntityId: null
                         }
                         setSensorConfigs([...sensorConfigs, newSensor])
                         setHasUnsavedChanges(true)
@@ -1038,19 +1042,6 @@ const Settings = () => {
                           />
                         </div>
                         <div className="flex items-center gap-2">
-                          <select
-                            value={sensor.type}
-                            onChange={(e) => {
-                              const newConfigs = [...sensorConfigs]
-                              newConfigs[index].type = e.target.value as 'motion' | 'presence'
-                              setSensorConfigs(newConfigs)
-                              setHasUnsavedChanges(true)
-                            }}
-                            className="bg-dark-card border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="motion">תנועה</option>
-                            <option value="presence">נוכחות</option>
-                          </select>
                           <button
                             onClick={() => {
                               if (confirm('למחוק את החיישן הזה?')) {
@@ -1067,41 +1058,99 @@ const Settings = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex-1">
-                      <label className="block text-xs text-dark-textSecondary mb-1">
-                        מזהה ישות של חיישן: {sensor.entityId || 'לא מקושר'}
-                      </label>
-                      <SearchableSelect
-                        value={sensor.entityId || ''}
-                        onChange={(selectedEntityId) => {
-                          const entityId = selectedEntityId || null
-                          let friendlyName = sensor.name
-                          if (entityId) {
-                            const entity = entities.find(e => e.entity_id === entityId)
-                            if (entity && entity.attributes.friendly_name) {
-                              friendlyName = entity.attributes.friendly_name
+                    <div className="flex-1 space-y-2">
+                      <div>
+                        <label className="block text-xs text-dark-textSecondary mb-1">
+                          מזהה ישות של חיישן: {sensor.entityId || 'לא מקושר'}
+                        </label>
+                        <SearchableSelect
+                          value={sensor.entityId || ''}
+                          onChange={(selectedEntityId) => {
+                            const entityId = selectedEntityId || null
+                            let friendlyName = sensor.name
+                            if (entityId) {
+                              const entity = entities.find(e => e.entity_id === entityId)
+                              if (entity && entity.attributes.friendly_name) {
+                                friendlyName = entity.attributes.friendly_name
+                              }
                             }
-                          }
-                          const newConfigs = [...sensorConfigs]
-                          newConfigs[index] = { ...sensor, entityId, name: friendlyName }
-                          setSensorConfigs(newConfigs)
-                          setHasUnsavedChanges(true)
-                        }}
-                        options={[
-                          { value: '', label: '-- בחר חיישן --' },
-                          ...entities
-                            .filter(e => {
-                              const domain = e.entity_id.split('.')[0]
-                              return domain === 'binary_sensor' || domain === 'sensor'
-                            })
-                            .map(entity => ({
-                              value: entity.entity_id,
-                              label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
-                            }))
-                        ]}
-                        placeholder="-- בחר חיישן --"
-                        className="w-full"
-                      />
+                            const newConfigs = [...sensorConfigs]
+                            newConfigs[index] = { ...sensor, entityId, name: friendlyName }
+                            setSensorConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }}
+                          options={[
+                            { value: '', label: '-- בחר חיישן --' },
+                            ...entities
+                              .filter(e => {
+                                const domain = e.entity_id.split('.')[0]
+                                return domain === 'binary_sensor' || domain === 'sensor'
+                              })
+                              .map(entity => ({
+                                value: entity.entity_id,
+                                label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
+                              }))
+                          ]}
+                          placeholder="-- בחר חיישן --"
+                          className="w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-dark-textSecondary mb-1">
+                          סוג אספקת חשמל:
+                        </label>
+                        <select
+                          value={sensor.powerType || 'electric'}
+                          onChange={(e) => {
+                            const newConfigs = [...sensorConfigs]
+                            newConfigs[index] = {
+                              ...sensor,
+                              powerType: e.target.value as 'battery' | 'electric',
+                              batteryEntityId: e.target.value === 'electric' ? null : (sensor.batteryEntityId || null)
+                            }
+                            setSensorConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }}
+                          className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="electric">חשמל</option>
+                          <option value="battery">סוללה</option>
+                        </select>
+                      </div>
+                      {sensor.powerType === 'battery' && (
+                        <div>
+                          <label className="block text-xs text-dark-textSecondary mb-1">
+                            מזהה ישות של סוללה: {sensor.batteryEntityId || 'לא מקושר'}
+                          </label>
+                          <SearchableSelect
+                            value={sensor.batteryEntityId || ''}
+                            onChange={(selectedEntityId) => {
+                              const entityId = selectedEntityId || null
+                              const newConfigs = [...sensorConfigs]
+                              newConfigs[index] = { ...sensor, batteryEntityId: entityId }
+                              setSensorConfigs(newConfigs)
+                              setHasUnsavedChanges(true)
+                            }}
+                            options={[
+                              { value: '', label: '-- בחר חיישן סוללה --' },
+                              ...entities
+                                .filter(e => {
+                                  const domain = e.entity_id.split('.')[0]
+                                  const entityId = e.entity_id.toLowerCase()
+                                  return (domain === 'sensor' || domain === 'binary_sensor') &&
+                                    (entityId.includes('battery') || entityId.includes('battery_level') || 
+                                     entityId.includes('battery_percentage') || e.attributes.device_class === 'battery')
+                                })
+                                .map(entity => ({
+                                  value: entity.entity_id,
+                                  label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
+                                }))
+                            ]}
+                            placeholder="-- בחר חיישן סוללה --"
+                            className="w-full"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )) : (
@@ -1113,7 +1162,9 @@ const Settings = () => {
                           const newSensor: SensorConfig = {
                             name: 'חיישן תנועה 1',
                             entityId: null,
-                            type: 'motion'
+                            type: 'motion',
+                            powerType: 'electric',
+                            batteryEntityId: null
                           }
                           setSensorConfigs([newSensor])
                           setHasUnsavedChanges(true)
@@ -1128,7 +1179,9 @@ const Settings = () => {
                           const newSensor: SensorConfig = {
                             name: 'חיישן נוכחות 1',
                             entityId: null,
-                            type: 'presence'
+                            type: 'presence',
+                            powerType: 'electric',
+                            batteryEntityId: null
                           }
                           setSensorConfigs([newSensor])
                           setHasUnsavedChanges(true)
