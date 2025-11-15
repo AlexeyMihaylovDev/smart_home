@@ -45,6 +45,7 @@ const DEFAULT_LAYOUTS: Record<string, Omit<WidgetLayout, 'i'>> = {
   'sensors': { x: 0, y: 13, w: 4, h: 4, minW: 2, minH: 3 },
   'motors': { x: 4, y: 13, w: 4, h: 4, minW: 1, minH: 1 },
   'bose': { x: 8, y: 13, w: 4, h: 5, minW: 2, minH: 3 },
+  'vacuum': { x: 0, y: 18, w: 6, h: 8, minW: 3, minH: 5 },
 }
 
 export const getDashboardLayout = async (): Promise<DashboardLayout> => {

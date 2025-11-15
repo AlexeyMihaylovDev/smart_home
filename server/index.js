@@ -158,6 +158,9 @@ app.get('/api/config/widget', requireAuth, async (req, res) => {
         bose: {
           soundbars: []
         },
+        vacuum: {
+          vacuums: []
+        },
         enabledWidgets: {}
       }
       res.json(defaultConfig)

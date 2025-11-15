@@ -91,6 +91,18 @@ export interface WidgetConfig {
       name: string
     }>
   }
+  vacuum: {
+    vacuums: Array<{
+      entityId: string | null
+      name: string
+      mapEntityId?: string | null
+      relatedEntities?: Array<{
+        entityId: string
+        type: 'map' | 'sensor' | 'camera' | 'image' | 'other'
+        name?: string
+      }>
+    }>
+  }
   enabledWidgets: {
     [widgetId: string]: boolean
   }

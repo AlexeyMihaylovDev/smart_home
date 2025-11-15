@@ -35,6 +35,18 @@ export interface BoseConfig {
   name: string
 }
 
+export interface VacuumConfig {
+  entityId: string | null
+  name: string
+  mapEntityId?: string | null // Entity ID для карты (если отдельный)
+  // Дополнительные связанные entities с их типами
+  relatedEntities?: Array<{
+    entityId: string
+    type: 'map' | 'sensor' | 'camera' | 'image' | 'other'
+    name?: string // Отображаемое имя
+  }>
+}
+
 export type AmbientLightingStyle = 'list' | 'cards' | 'compact' | 'minimal'
 
 export interface WidgetConfig {
@@ -54,6 +66,9 @@ export interface WidgetConfig {
   }
   bose: {
     soundbars: BoseConfig[]
+  }
+  vacuum: {
+    vacuums: VacuumConfig[]
   }
   enabledWidgets: {
     [widgetId: string]: boolean
@@ -87,6 +102,9 @@ const DEFAULT_CONFIG: WidgetConfig = {
   },
   bose: {
     soundbars: []
+  },
+  vacuum: {
+    vacuums: []
   },
   enabledWidgets: {}
 }
@@ -396,5 +414,24 @@ export const updateBoseConfigs = async (soundbars: BoseConfig[]): Promise<void> 
     config.bose = { soundbars: [] }
   }
   config.bose.soundbars = soundbars
+  await saveWidgetConfig(config)
+}
+
+export const getVacuumConfigs = async (): Promise<VacuumConfig[]> => {
+  const config = await getWidgetConfig()
+  return config.vacuum?.vacuums || []
+}
+
+export const getVacuumConfigsSync = (): VacuumConfig[] => {
+  const config = getWidgetConfigSync()
+  return config.vacuum?.vacuums || []
+}
+
+export const updateVacuumConfigs = async (vacuums: VacuumConfig[]): Promise<void> => {
+  const config = await getWidgetConfig()
+  if (!config.vacuum) {
+    config.vacuum = { vacuums: [] }
+  }
+  config.vacuum.vacuums = vacuums
   await saveWidgetConfig(config)
 }

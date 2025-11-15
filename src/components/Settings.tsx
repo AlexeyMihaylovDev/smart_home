@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
-import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock } from 'lucide-react'
-import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
+import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock, Navigation } from 'lucide-react'
+import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
 import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 import ToggleSwitch from './ui/ToggleSwitch'
 import Toast from './ui/Toast'
@@ -10,7 +10,7 @@ import SearchableSelect from './ui/SearchableSelect'
 import { ListStyle, CardsStyle, CompactStyle, MinimalStyle } from './widgets/AmbientLightingStyles'
 
 type Tab = 'devices' | 'widgets' | 'home-assistant'
-type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | 'water-heater' | 'motors' | 'bose' | null
+type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | 'water-heater' | 'motors' | 'bose' | 'vacuum' | null
 
 interface WidgetOption {
   id: WidgetType
@@ -113,6 +113,13 @@ const Settings = () => {
   const [boseConfigs, setBoseConfigs] = useState<BoseConfig[]>(() => {
     try {
       return getBoseConfigsSync()
+    } catch {
+      return []
+    }
+  })
+  const [vacuumConfigs, setVacuumConfigs] = useState<VacuumConfig[]>(() => {
+    try {
+      return getVacuumConfigsSync()
     } catch {
       return []
     }
@@ -240,6 +247,13 @@ const Settings = () => {
       color: 'bg-purple-500'
     },
     {
+      id: 'vacuum',
+      name: 'Vacuum Widget',
+      description: 'Управление пылесосом Dreame',
+      icon: Navigation,
+      color: 'bg-green-500'
+    },
+    {
       id: 'cameras',
       name: 'Cameras Widget',
       description: 'Управление камерами',
@@ -290,6 +304,8 @@ const Settings = () => {
     setMotorConfigs(motors && Array.isArray(motors) ? motors : [])
     const bose = getBoseConfigsSync()
     setBoseConfigs(bose && Array.isArray(bose) ? bose : [])
+    const vacuum = getVacuumConfigsSync()
+    setVacuumConfigs(vacuum && Array.isArray(vacuum) ? vacuum : [])
   }
 
   useEffect(() => {
@@ -1503,6 +1519,628 @@ const Settings = () => {
                     >
                       <Music size={16} />
                       הוסף Bose ראשון
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {selectedWidget === 'vacuum' && (
+            <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
+              <div className="p-4 border-b border-dark-border">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setSelectedWidget(null)}
+                      className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
+                      title="חזור לבחירת וידג'ט"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                      <h2 className="font-medium text-lg">Vacuum Widget</h2>
+                      <p className="text-sm text-dark-textSecondary mt-1">
+                        הגדרת שואב אבק Dreame
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const newVacuum: VacuumConfig = {
+                          name: `שואב אבק ${vacuumConfigs.length + 1}`,
+                          entityId: null,
+                          mapEntityId: null
+                        }
+                        setVacuumConfigs([...vacuumConfigs, newVacuum])
+                        setHasUnsavedChanges(true)
+                      }}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                      title="הוסף שואב אבק חדש"
+                    >
+                      <Navigation size={16} />
+                      הוסף שואב אבק
+                    </button>
+                    {hasUnsavedChanges && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await updateVacuumConfigs(vacuumConfigs)
+                            setHasUnsavedChanges(false)
+                            window.dispatchEvent(new Event('widgets-changed'))
+                            setToast({ message: 'Настройки пылесоса сохранены!', type: 'success' })
+                          } catch (error) {
+                            console.error('Ошибка сохранения:', error)
+                            setToast({ message: 'Ошибка сохранения настроек', type: 'error' })
+                          }
+                        }}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
+                        title="שמור שינויים"
+                      >
+                        <Save size={16} />
+                        שמור
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
+                {vacuumConfigs && vacuumConfigs.length > 0 ? vacuumConfigs.map((vacuum, index) => (
+                  <div key={index} className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <label className="block text-xs text-dark-textSecondary mb-1">
+                          שם שואב אבק:
+                        </label>
+                        <input
+                          type="text"
+                          value={vacuum.name}
+                          onChange={(e) => {
+                            const newConfigs = [...vacuumConfigs]
+                            newConfigs[index].name = e.target.value
+                            setVacuumConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }}
+                          className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="שם שואב אבק"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (confirm('למחוק את שואב האבק הזה?')) {
+                            const newConfigs = vacuumConfigs.filter((_, i) => i !== index)
+                            setVacuumConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }
+                        }}
+                        className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0 ml-2"
+                        title="מחק את שואב האבק הזה"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-dark-textSecondary mb-1">
+                        מזהה ישות של שואב אבק: {vacuum.entityId || 'לא מקושר'}
+                      </label>
+                      <SearchableSelect
+                        value={vacuum.entityId || ''}
+                        onChange={async (selectedEntityId) => {
+                          const entityId = selectedEntityId || null
+                          const newConfigs = [...vacuumConfigs]
+                          let updatedVacuum = { ...vacuum, entityId, mapEntityId: null }
+                          
+                          // Автоматически ищем ВСЕ связанные entities
+                          if (entityId && api) {
+                            try {
+                              setHaLoading(true)
+                              
+                              // Извлекаем базовое имя из entity_id (например, из vacuum.x50_ultra_complete получаем x50_ultra_complete)
+                              const baseName = entityId.split('.').slice(1).join('.')
+                              const baseNameLower = baseName.toLowerCase()
+                              
+                              // Ищем все связанные entities
+                              const allEntities = await api.getStates()
+                              
+                              // Ищем ВСЕ связанные entities для пылесоса
+                              const baseParts = baseNameLower.split('_').filter(p => p.length > 2)
+                              
+                              // Находим все связанные entities (исключая сам vacuum entity)
+                              const relatedEntities = allEntities.filter((e: Entity) => {
+                                if (e.entity_id === entityId) return false // Исключаем сам vacuum entity
+                                
+                                const eId = e.entity_id.toLowerCase()
+                                const eBase = e.entity_id.split('.').slice(1).join('.').toLowerCase()
+                                
+                                // Точное совпадение базового имени
+                                if (eBase.includes(baseNameLower)) {
+                                  return true
+                                }
+                                
+                                // Частичное совпадение - проверяем общие части
+                                const eParts = eBase.split('_')
+                                const hasCommonParts = baseParts.some(bp => 
+                                  eParts.some(ep => ep.includes(bp) || bp.includes(ep))
+                                )
+                                
+                                return hasCommonParts
+                              })
+                              
+                              // Ищем map entity среди связанных (приоритет: map/mappin)
+                              let mapEntity = relatedEntities.find((e: Entity) => {
+                                const eId = e.entity_id.toLowerCase()
+                                const eBase = e.entity_id.split('.').slice(1).join('.').toLowerCase()
+                                
+                                // Приоритет 1: Точное совпадение с map/mappin
+                                if (eBase === baseNameLower + '_map' || 
+                                    eBase === baseNameLower + '_mappin' ||
+                                    eBase === 'map_' + baseNameLower) {
+                                  return true
+                                }
+                                
+                                // Приоритет 2: Содержит map/mappin в названии
+                                if (eId.includes('map') || eId.includes('mappin')) {
+                                  return true
+                                }
+                                
+                                // Приоритет 3: Camera/Image с картой
+                                if ((e.entity_id.startsWith('camera.') || e.entity_id.startsWith('image.')) &&
+                                    (e.attributes.entity_picture || e.attributes.map_image)) {
+                                  return true
+                                }
+                                
+                                // Приоритет 4: Sensor с map
+                                if (e.entity_id.startsWith('sensor.') && (eId.includes('map') || eId.includes('mappin'))) {
+                                  return true
+                                }
+                                
+                                return false
+                              })
+                              
+                              if (mapEntity) {
+                                updatedVacuum.mapEntityId = mapEntity.entity_id
+                              }
+                              
+                              // Формируем список всех найденных связанных entities
+                              const foundEntities = relatedEntities
+                                .filter(e => e.entity_id !== mapEntity?.entity_id)
+                                .map(e => ({
+                                  id: e.entity_id,
+                                  name: e.attributes.friendly_name || e.entity_id.split('.').slice(1).join('.'),
+                                  domain: e.entity_id.split('.')[0]
+                                }))
+                              
+                              const foundCount = relatedEntities.length
+                              
+                              if (foundCount > 0) {
+                                const mapInfo = mapEntity ? `מפה: ${mapEntity.entity_id.split('.').slice(1).join('.')}` : 'מפה לא נמצאה'
+                                const otherInfo = foundEntities.length > 0 
+                                  ? `. אחרות (${foundEntities.length}): ${foundEntities.slice(0, 3).map(e => e.name).join(', ')}${foundEntities.length > 3 ? '...' : ''}`
+                                  : ''
+                                
+                                setToast({ 
+                                  message: `נמצאו ${foundCount} ישויות קשורות. ${mapInfo}${otherInfo}`, 
+                                  type: 'success' 
+                                })
+                              } else {
+                                setToast({ 
+                                  message: 'לא נמצאו ישויות קשורות', 
+                                  type: 'info' 
+                                })
+                              }
+                            } catch (error) {
+                              console.error('Ошибка поиска связанных entities:', error)
+                              setToast({ 
+                                message: 'שגיאה בחיפוש ישויות קשורות', 
+                                type: 'error' 
+                              })
+                            } finally {
+                              setHaLoading(false)
+                            }
+                          }
+                          
+                          newConfigs[index] = updatedVacuum
+                          setVacuumConfigs(newConfigs)
+                          setHasUnsavedChanges(true)
+                        }}
+                        options={[
+                          { value: '', label: '-- בחר שואב אבק --' },
+                          ...entities
+                            .filter(e => {
+                              const domain = e.entity_id.split('.')[0]
+                              return domain === 'vacuum'
+                            })
+                            .map(entity => ({
+                              value: entity.entity_id,
+                              label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
+                            }))
+                        ]}
+                        placeholder="-- בחר שואב אבק --"
+                        className="w-full"
+                      />
+                      {vacuum.entityId && (
+                        <button
+                          onClick={async () => {
+                            if (!api || !vacuum.entityId) return
+                            
+                            try {
+                              setHaLoading(true)
+                              
+                              // Извлекаем базовое имя
+                              const baseName = vacuum.entityId.split('.').slice(1).join('.')
+                              const baseNameLower = baseName.toLowerCase()
+                              
+                              // Ищем все связанные entities
+                              const allEntities = await api.getStates()
+                              
+                              // Ищем map entity - пробуем разные варианты с приоритетами
+                              // Приоритет 1: Точное совпадение
+                              let mapEntity = allEntities.find((e: Entity) => {
+                                const eId = e.entity_id.toLowerCase()
+                                const eBase = e.entity_id.split('.').slice(1).join('.').toLowerCase()
+                                
+                                return eBase === baseNameLower + '_map' || 
+                                       eBase === baseNameLower + '_mappin' ||
+                                       eBase === 'map_' + baseNameLower ||
+                                       (eBase.includes(baseNameLower) && (eId.includes('map') || eId.includes('mappin')))
+                              })
+                              
+                              // Приоритет 2: Частичное совпадение
+                              if (!mapEntity) {
+                                mapEntity = allEntities.find((e: Entity) => {
+                                  const eId = e.entity_id.toLowerCase()
+                                  const eBase = e.entity_id.split('.').slice(1).join('.').toLowerCase()
+                                  
+                                  const baseParts = baseNameLower.split('_').filter(p => p.length > 2)
+                                  const eParts = eBase.split('_')
+                                  
+                                  const hasCommonParts = baseParts.some(bp => 
+                                    eParts.some(ep => ep.includes(bp) || bp.includes(ep))
+                                  )
+                                  
+                                  return hasCommonParts && (
+                                    eId.includes('map') || 
+                                    eId.includes('mappin') ||
+                                    (e.entity_id.startsWith('camera.') && (e.attributes.entity_picture || e.attributes.map_image)) ||
+                                    (e.entity_id.startsWith('image.') && (e.attributes.entity_picture || e.attributes.map_image)) ||
+                                    (e.entity_id.startsWith('sensor.') && (eId.includes('map') || eId.includes('mappin')))
+                                  )
+                                })
+                              }
+                              
+                              // Приоритет 3: Camera/Image
+                              if (!mapEntity) {
+                                mapEntity = allEntities.find((e: Entity) => {
+                                  const eBase = e.entity_id.split('.').slice(1).join('.').toLowerCase()
+                                  return eBase.includes(baseNameLower) && (
+                                    (e.entity_id.startsWith('camera.') && (e.attributes.entity_picture || e.attributes.map_image)) ||
+                                    (e.entity_id.startsWith('image.') && (e.attributes.entity_picture || e.attributes.map_image))
+                                  )
+                                })
+                              }
+                              
+                              const newConfigs = [...vacuumConfigs]
+                              let foundAny = false
+                              
+                              // Находим ВСЕ связанные entities с более строгим фильтром
+                              const baseParts = baseNameLower.split('_').filter(p => p.length > 2)
+                              
+                              const relatedEntities = allEntities.filter((e: Entity) => {
+                                if (e.entity_id === vacuum.entityId) return false
+                                
+                                const eId = e.entity_id.toLowerCase()
+                                const eBase = e.entity_id.split('.').slice(1).join('.').toLowerCase()
+                                
+                                // Исключаем явно не связанные entities
+                                if (eBase.includes('google_') || 
+                                    eBase.includes('translate_') ||
+                                    eBase.includes('weather_') ||
+                                    eBase.includes('sun_') ||
+                                    eBase.includes('zone_') ||
+                                    eBase.includes('person_') ||
+                                    eBase.includes('device_tracker_') ||
+                                    eBase.includes('calendar_')) {
+                                  return false
+                                }
+                                
+                                // Точное совпадение - entity начинается с базового имени
+                                if (eBase.startsWith(baseNameLower + '_') || eBase === baseNameLower) {
+                                  return true
+                                }
+                                
+                                // Обратное совпадение - базовое имя содержит части entity
+                                const eParts = eBase.split('_').filter(p => p.length > 2)
+                                const hasSignificantCommonParts = baseParts.filter(bp => 
+                                  eParts.some(ep => ep === bp || ep.includes(bp) || bp.includes(ep))
+                                )
+                                
+                                // Требуем минимум 2 общие значимые части для частичного совпадения
+                                if (hasSignificantCommonParts.length >= 2) {
+                                  return true
+                                }
+                                
+                                // Для коротких имен (x50, ultra, complete) требуем точное совпадение
+                                if (baseParts.length <= 3) {
+                                  return eBase.startsWith(baseNameLower + '_')
+                                }
+                                
+                                return false
+                              })
+                              
+                              // Ищем map entity среди связанных
+                              const foundMapEntity = relatedEntities.find((e: Entity) => {
+                                const eId = e.entity_id.toLowerCase()
+                                const eBase = e.entity_id.split('.').slice(1).join('.').toLowerCase()
+                                
+                                if (eBase === baseNameLower + '_map' || 
+                                    eBase === baseNameLower + '_mappin' ||
+                                    eBase === 'map_' + baseNameLower) {
+                                  return true
+                                }
+                                
+                                if (eId.includes('map') || eId.includes('mappin')) {
+                                  return true
+                                }
+                                
+                                if ((e.entity_id.startsWith('camera.') || e.entity_id.startsWith('image.')) &&
+                                    (e.attributes.entity_picture || e.attributes.map_image)) {
+                                  return true
+                                }
+                                
+                                if (e.entity_id.startsWith('sensor.') && (eId.includes('map') || eId.includes('mappin'))) {
+                                  return true
+                                }
+                                
+                                return false
+                              })
+                              
+                              // Определяем тип каждого найденного entity
+                              const relatedEntitiesWithTypes = relatedEntities.map(e => {
+                                const eId = e.entity_id.toLowerCase()
+                                let type: 'map' | 'sensor' | 'camera' | 'image' | 'other' = 'other'
+                                
+                                if (e.entity_id.startsWith('sensor.')) {
+                                  if (eId.includes('map') || eId.includes('mappin')) {
+                                    type = 'map'
+                                  } else {
+                                    type = 'sensor'
+                                  }
+                                } else if (e.entity_id.startsWith('camera.')) {
+                                  type = 'camera'
+                                } else if (e.entity_id.startsWith('image.')) {
+                                  type = 'image'
+                                } else if (eId.includes('map') || eId.includes('mappin')) {
+                                  type = 'map'
+                                }
+                                
+                                return {
+                                  entityId: e.entity_id,
+                                  type,
+                                  name: e.attributes.friendly_name || e.entity_id.split('.').slice(1).join('.')
+                                }
+                              })
+                              
+                              // Обновляем конфигурацию со всеми найденными entities
+                              newConfigs[index] = { 
+                                ...vacuum, 
+                                mapEntityId: foundMapEntity?.entity_id || vacuum.mapEntityId,
+                                relatedEntities: relatedEntitiesWithTypes
+                              }
+                              
+                              foundAny = relatedEntities.length > 0
+                              
+                              if (foundAny) {
+                                const mapInfo = foundMapEntity ? `מפה: ${foundMapEntity.entity_id.split('.').slice(1).join('.')}` : 'מפה לא נמצאה'
+                                const otherEntities = relatedEntities
+                                  .filter(e => e.entity_id !== foundMapEntity?.entity_id)
+                                  .map(e => e.entity_id.split('.').slice(1).join('.'))
+                                
+                                const otherInfo = otherEntities.length > 0 
+                                  ? `. נמצאו ${otherEntities.length} ישויות נוספות: ${otherEntities.slice(0, 5).join(', ')}${otherEntities.length > 5 ? '...' : ''}`
+                                  : ''
+                                
+                                setToast({ 
+                                  message: `נמצאו ${relatedEntities.length} ישויות קשורות. ${mapInfo}${otherInfo}`, 
+                                  type: 'success' 
+                                })
+                                
+                                setVacuumConfigs(newConfigs)
+                                setHasUnsavedChanges(true)
+                              } else {
+                                setToast({ 
+                                  message: 'לא נמצאו ישויות קשורות', 
+                                  type: 'info' 
+                                })
+                              }
+                            } catch (error) {
+                              console.error('Ошибка поиска связанных entities:', error)
+                              setToast({ 
+                                message: 'שגיאה בחיפוש ישויות קשורות', 
+                                type: 'error' 
+                              })
+                            } finally {
+                              setHaLoading(false)
+                            }
+                          }}
+                          disabled={haLoading}
+                          className="mt-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="חפש אוטומטית ישויות קשורות (מפה וכו')"
+                        >
+                          <RefreshCw size={12} className={haLoading ? 'animate-spin' : ''} />
+                          {haLoading ? 'מחפש...' : 'חפש אוטומטית ישויות קשורות'}
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <label className="block text-xs text-dark-textSecondary mb-1">
+                          מזהה ישות של מפה (אופציונלי): {vacuum.mapEntityId || 'לא מוגדר'}
+                        </label>
+                        <SearchableSelect
+                          value={vacuum.mapEntityId || ''}
+                          onChange={(selectedEntityId) => {
+                            const mapEntityId = selectedEntityId || null
+                            const newConfigs = [...vacuumConfigs]
+                            newConfigs[index] = { ...vacuum, mapEntityId }
+                            setVacuumConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }}
+                          options={[
+                            { value: '', label: '-- בחר ישות מפה (אופציונלי) --' },
+                            ...entities
+                            .filter(e => {
+                              if (!vacuum.entityId) return false
+                              const entityId = e.entity_id.toLowerCase()
+                              const baseName = vacuum.entityId.split('.').slice(1).join('.').toLowerCase()
+                              const eBase = e.entity_id.split('.').slice(1).join('.').toLowerCase()
+                              
+                              // Показываем связанные entities в первую очередь
+                              const isRelated = eBase.includes(baseName) && (
+                                entityId.includes('map') || 
+                                (entityId.includes('camera') && (e.attributes.entity_picture || e.attributes.map_image))
+                              )
+                              
+                              // Также показываем другие map/camera entities
+                              const isMapOrCamera = entityId.includes('map') || 
+                                (entityId.includes('camera') && (e.attributes.entity_picture || e.attributes.map_image))
+                              
+                              return isRelated || isMapOrCamera
+                            })
+                            .sort((a, b) => {
+                              // Связанные entities показываем первыми
+                              if (!vacuum.entityId) return 0
+                              const baseName = vacuum.entityId.split('.').slice(1).join('.').toLowerCase()
+                              const aBase = a.entity_id.split('.').slice(1).join('.').toLowerCase()
+                              const bBase = b.entity_id.split('.').slice(1).join('.').toLowerCase()
+                              const aRelated = aBase.includes(baseName)
+                              const bRelated = bBase.includes(baseName)
+                              if (aRelated && !bRelated) return -1
+                              if (!aRelated && bRelated) return 1
+                              return 0
+                            })
+                            .map(entity => ({
+                              value: entity.entity_id,
+                              label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})${vacuum.entityId && entity.entity_id.split('.').slice(1).join('.').toLowerCase().includes(vacuum.entityId.split('.').slice(1).join('.').toLowerCase()) ? ' ⭐' : ''}`
+                            }))
+                          ]}
+                          placeholder="-- בחר ישות מפה (אופציונלי) --"
+                          className="w-full"
+                        />
+                        <p className="text-[10px] text-dark-textSecondary mt-1">
+                          ⭐ = ישות קשורה אוטומטית. אם המפה לא מוצגת, נסה לבחור ישות נפרדת למפה
+                        </p>
+                      </div>
+                      
+                      {/* Показываем все найденные связанные entities */}
+                      {vacuum.relatedEntities && vacuum.relatedEntities.length > 0 && (
+                        <div className="space-y-2">
+                          <label className="block text-xs text-dark-textSecondary mb-1">
+                            ישויות קשורות נוספות ({vacuum.relatedEntities.filter(re => {
+                              const reEntityId = typeof re === 'string' ? re : re.entityId
+                              return reEntityId !== vacuum.mapEntityId
+                            }).length}):
+                          </label>
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {vacuum.relatedEntities
+                              .filter(re => {
+                                const reEntityId = typeof re === 'string' ? re : re.entityId
+                                return reEntityId !== vacuum.mapEntityId // Исключаем map entity, т.к. у неё есть отдельное поле
+                              })
+                              .map((relatedEntity, reIndex) => {
+                                const reEntityId = typeof relatedEntity === 'string' ? relatedEntity : relatedEntity.entityId
+                                const reType = typeof relatedEntity === 'string' ? 'other' : relatedEntity.type
+                                const reName = typeof relatedEntity === 'string' ? undefined : relatedEntity.name
+                                
+                                const entity = entities.find(e => e.entity_id === reEntityId)
+                                const displayName = reName || entity?.attributes.friendly_name || reEntityId.split('.').slice(1).join('.')
+                                
+                                return (
+                                  <div key={reIndex} className="flex items-center gap-2">
+                                    <SearchableSelect
+                                      value={reEntityId}
+                                      onChange={(selectedEntityId) => {
+                                        const newConfigs = [...vacuumConfigs]
+                                        const currentRelated = vacuum.relatedEntities || []
+                                        const updatedRelated = currentRelated.map((re, idx) => {
+                                          if (idx === reIndex) {
+                                            const newEntityId = selectedEntityId || reEntityId
+                                            const newEntity = entities.find(e => e.entity_id === newEntityId)
+                                            return {
+                                              entityId: newEntityId,
+                                              type: typeof re === 'string' ? 'other' : re.type,
+                                              name: newEntity?.attributes.friendly_name || newEntityId.split('.').slice(1).join('.')
+                                            }
+                                          }
+                                          return typeof re === 'string' ? { entityId: re, type: 'other' as const } : re
+                                        })
+                                        newConfigs[index] = { ...vacuum, relatedEntities: updatedRelated }
+                                        setVacuumConfigs(newConfigs)
+                                        setHasUnsavedChanges(true)
+                                      }}
+                                      options={[
+                                        { value: reEntityId, label: `${displayName} (${reEntityId}) ⭐` },
+                                        ...entities
+                                          .filter(e => {
+                                            // Фильтруем по типу entity
+                                            if (reType === 'sensor') return e.entity_id.startsWith('sensor.')
+                                            if (reType === 'camera') return e.entity_id.startsWith('camera.')
+                                            if (reType === 'image') return e.entity_id.startsWith('image.')
+                                            if (reType === 'map') {
+                                              const eId = e.entity_id.toLowerCase()
+                                              return e.entity_id.startsWith('camera.') || 
+                                                     e.entity_id.startsWith('image.') ||
+                                                     (e.entity_id.startsWith('sensor.') && (eId.includes('map') || eId.includes('mappin')))
+                                            }
+                                            return true
+                                          })
+                                          .filter(e => e.entity_id !== reEntityId)
+                                          .map(entity => ({
+                                            value: entity.entity_id,
+                                            label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
+                                          }))
+                                      ]}
+                                      placeholder={`-- ${displayName} --`}
+                                      className="w-full"
+                                    />
+                                    <button
+                                      onClick={() => {
+                                        const newConfigs = [...vacuumConfigs]
+                                        const currentRelated = vacuum.relatedEntities || []
+                                        const updatedRelated = currentRelated.filter((_, idx) => idx !== reIndex)
+                                        newConfigs[index] = { ...vacuum, relatedEntities: updatedRelated }
+                                        setVacuumConfigs(newConfigs)
+                                        setHasUnsavedChanges(true)
+                                      }}
+                                      className="px-2 py-1 text-red-400 hover:text-red-300 transition-colors flex-shrink-0"
+                                      title="הסר"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                )
+                              })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )) : (
+                  <div className="text-center text-dark-textSecondary py-8">
+                    <p className="mb-4">אין שואב אבק בווידג'ט</p>
+                    <button
+                      onClick={() => {
+                        const newVacuum: VacuumConfig = {
+                          name: 'שואב אבק 1',
+                          entityId: null,
+                          mapEntityId: null
+                        }
+                        setVacuumConfigs([newVacuum])
+                        setHasUnsavedChanges(true)
+                      }}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <Navigation size={16} />
+                      הוסף שואב אבק ראשון
                     </button>
                   </div>
                 )}
