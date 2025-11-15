@@ -144,11 +144,11 @@ const ACUnit = ({ acConfig, entity, api, loading, onLoadingChange }: ACUnitProps
   }
 
   return (
-    <div className="p-4 bg-dark-bg rounded-lg border border-dark-border hover:border-white/20 transition-all overflow-hidden">
+    <div className="p-2 sm:p-3 md:p-4 bg-dark-bg rounded-lg border border-dark-border hover:border-white/20 transition-all overflow-hidden">
       {/* Заголовок */}
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-medium text-base text-white truncate flex-1 mr-2">{friendlyName}</h3>
-        <div className={`text-xs font-semibold px-2 py-1 rounded flex-shrink-0 ${
+      <div className="flex items-center justify-between mb-2 sm:mb-3">
+        <h3 className="font-medium text-sm sm:text-base text-white truncate flex-1 mr-2">{friendlyName}</h3>
+        <div className={`text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex-shrink-0 ${
           isOn ? 'bg-blue-600/20 text-blue-400' : 'bg-gray-600/20 text-gray-400'
         }`}>
           {getModeLabel(hvacMode)}
@@ -156,22 +156,22 @@ const ACUnit = ({ acConfig, entity, api, loading, onLoadingChange }: ACUnitProps
       </div>
 
       {/* Температура */}
-      <div className="flex items-center justify-center gap-3 mb-3">
+      <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-3">
         <button
           onClick={() => handleTempChange(-tempStep)}
           disabled={isLoading || targetTemp <= minTemp || !isOn}
-          className="w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center text-2xl font-light text-white hover:scale-110 active:scale-95 flex-shrink-0"
+          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center text-xl sm:text-2xl font-light text-white hover:scale-110 active:scale-95 flex-shrink-0"
         >
           −
         </button>
 
-        <div className={`flex flex-col items-center min-w-[80px] px-3 py-2 rounded-lg transition-colors ${getTemperatureBgColor()}`}>
-          <div className="text-3xl font-bold text-white">
+        <div className={`flex flex-col items-center min-w-[70px] sm:min-w-[80px] px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors ${getTemperatureBgColor()}`}>
+          <div className="text-2xl sm:text-3xl font-bold text-white">
             {targetTemp.toFixed(1)}
           </div>
-          <div className="text-xs text-dark-textSecondary">°C</div>
-          <div className="flex items-center gap-1 text-xs text-dark-textSecondary mt-1">
-            <Thermometer size={12} className="text-blue-400" />
+          <div className="text-[10px] sm:text-xs text-dark-textSecondary">°C</div>
+          <div className="flex items-center gap-1 text-[10px] sm:text-xs text-dark-textSecondary mt-0.5 sm:mt-1">
+            <Thermometer size={10} className="sm:w-3 sm:h-3 text-blue-400" />
             <span>{currentTemp.toFixed(1)}°</span>
           </div>
         </div>
@@ -179,14 +179,14 @@ const ACUnit = ({ acConfig, entity, api, loading, onLoadingChange }: ACUnitProps
         <button
           onClick={() => handleTempChange(tempStep)}
           disabled={isLoading || targetTemp >= maxTemp || !isOn}
-          className="w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center text-2xl font-light text-white hover:scale-110 active:scale-95 flex-shrink-0"
+          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center text-xl sm:text-2xl font-light text-white hover:scale-110 active:scale-95 flex-shrink-0"
         >
           +
         </button>
       </div>
 
       {/* Режимы работы */}
-      <div className="flex items-center gap-1 mb-2 flex-wrap">
+      <div className="flex items-center gap-1 sm:gap-1.5 mb-2 flex-wrap">
         {filteredModes.map((mode) => {
           const Icon = mode.icon
           const isActive = hvacMode === mode.id
@@ -201,14 +201,14 @@ const ACUnit = ({ acConfig, entity, api, loading, onLoadingChange }: ACUnitProps
                 }
               }}
               disabled={isLoading}
-              className={`flex-1 min-w-[40px] p-2 rounded-lg transition-all ${
+              className={`flex-1 min-w-[35px] sm:min-w-[40px] p-1.5 sm:p-2 rounded-lg transition-all ${
                 isActive
                   ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
                   : 'bg-white/5 hover:bg-white/10 text-dark-textSecondary border border-white/5'
               } disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95`}
               title={mode.label}
             >
-              <Icon size={18} className={`mx-auto ${isActive ? 'text-white' : mode.color}`} />
+              <Icon size={16} className={`sm:w-[18px] sm:h-[18px] mx-auto ${isActive ? 'text-white' : mode.color}`} />
             </button>
           )
         })}
@@ -218,8 +218,8 @@ const ACUnit = ({ acConfig, entity, api, loading, onLoadingChange }: ACUnitProps
       {hasFanControl && isOn && (
         <div className="mt-2 pt-2 border-t border-white/10">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-dark-textSecondary">Вентилятор</span>
-            <span className="text-xs font-medium text-white">{fanMode.toUpperCase()}</span>
+            <span className="text-[10px] sm:text-xs text-dark-textSecondary">Вентилятор</span>
+            <span className="text-[10px] sm:text-xs font-medium text-white">{fanMode.toUpperCase()}</span>
           </div>
           <div className="flex items-center gap-1 flex-wrap">
             {availableFanModes.map((fm: string) => (
@@ -227,7 +227,7 @@ const ACUnit = ({ acConfig, entity, api, loading, onLoadingChange }: ACUnitProps
                 key={fm}
                 onClick={() => handleSetFanMode(fm)}
                 disabled={isLoading}
-                className={`flex-1 min-w-[50px] px-1.5 py-1 rounded text-xs transition-all truncate ${
+                className={`flex-1 min-w-[45px] sm:min-w-[50px] px-1 sm:px-1.5 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs transition-all truncate ${
                   fanMode === fm
                     ? 'bg-blue-600 text-white'
                     : 'bg-white/5 hover:bg-white/10 text-dark-textSecondary'

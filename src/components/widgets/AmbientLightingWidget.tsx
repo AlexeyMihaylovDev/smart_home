@@ -141,12 +141,12 @@ const AmbientLightingWidget = () => {
   }
 
   return (
-    <div className="h-full p-4 flex flex-col">
-      <div className="flex items-center gap-2 mb-4 flex-shrink-0">
-        <div className="p-2 bg-yellow-500/20 rounded-lg">
-          <Lightbulb size={18} className="text-yellow-400" />
+    <div className="h-full p-2 sm:p-3 md:p-4 flex flex-col">
+      <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 md:mb-4 flex-shrink-0">
+        <div className="p-1.5 sm:p-2 bg-yellow-500/20 rounded-lg">
+          <Lightbulb size={16} className="sm:w-[18px] sm:h-[18px] text-yellow-400" />
         </div>
-        <div className="font-medium text-white">תאורה סביבתית</div>
+        <div className="font-medium text-sm sm:text-base text-white">תאורה סביבתית</div>
       </div>
       {renderStyle()}
     </div>

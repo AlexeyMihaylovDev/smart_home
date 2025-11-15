@@ -41,27 +41,52 @@ const widgetComponents: Record<string, React.ComponentType<any>> = {
 }
 
 const WidgetGrid = () => {
-  // Определяем количество колонок в зависимости от размера экрана
+  // Определяем количество колонок и высоту строки в зависимости от размера экрана
   const getCols = (): number => {
     if (typeof window === 'undefined') return 12
-    if (window.innerWidth < 640) return 4  // Мобильные телефоны
-    if (window.innerWidth < 1024) return 6  // Планшеты
-    return 12  // Десктоп
+    if (window.innerWidth < 640) return 4   // Мобильные телефоны (< 640px)
+    if (window.innerWidth < 1024) return 6  // Планшеты (640px - 1024px)
+    if (window.innerWidth < 1920) return 12 // Лептопы и десктопы (1024px - 1920px)
+    return 16  // Большие экраны и телевизоры (>= 1920px)
+  }
+
+  const getRowHeight = (): number => {
+    if (typeof window === 'undefined') return 60
+    if (window.innerWidth < 640) return 50   // Мобильные - компактнее
+    if (window.innerWidth < 1024) return 55  // Планшеты
+    if (window.innerWidth < 1920) return 60  // Лептопы
+    return 70  // Телевизоры - больше для лучшей видимости
   }
 
   // Загружаем layout синхронно до первого рендера (используем sync версию для начальной загрузки)
   const getInitialLayout = (): Layout[] => {
     const savedLayout = getDashboardLayoutSync()
-    const cols = getCols()
-    // Масштабируем layout для мобильных устройств
+    const currentCols = getCols()
+    const savedCols = savedLayout.cols || 12
+    
+    // Масштабируем layout для разных размеров экранов
     return savedLayout.layouts.map(l => {
-      const scale = cols / savedLayout.cols
+      const scale = currentCols / savedCols
+      
+      // Адаптируем размеры виджетов в зависимости от экрана
+      let newW = Math.max(1, Math.round(l.w * scale))
+      let newH = l.h
+      
+      // Для маленьких экранов уменьшаем высоту виджетов
+      if (window.innerWidth < 640) {
+        newH = Math.max(1, Math.round(l.h * 0.8)) // Уменьшаем на 20%
+      } else if (window.innerWidth < 1024) {
+        newH = Math.max(1, Math.round(l.h * 0.9)) // Уменьшаем на 10%
+      } else if (window.innerWidth >= 1920) {
+        newH = Math.max(1, Math.round(l.h * 1.1)) // Увеличиваем на 10% для больших экранов
+      }
+      
       return {
         i: l.i,
         x: Math.round(l.x * scale),
         y: l.y,
-        w: Math.max(1, Math.round(l.w * scale)),
-        h: l.h,
+        w: newW,
+        h: newH,
         minW: l.minW,
         minH: l.minH,
         maxW: l.maxW,
@@ -73,6 +98,7 @@ const WidgetGrid = () => {
   const [layout, setLayout] = useState<Layout[]>(getInitialLayout)
   const [isLoading, setIsLoading] = useState(true)
   const [cols, setCols] = useState(getCols())
+  const [rowHeight, setRowHeight] = useState(getRowHeight())
   const [editMode, setEditMode] = useState(false)
   const [longPressProgress, setLongPressProgress] = useState(0)
   const [tripleClickActivated, setTripleClickActivated] = useState(false)
@@ -87,20 +113,39 @@ const WidgetGrid = () => {
       try {
         const savedLayout = await getDashboardLayout()
         const currentCols = getCols()
-        const scale = currentCols / savedLayout.cols
-        const mappedLayout = savedLayout.layouts.map(l => ({
-          i: l.i,
-          x: Math.round(l.x * scale),
-          y: l.y,
-          w: Math.max(1, Math.round(l.w * scale)),
-          h: l.h,
-          minW: l.minW,
-          minH: l.minH,
-          maxW: l.maxW,
-          maxH: l.maxH,
-        }))
+        const currentRowHeight = getRowHeight()
+        const savedCols = savedLayout.cols || 12
+        const scale = currentCols / savedCols
+        
+        const mappedLayout = savedLayout.layouts.map(l => {
+          let newW = Math.max(1, Math.round(l.w * scale))
+          let newH = l.h
+          
+          // Адаптируем высоту в зависимости от размера экрана
+          if (window.innerWidth < 640) {
+            newH = Math.max(1, Math.round(l.h * 0.8))
+          } else if (window.innerWidth < 1024) {
+            newH = Math.max(1, Math.round(l.h * 0.9))
+          } else if (window.innerWidth >= 1920) {
+            newH = Math.max(1, Math.round(l.h * 1.1))
+          }
+          
+          return {
+            i: l.i,
+            x: Math.round(l.x * scale),
+            y: l.y,
+            w: newW,
+            h: newH,
+            minW: l.minW,
+            minH: l.minH,
+            maxW: l.maxW,
+            maxH: l.maxH,
+          }
+        })
+        
         setLayout(mappedLayout)
         setCols(currentCols)
+        setRowHeight(currentRowHeight)
         setIsLoading(false)
       } catch (error) {
         console.error('Ошибка загрузки layout:', error)
@@ -110,19 +155,43 @@ const WidgetGrid = () => {
 
     const handleResize = () => {
       const newCols = getCols()
-      if (newCols !== cols) {
+      const newRowHeight = getRowHeight()
+      const colsChanged = newCols !== cols
+      const rowHeightChanged = newRowHeight !== rowHeight
+      
+      if (colsChanged || rowHeightChanged) {
         setCols(newCols)
-        // Пересчитываем layout при изменении количества колонок
-        setLayout(prevLayout => {
-          const savedLayout = getDashboardLayoutSync()
-          const oldCols = cols || savedLayout.cols
-          const scale = newCols / oldCols
-          return prevLayout.map(l => ({
-            ...l,
-            x: Math.round(l.x * scale),
-            w: Math.max(1, Math.round(l.w * scale)),
-          }))
-        })
+        setRowHeight(newRowHeight)
+        
+        // Пересчитываем layout при изменении размера экрана
+        if (colsChanged) {
+          setLayout(prevLayout => {
+            const savedLayout = getDashboardLayoutSync()
+            const oldCols = cols || savedLayout.cols || 12
+            const scale = newCols / oldCols
+            
+            return prevLayout.map(l => {
+              let newW = Math.max(1, Math.round(l.w * scale))
+              let newH = l.h
+              
+              // Адаптируем высоту в зависимости от размера экрана
+              if (window.innerWidth < 640) {
+                newH = Math.max(1, Math.round(l.h * 0.8))
+              } else if (window.innerWidth < 1024) {
+                newH = Math.max(1, Math.round(l.h * 0.9))
+              } else if (window.innerWidth >= 1920) {
+                newH = Math.max(1, Math.round(l.h * 1.1))
+              }
+              
+              return {
+                ...l,
+                x: Math.round(l.x * scale),
+                w: newW,
+                h: newH,
+              }
+            })
+          })
+        }
       }
     }
     
@@ -149,7 +218,7 @@ const WidgetGrid = () => {
       window.removeEventListener('widgets-changed', handleWidgetsChanged)
       window.removeEventListener('resize', handleResize)
     }
-  }, [cols])
+  }, [cols, rowHeight])
 
   const handleLayoutChange = useCallback(async (newLayout: Layout[]) => {
     setLayout(newLayout)
@@ -402,11 +471,12 @@ const WidgetGrid = () => {
         layout={layout}
         onLayoutChange={handleLayoutChange}
         cols={currentCols}
-        rowHeight={savedLayout.rowHeight}
+        rowHeight={rowHeight}
         width={typeof window !== 'undefined' ? 
-          (window.innerWidth < 640 ? window.innerWidth - 32 : 
-           window.innerWidth < 1024 ? window.innerWidth - 64 : 
-           window.innerWidth - 100) : 1200}
+          (window.innerWidth < 640 ? window.innerWidth - 16 : 
+           window.innerWidth < 1024 ? window.innerWidth - 32 : 
+           window.innerWidth < 1920 ? window.innerWidth - 80 :
+           Math.min(window.innerWidth - 120, 2400)) : 1200}
         isDraggable={editMode}
         isResizable={editMode}
         draggableHandle=".drag-handle"

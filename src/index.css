@@ -48,10 +48,49 @@ body {
   position: relative;
 }
 
-/* Адаптивность для мобильных устройств */
+/* Адаптивность для разных размеров экранов */
 @media (max-width: 640px) {
   .react-grid-item {
     min-width: 0 !important;
+  }
+  
+  .widget-card {
+    font-size: 0.875rem;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1024px) {
+  .widget-card {
+    font-size: 0.9rem;
+  }
+}
+
+@media (min-width: 1920px) {
+  .widget-card {
+    font-size: 1.1rem;
+  }
+  
+  .react-grid-item {
+    font-size: 1.05rem;
+  }
+}
+
+/* Адаптивные размеры для виджетов */
+.widget-card {
+  /* Используем clamp для адаптивных размеров шрифтов */
+  font-size: clamp(0.75rem, 1.5vw, 1rem);
+}
+
+/* Адаптивные отступы для виджетов */
+@media (max-width: 640px) {
+  .widget-card > * {
+    padding: 0.5rem;
+  }
+}
+
+@media (min-width: 1920px) {
+  .widget-card > * {
+    padding: 1rem;
   }
 }
 
