@@ -85,9 +85,9 @@ const SearchableSelect = ({ value, onChange, options, placeholder = '-- Выбе
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-dark-card border border-dark-border rounded-lg shadow-lg max-h-64 overflow-hidden flex flex-col">
+        <div className="absolute z-50 w-full mt-1 bg-dark-card border border-dark-border rounded-lg shadow-lg max-h-[70vh] overflow-hidden flex flex-col">
           {/* Поле поиска */}
-          <div className="p-2 border-b border-dark-border">
+          <div className="p-2 border-b border-dark-border flex-shrink-0">
             <div className="relative">
               <Search size={16} className="absolute left-2 top-1/2 transform -translate-y-1/2 text-dark-textSecondary" />
               <input
@@ -103,14 +103,14 @@ const SearchableSelect = ({ value, onChange, options, placeholder = '-- Выбе
           </div>
 
           {/* Список опций */}
-          <div className="overflow-y-auto max-h-48">
+          <div className="overflow-y-auto overflow-x-hidden flex-1 min-h-0" style={{ maxHeight: 'calc(70vh - 60px)' }}>
             {filteredOptions.length > 0 ? (
               filteredOptions.map((option) => (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => handleSelect(option.value)}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-dark-cardHover transition-colors ${
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-dark-cardHover transition-colors whitespace-nowrap ${
                     value === option.value ? 'bg-blue-600 bg-opacity-20 text-blue-400' : 'text-white'
                   }`}
                 >

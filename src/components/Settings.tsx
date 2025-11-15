@@ -688,7 +688,7 @@ const Settings = () => {
                 </div>
               )}
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
               {lightConfigs && lightConfigs.length > 0 ? lightConfigs.map((light, index) => (
                 <div key={index} className={`p-4 bg-dark-bg rounded-lg border ${selectedItems.has(index) ? 'border-blue-500' : 'border-dark-border'} space-y-3`}>
                   <div className="flex items-center gap-3">
@@ -873,7 +873,7 @@ const Settings = () => {
                   </div>
                 </div>
               </div>
-              <div className="p-4 space-y-4">
+              <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
                 {sensorConfigs && sensorConfigs.length > 0 ? sensorConfigs.map((sensor, index) => (
                   <div key={index} className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
                     <div className="flex items-center justify-between">
@@ -1069,7 +1069,7 @@ const Settings = () => {
                   </div>
                 </div>
               </div>
-              <div className="p-4 space-y-4">
+              <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
                 {motorConfigs && motorConfigs.length > 0 ? motorConfigs.map((motor, index) => (
                   <div key={index} className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
                     <div className="flex items-center justify-between">
@@ -1241,7 +1241,7 @@ const Settings = () => {
                   </div>
                 </div>
               </div>
-              <div className="p-4 space-y-4">
+              <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
                 {acConfigs && acConfigs.length > 0 ? acConfigs.map((ac, index) => (
                   <div key={index} className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
                     <div className="flex items-center justify-between">

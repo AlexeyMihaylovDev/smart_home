@@ -97,21 +97,8 @@ const AmbientLightingWidget = () => {
   }
 
   const getDisplayName = (light: LightConfig): string => {
-    let name = light.name
-    
-    if (light.entityId) {
-      const entity = entities.get(light.entityId)
-      if (entity && entity.attributes.friendly_name) {
-        name = entity.attributes.friendly_name
-      }
-    }
-    
-    // Убираем " Switch 1", " Switch 2" и т.д. из названия
-    name = name.replace(/\s+Switch\s+\d+$/i, '')
-    // Также убираем другие возможные суффиксы типа " switch_1", " switch_2"
-    name = name.replace(/\s+switch[_\s]?\d+$/i, '')
-    
-    return name
+    // Используем название из конфигурации (то, что пользователь ввел в настройках)
+    return light.name || 'Без названия'
   }
 
   const getIcon = (iconType: 'clock' | 'lightbulb') => {
