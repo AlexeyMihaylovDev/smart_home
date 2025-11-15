@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
 import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock } from 'lucide-react'
-import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getMotorConfigsSync, updateMotorConfigs, MotorConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
+import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
 import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 import ToggleSwitch from './ui/ToggleSwitch'
 import Toast from './ui/Toast'
@@ -10,7 +10,7 @@ import SearchableSelect from './ui/SearchableSelect'
 import { ListStyle, CardsStyle, CompactStyle, MinimalStyle } from './widgets/AmbientLightingStyles'
 
 type Tab = 'devices' | 'widgets' | 'home-assistant'
-type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | 'water-heater' | 'motors' | null
+type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | 'water-heater' | 'motors' | 'bose' | null
 
 interface WidgetOption {
   id: WidgetType
@@ -106,6 +106,13 @@ const Settings = () => {
   const [motorConfigs, setMotorConfigs] = useState<MotorConfig[]>(() => {
     try {
       return getMotorConfigsSync()
+    } catch {
+      return []
+    }
+  })
+  const [boseConfigs, setBoseConfigs] = useState<BoseConfig[]>(() => {
+    try {
+      return getBoseConfigsSync()
     } catch {
       return []
     }
@@ -226,6 +233,13 @@ const Settings = () => {
       color: 'bg-blue-500'
     },
     {
+      id: 'bose',
+      name: 'Bose Widget',
+      description: 'Управление Bose Soundbar',
+      icon: Music,
+      color: 'bg-purple-500'
+    },
+    {
       id: 'cameras',
       name: 'Cameras Widget',
       description: 'Управление камерами',
@@ -274,6 +288,8 @@ const Settings = () => {
     setSensorConfigs(sensors && Array.isArray(sensors) ? sensors : [])
     const motors = getMotorConfigsSync()
     setMotorConfigs(motors && Array.isArray(motors) ? motors : [])
+    const bose = getBoseConfigsSync()
+    setBoseConfigs(bose && Array.isArray(bose) ? bose : [])
   }
 
   useEffect(() => {
@@ -1342,6 +1358,151 @@ const Settings = () => {
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                     >
                       הוסף מכשיר מוטורי ראשון
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {selectedWidget === 'bose' && (
+            <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
+              <div className="p-4 border-b border-dark-border">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setSelectedWidget(null)}
+                      className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
+                      title="חזור לבחירת וידג'ט"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                      <h2 className="font-medium text-lg">Bose Widget</h2>
+                      <p className="text-sm text-dark-textSecondary mt-1">
+                        הגדרת Bose Soundbar
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const newBose: BoseConfig = {
+                          name: `Bose ${boseConfigs.length + 1}`,
+                          entityId: null
+                        }
+                        setBoseConfigs([...boseConfigs, newBose])
+                        setHasUnsavedChanges(true)
+                      }}
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                      title="הוסף Bose חדש"
+                    >
+                      <Music size={16} />
+                      הוסף Bose
+                    </button>
+                    {hasUnsavedChanges && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await updateBoseConfigs(boseConfigs)
+                            setHasUnsavedChanges(false)
+                            window.dispatchEvent(new Event('widgets-changed'))
+                            setToast({ message: 'Настройки Bose сохранены!', type: 'success' })
+                          } catch (error) {
+                            console.error('Ошибка сохранения:', error)
+                            setToast({ message: 'Ошибка сохранения настроек', type: 'error' })
+                          }
+                        }}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
+                        title="שמור שינויים"
+                      >
+                        <Save size={16} />
+                        שמור
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
+                {boseConfigs && boseConfigs.length > 0 ? boseConfigs.map((bose, index) => (
+                  <div key={index} className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <label className="block text-xs text-dark-textSecondary mb-1">
+                          שם Bose Soundbar:
+                        </label>
+                        <input
+                          type="text"
+                          value={bose.name}
+                          onChange={(e) => {
+                            const newConfigs = [...boseConfigs]
+                            newConfigs[index].name = e.target.value
+                            setBoseConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }}
+                          className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="שם Bose Soundbar"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (confirm('למחוק את ה-Bose הזה?')) {
+                            const newConfigs = boseConfigs.filter((_, i) => i !== index)
+                            setBoseConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }
+                        }}
+                        className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0 ml-2"
+                        title="מחק את ה-Bose הזה"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-dark-textSecondary mb-1">
+                        מזהה ישות של Bose: {bose.entityId || 'לא מקושר'}
+                      </label>
+                      <SearchableSelect
+                        value={bose.entityId || ''}
+                        onChange={(selectedEntityId) => {
+                          const entityId = selectedEntityId || null
+                          const newConfigs = [...boseConfigs]
+                          newConfigs[index] = { ...bose, entityId }
+                          setBoseConfigs(newConfigs)
+                          setHasUnsavedChanges(true)
+                        }}
+                        options={[
+                          { value: '', label: '-- בחר Bose Soundbar --' },
+                          ...entities
+                            .filter(e => {
+                              const domain = e.entity_id.split('.')[0]
+                              return domain === 'media_player'
+                            })
+                            .map(entity => ({
+                              value: entity.entity_id,
+                              label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
+                            }))
+                        ]}
+                        placeholder="-- בחר Bose Soundbar --"
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                )) : (
+                  <div className="text-center text-dark-textSecondary py-8">
+                    <p className="mb-4">אין Bose בווידג'ט</p>
+                    <button
+                      onClick={() => {
+                        const newBose: BoseConfig = {
+                          name: 'Bose Soundbar 1',
+                          entityId: null
+                        }
+                        setBoseConfigs([newBose])
+                        setHasUnsavedChanges(true)
+                      }}
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <Music size={16} />
+                      הוסף Bose ראשון
                     </button>
                   </div>
                 )}

@@ -85,6 +85,12 @@ export interface WidgetConfig {
       name: string
     }>
   }
+  bose: {
+    soundbars: Array<{
+      entityId: string | null
+      name: string
+    }>
+  }
   enabledWidgets: {
     [widgetId: string]: boolean
   }

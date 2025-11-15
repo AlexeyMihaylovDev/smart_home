@@ -30,6 +30,11 @@ export interface MotorConfig {
   name: string
 }
 
+export interface BoseConfig {
+  entityId: string | null
+  name: string
+}
+
 export type AmbientLightingStyle = 'list' | 'cards' | 'compact' | 'minimal'
 
 export interface WidgetConfig {
@@ -46,6 +51,9 @@ export interface WidgetConfig {
   }
   motors: {
     motors: MotorConfig[]
+  }
+  bose: {
+    soundbars: BoseConfig[]
   }
   enabledWidgets: {
     [widgetId: string]: boolean
@@ -76,6 +84,9 @@ const DEFAULT_CONFIG: WidgetConfig = {
   },
   motors: {
     motors: []
+  },
+  bose: {
+    soundbars: []
   },
   enabledWidgets: {}
 }
@@ -366,5 +377,24 @@ export const updateMotorConfigs = async (motors: MotorConfig[]): Promise<void> =
     config.motors = { motors: [] }
   }
   config.motors.motors = motors
+  await saveWidgetConfig(config)
+}
+
+export const getBoseConfigs = async (): Promise<BoseConfig[]> => {
+  const config = await getWidgetConfig()
+  return config.bose?.soundbars || []
+}
+
+export const getBoseConfigsSync = (): BoseConfig[] => {
+  const config = getWidgetConfigSync()
+  return config.bose?.soundbars || []
+}
+
+export const updateBoseConfigs = async (soundbars: BoseConfig[]): Promise<void> => {
+  const config = await getWidgetConfig()
+  if (!config.bose) {
+    config.bose = { soundbars: [] }
+  }
+  config.bose.soundbars = soundbars
   await saveWidgetConfig(config)
 }

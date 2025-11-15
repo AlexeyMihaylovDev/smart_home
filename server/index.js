@@ -155,6 +155,9 @@ app.get('/api/config/widget', requireAuth, async (req, res) => {
         motors: {
           motors: []
         },
+        bose: {
+          soundbars: []
+        },
         enabledWidgets: {}
       }
       res.json(defaultConfig)
