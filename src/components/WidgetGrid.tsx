@@ -14,11 +14,12 @@ import TVDurationWidget from './widgets/TVDurationWidget'
 import AmbientLightingWidget from './widgets/AmbientLightingWidget'
 import LivingRoomWidget from './widgets/LivingRoomWidget'
 import WeatherCalendarWidget from './widgets/WeatherCalendarWidget'
+import ACWidget from './widgets/ACWidget'
 import { getDashboardLayout, updateWidgetLayout, WidgetLayout } from '../services/widgetLayout'
 import { GripVertical, Pencil, X } from 'lucide-react'
 
 // Маппинг виджетов
-const widgetComponents: Record<string, React.ComponentType> = {
+const widgetComponents: Record<string, React.ComponentType<any>> = {
   'tv-time': TVTimeWidget,
   'media-player': MediaPlayerWidget,
   'spotify': SpotifyWidget,
@@ -30,6 +31,7 @@ const widgetComponents: Record<string, React.ComponentType> = {
   'weather-calendar': WeatherCalendarWidget,
   'ambient-lighting': AmbientLightingWidget,
   'living-room': LivingRoomWidget,
+  'ac': ACWidget,
 }
 
 const WidgetGrid = () => {

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
-import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft } from 'lucide-react'
-import { getAmbientLightingConfig, updateAmbientLightingConfig, LightConfig } from '../services/widgetConfig'
+import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind } from 'lucide-react'
+import { getAmbientLightingConfig, updateAmbientLightingConfig, LightConfig, getACConfig, updateACConfig, ACConfig } from '../services/widgetConfig'
 
 type Tab = 'devices' | 'widgets'
-type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | null
+type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | null
 
 interface WidgetOption {
   id: WidgetType
@@ -29,6 +29,13 @@ const Settings = () => {
       return getAmbientLightingConfig()
     } catch {
       return []
+    }
+  })
+  const [acConfig, setACConfig] = useState<ACConfig>(() => {
+    try {
+      return getACConfig()
+    } catch {
+      return { entityId: null, name: 'Кондиционер' }
     }
   })
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
@@ -62,6 +69,13 @@ const Settings = () => {
       description: 'Управление камерами',
       icon: Camera,
       color: 'bg-purple-500'
+    },
+    {
+      id: 'ac',
+      name: 'AC Widget',
+      description: 'Управление кондиционером',
+      icon: Wind,
+      color: 'bg-cyan-500'
     }
   ]
 
@@ -581,6 +595,109 @@ const Settings = () => {
               </div>
               <div className="text-center text-dark-textSecondary py-8">
                 Настройки Cameras Widget (в разработке)
+              </div>
+            </div>
+          )}
+          {selectedWidget === 'ac' && (
+            <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
+              <div className="p-4 border-b border-dark-border">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setSelectedWidget(null)}
+                      className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
+                      title="Вернуться к выбору виджета"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                      <h2 className="font-medium text-lg">AC Widget</h2>
+                      <p className="text-sm text-dark-textSecondary mt-1">
+                        Настройка виджета кондиционера
+                      </p>
+                    </div>
+                  </div>
+                  {hasUnsavedChanges && (
+                    <button
+                      onClick={() => {
+                        updateACConfig(acConfig)
+                        setHasUnsavedChanges(false)
+                        alert('Настройки сохранены!')
+                      }}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
+                      title="Сохранить изменения"
+                    >
+                      <Save size={16} />
+                      Сохранить
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="p-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Название виджета
+                  </label>
+                  <input
+                    type="text"
+                    value={acConfig.name}
+                    onChange={(e) => {
+                      setACConfig({ ...acConfig, name: e.target.value })
+                      setHasUnsavedChanges(true)
+                    }}
+                    className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Кондиционер"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Entity ID кондиционера
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      value={acConfig.entityId || ''}
+                      onChange={(e) => {
+                        const selectedEntityId = e.target.value || null
+                        let friendlyName = acConfig.name
+                        if (selectedEntityId) {
+                          const entity = entities.find(e => e.entity_id === selectedEntityId)
+                          if (entity && entity.attributes.friendly_name) {
+                            friendlyName = entity.attributes.friendly_name
+                          }
+                        }
+                        setACConfig({ entityId: selectedEntityId, name: friendlyName })
+                        setHasUnsavedChanges(true)
+                      }}
+                      className="flex-1 bg-dark-bg border border-dark-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">-- Выберите кондиционер --</option>
+                      {entities
+                        .filter(e => {
+                          const domain = e.entity_id.split('.')[0]
+                          return domain === 'climate'
+                        })
+                        .map(entity => (
+                          <option key={entity.entity_id} value={entity.entity_id}>
+                            {entity.attributes.friendly_name || entity.entity_id} ({entity.entity_id})
+                          </option>
+                        ))}
+                    </select>
+                    {acConfig.entityId && (
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(acConfig.entityId || '')
+                        }}
+                        className="text-xs bg-dark-cardHover hover:bg-dark-border px-3 py-2 rounded transition-colors whitespace-nowrap"
+                        title="Копировать entity_id"
+                      >
+                        Копировать
+                      </button>
+                    )}
+                  </div>
+                  <div className="text-xs text-dark-textSecondary mt-2">
+                    {acConfig.entityId || 'Не привязано'}
+                  </div>
+                </div>
               </div>
             </div>
           )}

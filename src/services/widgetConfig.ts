@@ -6,9 +6,18 @@ export interface LightConfig {
   icon: 'clock' | 'lightbulb'
 }
 
+export interface ACConfig {
+  entityId: string | null
+  name: string
+}
+
 export interface WidgetConfig {
   ambientLighting: {
     lights: LightConfig[]
+  }
+  ac: {
+    entityId: string | null
+    name: string
   }
 }
 
@@ -22,6 +31,10 @@ const DEFAULT_CONFIG: WidgetConfig = {
       { name: 'Interior Lights', entityId: null, icon: 'lightbulb' },
       { name: 'Bonus Room Lights', entityId: null, icon: 'lightbulb' },
     ]
+  },
+  ac: {
+    entityId: null,
+    name: 'Кондиционер'
   }
 }
 
@@ -58,3 +71,13 @@ export const getAmbientLightingConfig = (): LightConfig[] => {
   return config.ambientLighting.lights
 }
 
+export const updateACConfig = (acConfig: ACConfig): void => {
+  const config = getWidgetConfig()
+  config.ac = acConfig
+  saveWidgetConfig(config)
+}
+
+export const getACConfig = (): ACConfig => {
+  const config = getWidgetConfig()
+  return config.ac || DEFAULT_CONFIG.ac
+}
