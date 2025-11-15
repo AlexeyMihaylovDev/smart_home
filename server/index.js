@@ -151,6 +151,9 @@ app.get('/api/config/widget', requireAuth, async (req, res) => {
         sensors: {
           sensors: []
         },
+        motors: {
+          motors: []
+        },
         enabledWidgets: {}
       }
       res.json(defaultConfig)

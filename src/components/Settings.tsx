@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
-import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User } from 'lucide-react'
-import { getAmbientLightingConfigSync, updateAmbientLightingConfig, LightConfig, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getSensorsConfigSync, updateSensorsConfig, SensorConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
+import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon } from 'lucide-react'
+import { getAmbientLightingConfigSync, updateAmbientLightingConfig, LightConfig, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getMotorConfigsSync, updateMotorConfigs, MotorConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
 import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 import ToggleSwitch from './ui/ToggleSwitch'
 import Toast from './ui/Toast'
 
 type Tab = 'devices' | 'widgets' | 'home-assistant'
-type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | 'water-heater' | null
+type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | 'water-heater' | 'motors' | null
 
 interface WidgetOption {
   id: WidgetType
@@ -51,6 +51,13 @@ const Settings = () => {
   const [sensorConfigs, setSensorConfigs] = useState<SensorConfig[]>(() => {
     try {
       return getSensorsConfigSync()
+    } catch {
+      return []
+    }
+  })
+  const [motorConfigs, setMotorConfigs] = useState<MotorConfig[]>(() => {
+    try {
+      return getMotorConfigsSync()
     } catch {
       return []
     }
@@ -163,6 +170,13 @@ const Settings = () => {
       color: 'bg-green-500'
     },
     {
+      id: 'motors',
+      name: 'Motor Widget',
+      description: 'Управление моторными устройствами (шторы, жалюзи, ворота)',
+      icon: GaugeIcon,
+      color: 'bg-blue-500'
+    },
+    {
       id: 'cameras',
       name: 'Cameras Widget',
       description: 'Управление камерами',
@@ -209,6 +223,8 @@ const Settings = () => {
     setWaterHeaterConfig(wh)
     const sensors = getSensorsConfigSync()
     setSensorConfigs(sensors && Array.isArray(sensors) ? sensors : [])
+    const motors = getMotorConfigsSync()
+    setMotorConfigs(motors && Array.isArray(motors) ? motors : [])
   }
 
   useEffect(() => {
@@ -1016,6 +1032,169 @@ const Settings = () => {
                         Добавить датчик присутствия
                       </button>
                     </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {selectedWidget === 'motors' && (
+            <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
+              <div className="p-4 border-b border-dark-border">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setSelectedWidget(null)}
+                      className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
+                      title="Вернуться к выбору виджета"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                      <h2 className="font-medium text-lg">Motor Widget</h2>
+                      <p className="text-sm text-dark-textSecondary mt-1">
+                        Настройка моторных устройств (шторы, жалюзи, ворота)
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const newMotor: MotorConfig = {
+                          name: `Мотор ${motorConfigs.length + 1}`,
+                          entityId: null
+                        }
+                        setMotorConfigs([...motorConfigs, newMotor])
+                        setHasUnsavedChanges(true)
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                      title="Добавить новое моторное устройство"
+                    >
+                      <GaugeIcon size={16} />
+                      Добавить мотор
+                    </button>
+                    {hasUnsavedChanges && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await updateMotorConfigs(motorConfigs)
+                            setHasUnsavedChanges(false)
+                            window.dispatchEvent(new Event('widgets-changed'))
+                            setToast({ message: 'Настройки моторных устройств сохранены!', type: 'success' })
+                          } catch (error) {
+                            console.error('Ошибка сохранения:', error)
+                            setToast({ message: 'Ошибка сохранения настроек', type: 'error' })
+                          }
+                        }}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
+                        title="Сохранить изменения"
+                      >
+                        <Save size={16} />
+                        Сохранить
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 space-y-4">
+                {motorConfigs && motorConfigs.length > 0 ? motorConfigs.map((motor, index) => (
+                  <div key={index} className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <label className="block text-xs text-dark-textSecondary mb-1">
+                          Название моторного устройства:
+                        </label>
+                        <input
+                          type="text"
+                          value={motor.name}
+                          onChange={(e) => {
+                            const newConfigs = [...motorConfigs]
+                            newConfigs[index].name = e.target.value
+                            setMotorConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }}
+                          className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Название моторного устройства"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (confirm('Удалить это моторное устройство?')) {
+                            const newConfigs = motorConfigs.filter((_, i) => i !== index)
+                            setMotorConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }
+                        }}
+                        className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0 ml-2"
+                        title="Удалить это моторное устройство"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-dark-textSecondary mb-1">
+                        Entity ID моторного устройства: {motor.entityId || 'Не привязано'}
+                      </label>
+                      <div className="flex gap-2">
+                        <select
+                          value={motor.entityId || ''}
+                          onChange={(e) => {
+                            const selectedEntityId = e.target.value || null
+                            let friendlyName = motor.name
+                            if (selectedEntityId) {
+                              const entity = entities.find(e => e.entity_id === selectedEntityId)
+                              if (entity && entity.attributes.friendly_name) {
+                                friendlyName = entity.attributes.friendly_name
+                              }
+                            }
+                            const newConfigs = [...motorConfigs]
+                            newConfigs[index] = { entityId: selectedEntityId, name: friendlyName }
+                            setMotorConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }}
+                          className="flex-1 bg-dark-card border border-dark-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">-- Выберите моторное устройство --</option>
+                          {entities
+                            .filter(e => {
+                              const domain = e.entity_id.split('.')[0]
+                              return domain === 'cover'
+                            })
+                            .map(entity => (
+                              <option key={entity.entity_id} value={entity.entity_id}>
+                                {entity.attributes.friendly_name || entity.entity_id} ({entity.entity_id})
+                              </option>
+                            ))}
+                        </select>
+                        {motor.entityId && (
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(motor.entityId || '')
+                            }}
+                            className="text-xs bg-dark-cardHover hover:bg-dark-border px-3 py-2 rounded transition-colors flex-shrink-0 whitespace-nowrap"
+                            title="Копировать entity_id"
+                          >
+                            Копировать
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="text-center text-dark-textSecondary py-8">
+                    <p className="mb-4">Нет моторных устройств в виджете</p>
+                    <button
+                      onClick={() => {
+                        const newMotor: MotorConfig = {
+                          name: 'Мотор 1',
+                          entityId: null
+                        }
+                        setMotorConfigs([newMotor])
+                        setHasUnsavedChanges(true)
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    >
+                      Добавить первое моторное устройство
+                    </button>
                   </div>
                 )}
               </div>

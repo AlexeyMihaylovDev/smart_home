@@ -78,6 +78,12 @@ export interface WidgetConfig {
       type: 'motion' | 'presence'
     }>
   }
+  motors: {
+    motors: Array<{
+      entityId: string | null
+      name: string
+    }>
+  }
   enabledWidgets: {
     [widgetId: string]: boolean
   }

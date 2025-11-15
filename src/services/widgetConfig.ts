@@ -23,6 +23,11 @@ export interface SensorConfig {
   type: 'motion' | 'presence'
 }
 
+export interface MotorConfig {
+  entityId: string | null
+  name: string
+}
+
 export interface WidgetConfig {
   ambientLighting: {
     lights: LightConfig[]
@@ -33,6 +38,9 @@ export interface WidgetConfig {
   waterHeater: WaterHeaterConfig
   sensors: {
     sensors: SensorConfig[]
+  }
+  motors: {
+    motors: MotorConfig[]
   }
   enabledWidgets: {
     [widgetId: string]: boolean
@@ -59,6 +67,9 @@ const DEFAULT_CONFIG: WidgetConfig = {
   },
   sensors: {
     sensors: []
+  },
+  motors: {
+    motors: []
   },
   enabledWidgets: {}
 }
@@ -315,4 +326,23 @@ export const getAllEnabledWidgetsSync = (): string[] => {
     return []
   }
   return Object.keys(config.enabledWidgets).filter(id => config.enabledWidgets[id] === true)
+}
+
+export const getMotorConfigs = async (): Promise<MotorConfig[]> => {
+  const config = await getWidgetConfig()
+  return config.motors?.motors || []
+}
+
+export const getMotorConfigsSync = (): MotorConfig[] => {
+  const config = getWidgetConfigSync()
+  return config.motors?.motors || []
+}
+
+export const updateMotorConfigs = async (motors: MotorConfig[]): Promise<void> => {
+  const config = await getWidgetConfig()
+  if (!config.motors) {
+    config.motors = { motors: [] }
+  }
+  config.motors.motors = motors
+  await saveWidgetConfig(config)
 }

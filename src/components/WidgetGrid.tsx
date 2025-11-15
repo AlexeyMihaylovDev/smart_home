@@ -17,6 +17,7 @@ import WeatherCalendarWidget from './widgets/WeatherCalendarWidget'
 import ACWidget from './widgets/ACWidget'
 import WaterHeaterWidget from './widgets/WaterHeaterWidget'
 import SensorsWidget from './widgets/SensorsWidget'
+import MotorWidget from './widgets/MotorWidget'
 import { getDashboardLayout, getDashboardLayoutSync, updateWidgetLayout, WidgetLayout } from '../services/widgetLayout'
 import { GripVertical, Pencil, X } from 'lucide-react'
 
@@ -36,6 +37,7 @@ const widgetComponents: Record<string, React.ComponentType<any>> = {
   'ac': ACWidget,
   'water-heater': WaterHeaterWidget,
   'sensors': SensorsWidget,
+  'motors': MotorWidget,
 }
 
 const WidgetGrid = () => {
