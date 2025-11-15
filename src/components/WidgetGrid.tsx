@@ -303,17 +303,17 @@ const WidgetGrid = () => {
                 clickCountRef.current = 0
               }}
               className="absolute top-4 right-4 p-1 hover:bg-dark-cardHover rounded transition-colors"
-              title="Закрыть"
+              title="סגור"
             >
               <X size={20} className="text-dark-textSecondary hover:text-white" />
             </button>
-            <div className="text-center">
-              <Pencil size={48} className="mx-auto mb-4 text-blue-500" />
-              <div className="text-lg font-medium mb-2">Тройной клик активирован</div>
-              <div className="text-sm text-dark-textSecondary">
-                Теперь удерживайте нажатие 5 секунд для активации режима редактирования
-              </div>
-            </div>
+                  <div className="text-center">
+                    <Pencil size={48} className="mx-auto mb-4 text-blue-500" />
+                    <div className="text-lg font-medium mb-2">לחיצה משולשת הופעלה</div>
+                    <div className="text-sm text-dark-textSecondary">
+                      כעת החזק לחיצה למשך 5 שניות להפעלת מצב עריכה
+                    </div>
+                  </div>
           </div>
         </div>
       )}
@@ -322,12 +322,12 @@ const WidgetGrid = () => {
       {longPressProgress > 0 && !editMode && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-dark-card rounded-lg p-8 border border-dark-border max-w-md mx-4">
-            <div className="text-center mb-4">
-              <Pencil size={48} className="mx-auto mb-4 text-blue-500" />
-              <div className="text-lg font-medium mb-2">Активация режима редактирования</div>
-              <div className="text-sm text-dark-textSecondary mb-4">
-                Удерживайте для активации...
-              </div>
+                  <div className="text-center mb-4">
+                    <Pencil size={48} className="mx-auto mb-4 text-blue-500" />
+                    <div className="text-lg font-medium mb-2">הפעלת מצב עריכה</div>
+                    <div className="text-sm text-dark-textSecondary mb-4">
+                      החזק להפעלה...
+                    </div>
               <div className="w-full bg-dark-bg rounded-full h-3 overflow-hidden">
                 <div
                   className="h-full bg-blue-600 transition-all duration-50 ease-linear"
@@ -353,9 +353,9 @@ const WidgetGrid = () => {
             }}
             className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 shadow-lg"
           >
-            <Pencil size={16} />
-            Завершить редактирование
-          </button>
+                  <Pencil size={16} />
+                  סיים עריכה
+                </button>
         </div>
       )}
 
@@ -403,8 +403,8 @@ const WidgetGrid = () => {
 
       {editMode && (
         <div className="mt-4 p-4 bg-blue-900 bg-opacity-30 border border-blue-700 rounded-lg text-sm text-blue-200">
-          <strong>Режим редактирования:</strong> Перетаскивайте виджеты за иконку в левом верхнем углу. 
-          Изменяйте размер, потянув за углы виджета.
+          <strong>מצב עריכה:</strong> גרור וידג'טים על ידי האייקון בפינה השמאלית העליונה. 
+          שנה את הגודל על ידי משיכת הפינות של הווידג'ט.
         </div>
       )}
     </div>

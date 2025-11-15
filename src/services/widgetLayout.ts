@@ -37,13 +37,13 @@ const DEFAULT_LAYOUTS: Record<string, Omit<WidgetLayout, 'i'>> = {
   'tv-preview': { x: 8, y: 4, w: 4, h: 2, minW: 3, minH: 2 },
   'plex': { x: 0, y: 4, w: 4, h: 2, minW: 2, minH: 2 },
   'tv-duration': { x: 4, y: 6, w: 4, h: 2, minW: 2, minH: 2 },
-  'weather-calendar': { x: 8, y: 6, w: 4, h: 6, minW: 3, minH: 4 },
+  'weather-calendar': { x: 8, y: 6, w: 4, h: 6, minW: 1, minH: 1 },
   'ambient-lighting': { x: 0, y: 6, w: 4, h: 4, minW: 2, minH: 3 },
   'living-room': { x: 0, y: 10, w: 4, h: 3, minW: 2, minH: 2 },
   'ac': { x: 4, y: 10, w: 4, h: 5, minW: 3, minH: 4 },
   'water-heater': { x: 8, y: 10, w: 4, h: 5, minW: 3, minH: 4 },
   'sensors': { x: 0, y: 13, w: 4, h: 4, minW: 2, minH: 3 },
-  'motors': { x: 4, y: 13, w: 4, h: 4, minW: 3, minH: 3 },
+  'motors': { x: 4, y: 13, w: 4, h: 4, minW: 1, minH: 1 },
 }
 
 export const getDashboardLayout = async (): Promise<DashboardLayout> => {
@@ -55,7 +55,22 @@ export const getDashboardLayout = async (): Promise<DashboardLayout> => {
       const savedLayouts = stored.layouts || []
       
       // Фильтруем только включенные виджеты
-      const enabledLayouts = savedLayouts.filter((l: WidgetLayout) => enabledWidgets.includes(l.i))
+      const enabledLayouts = savedLayouts
+        .filter((l: WidgetLayout) => enabledWidgets.includes(l.i))
+        .map((l: WidgetLayout) => {
+          // Обновляем minW и minH из DEFAULT_LAYOUTS, если они изменились
+          const defaultLayout = DEFAULT_LAYOUTS[l.i]
+          if (defaultLayout) {
+            return {
+              ...l,
+              minW: defaultLayout.minW,
+              minH: defaultLayout.minH,
+              maxW: defaultLayout.maxW,
+              maxH: defaultLayout.maxH,
+            }
+          }
+          return l
+        })
       
       // Получаем список ID виджетов из сохраненного layout
       const savedWidgetIds = new Set(enabledLayouts.map((l: WidgetLayout) => l.i))
@@ -97,11 +112,26 @@ export const getDashboardLayout = async (): Promise<DashboardLayout> => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
-        const parsed = JSON.parse(stored)
-        const enabledWidgets = getAllEnabledWidgetsSync()
-        const savedLayouts = parsed.layouts || []
-        const enabledLayouts = savedLayouts.filter((l: WidgetLayout) => enabledWidgets.includes(l.i))
-        const savedWidgetIds = new Set(enabledLayouts.map((l: WidgetLayout) => l.i))
+      const parsed = JSON.parse(stored)
+      const enabledWidgets = getAllEnabledWidgetsSync()
+      const savedLayouts = parsed.layouts || []
+      const enabledLayouts = savedLayouts
+        .filter((l: WidgetLayout) => enabledWidgets.includes(l.i))
+        .map((l: WidgetLayout) => {
+          // Обновляем minW и minH из DEFAULT_LAYOUTS, если они изменились
+          const defaultLayout = DEFAULT_LAYOUTS[l.i]
+          if (defaultLayout) {
+            return {
+              ...l,
+              minW: defaultLayout.minW,
+              minH: defaultLayout.minH,
+              maxW: defaultLayout.maxW,
+              maxH: defaultLayout.maxH,
+            }
+          }
+          return l
+        })
+      const savedWidgetIds = new Set(enabledLayouts.map((l: WidgetLayout) => l.i))
         const missingWidgets = enabledWidgets
           .filter(id => !savedWidgetIds.has(id))
           .map((id, index) => {
