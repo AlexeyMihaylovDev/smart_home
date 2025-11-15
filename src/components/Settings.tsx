@@ -1,14 +1,24 @@
 import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
-import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List } from 'lucide-react'
+import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft } from 'lucide-react'
 import { getAmbientLightingConfig, updateAmbientLightingConfig, LightConfig } from '../services/widgetConfig'
 
 type Tab = 'devices' | 'widgets'
+type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | null
+
+interface WidgetOption {
+  id: WidgetType
+  name: string
+  description: string
+  icon: React.ComponentType<{ size?: number; className?: string }>
+  color: string
+}
 
 const Settings = () => {
   const { api } = useHomeAssistant()
   const [activeTab, setActiveTab] = useState<Tab>('devices')
+  const [selectedWidget, setSelectedWidget] = useState<WidgetType>(null)
   const [entities, setEntities] = useState<Entity[]>([])
   const [filteredEntities, setFilteredEntities] = useState<Entity[]>([])
   const [loading, setLoading] = useState(false)
@@ -22,10 +32,43 @@ const Settings = () => {
     }
   })
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
+  const widgetOptions: WidgetOption[] = [
+    {
+      id: 'ambient-lighting',
+      name: 'Ambient Lighting Widget',
+      description: 'Управление переключателями освещения',
+      icon: Lightbulb,
+      color: 'bg-yellow-500'
+    },
+    {
+      id: 'tv-time',
+      name: 'TV Time Widget',
+      description: 'Настройка времени работы телевизора',
+      icon: Tv,
+      color: 'bg-blue-500'
+    },
+    {
+      id: 'sensors',
+      name: 'Sensors Widget',
+      description: 'Управление датчиками',
+      icon: Gauge,
+      color: 'bg-green-500'
+    },
+    {
+      id: 'cameras',
+      name: 'Cameras Widget',
+      description: 'Управление камерами',
+      icon: Camera,
+      color: 'bg-purple-500'
+    }
+  ]
 
   useEffect(() => {
     if (activeTab === 'devices') {
       loadEntities()
+      setSelectedWidget(null)
     } else {
       loadWidgetConfigs()
       // Загружаем entities для выбора в настройках виджетов
@@ -99,7 +142,13 @@ const Settings = () => {
     const newConfigs = [...lightConfigs]
     newConfigs[index].entityId = entityId
     setLightConfigs(newConfigs)
-    updateAmbientLightingConfig(newConfigs)
+    setHasUnsavedChanges(true)
+  }
+
+  const handleSave = () => {
+    updateAmbientLightingConfig(lightConfigs)
+    setHasUnsavedChanges(false)
+    alert('Настройки сохранены!')
   }
 
   const autoFillFromSwitches = () => {
@@ -147,8 +196,8 @@ const Settings = () => {
     }
 
     setLightConfigs(newConfigs)
-    updateAmbientLightingConfig(newConfigs)
     setSelectedItems(new Set())
+    setHasUnsavedChanges(true)
     alert(`Автозаполнено ${switchEntities.length} переключателей из найденных switch устройств`)
   }
 
@@ -179,16 +228,16 @@ const Settings = () => {
     if (confirm(`Удалить ${selectedItems.size} выбранных элементов?`)) {
       const newConfigs = lightConfigs.filter((_, index) => !selectedItems.has(index))
       setLightConfigs(newConfigs)
-      updateAmbientLightingConfig(newConfigs)
       setSelectedItems(new Set())
+      setHasUnsavedChanges(true)
     }
   }
 
   const handleDeleteAll = () => {
     if (confirm('Удалить все элементы из виджета?')) {
       setLightConfigs([])
-      updateAmbientLightingConfig([])
       setSelectedItems(new Set())
+      setHasUnsavedChanges(true)
     }
   }
 
@@ -200,17 +249,17 @@ const Settings = () => {
     }
     const newConfigs = [...lightConfigs, newConfig]
     setLightConfigs(newConfigs)
-    updateAmbientLightingConfig(newConfigs)
+    setHasUnsavedChanges(true)
   }
 
   const handleDeleteItem = (index: number) => {
     if (confirm('Удалить этот элемент?')) {
       const newConfigs = lightConfigs.filter((_, i) => i !== index)
       setLightConfigs(newConfigs)
-      updateAmbientLightingConfig(newConfigs)
       const newSelected = new Set(selectedItems)
       newSelected.delete(index)
       setSelectedItems(newSelected)
+      setHasUnsavedChanges(true)
     }
   }
 
@@ -256,15 +305,57 @@ const Settings = () => {
       {activeTab === 'widgets' ? (
         /* Настройка виджетов */
         <div className="space-y-6">
-          {/* Ambient Lighting Widget */}
-          <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
+          {!selectedWidget ? (
+            /* Выбор виджета */
+            <div className="bg-dark-card rounded-lg border border-dark-border p-6">
+              <h2 className="text-xl font-bold mb-2">Выберите виджет для настройки</h2>
+              <p className="text-sm text-dark-textSecondary mb-6">
+                Выберите виджет, который вы хотите настроить
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {widgetOptions.map((widget) => {
+                  const Icon = widget.icon
+                  return (
+                    <button
+                      key={widget.id}
+                      onClick={() => setSelectedWidget(widget.id)}
+                      className="p-6 bg-dark-bg hover:bg-dark-cardHover border border-dark-border rounded-lg transition-all hover:border-blue-500 hover:shadow-lg text-left group"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className={`${widget.color} p-3 rounded-lg group-hover:scale-110 transition-transform`}>
+                          <Icon size={24} className="text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg mb-1">{widget.name}</h3>
+                          <p className="text-sm text-dark-textSecondary">{widget.description}</p>
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ) : (
+            /* Настройки выбранного виджета */
+            <>
+              {selectedWidget === 'ambient-lighting' && (
+                <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
             <div className="p-4 border-b border-dark-border">
               <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="font-medium text-lg">Ambient Lighting Widget</h2>
-                  <p className="text-sm text-dark-textSecondary mt-1">
-                    Настройте привязку переключателей к устройствам Home Assistant
-                  </p>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setSelectedWidget(null)}
+                    className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
+                    title="Вернуться к выбору виджета"
+                  >
+                    <ArrowLeft size={20} />
+                  </button>
+                  <div>
+                    <h2 className="font-medium text-lg">Ambient Lighting Widget</h2>
+                    <p className="text-sm text-dark-textSecondary mt-1">
+                      Настройте привязку переключателей к устройствам Home Assistant
+                    </p>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -282,6 +373,16 @@ const Settings = () => {
                   >
                     +
                   </button>
+                  {hasUnsavedChanges && (
+                    <button
+                      onClick={handleSave}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
+                      title="Сохранить изменения"
+                    >
+                      <Save size={16} />
+                      Сохранить
+                    </button>
+                  )}
                 </div>
               </div>
               {lightConfigs.length > 0 && (
@@ -316,67 +417,92 @@ const Settings = () => {
             </div>
             <div className="p-4 space-y-4">
               {lightConfigs && lightConfigs.length > 0 ? lightConfigs.map((light, index) => (
-                <div key={index} className={`flex items-center gap-4 p-3 bg-dark-bg rounded-lg border ${selectedItems.has(index) ? 'border-blue-500' : 'border-transparent'}`}>
-                  <input
-                    type="checkbox"
-                    checked={selectedItems.has(index)}
-                    onChange={() => handleToggleSelect(index)}
-                    className="w-4 h-4 rounded border-dark-border bg-dark-bg text-blue-600 focus:ring-blue-500 flex-shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
+                <div key={index} className={`p-4 bg-dark-bg rounded-lg border ${selectedItems.has(index) ? 'border-blue-500' : 'border-dark-border'} space-y-3`}>
+                  <div className="flex items-center gap-3">
                     <input
-                      type="text"
-                      value={light.name}
-                      onChange={(e) => {
-                        const newConfigs = [...lightConfigs]
-                        newConfigs[index].name = e.target.value
-                        setLightConfigs(newConfigs)
-                        updateAmbientLightingConfig(newConfigs)
-                      }}
-                      className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 mb-1 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      type="checkbox"
+                      checked={selectedItems.has(index)}
+                      onChange={() => handleToggleSelect(index)}
+                      className="w-4 h-4 rounded border-dark-border bg-dark-bg text-blue-600 focus:ring-blue-500 flex-shrink-0"
                     />
-                    <div className="text-sm text-dark-textSecondary">
-                      {light.entityId || 'Не привязано'}
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={light.name}
+                        onChange={(e) => {
+                          const newConfigs = [...lightConfigs]
+                          newConfigs[index].name = e.target.value
+                          setLightConfigs(newConfigs)
+                          setHasUnsavedChanges(true)
+                        }}
+                        className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Название переключателя"
+                      />
                     </div>
-                  </div>
-                  <select
-                    value={light.entityId || ''}
-                    onChange={(e) => handleLightEntityChange(index, e.target.value || null)}
-                    className="bg-dark-card border border-dark-border rounded-lg px-3 py-2 min-w-[300px] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">-- Выберите устройство --</option>
-                    {entities
-                      .filter(e => {
-                        const domain = e.entity_id.split('.')[0]
-                        return ['light', 'switch', 'input_boolean'].includes(domain)
-                      })
-                      .map(entity => (
-                        <option key={entity.entity_id} value={entity.entity_id}>
-                          {entity.attributes.friendly_name || entity.entity_id} ({entity.entity_id})
-                        </option>
-                      ))}
-                  </select>
-                  {light.entityId && (
                     <button
-                      onClick={() => {
-                        const entity = entities.find(e => e.entity_id === light.entityId)
-                        if (entity) {
-                          navigator.clipboard.writeText(entity.entity_id)
-                        }
-                      }}
-                      className="text-xs bg-dark-cardHover hover:bg-dark-border px-3 py-2 rounded transition-colors flex-shrink-0"
-                      title="Копировать entity_id"
+                      onClick={() => handleDeleteItem(index)}
+                      className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0"
+                      title="Удалить этот элемент"
                     >
-                      Копировать
+                      ✕
                     </button>
-                  )}
-                  <button
-                    onClick={() => handleDeleteItem(index)}
-                    className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0"
-                    title="Удалить этот элемент"
-                  >
-                    ✕
-                  </button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="block text-xs text-dark-textSecondary mb-1">
+                        Entity ID: {light.entityId || 'Не привязано'}
+                      </label>
+                      <select
+                        value={light.entityId || ''}
+                        onChange={(e) => {
+                          const selectedEntityId = e.target.value || null
+                          handleLightEntityChange(index, selectedEntityId)
+                          // Обновляем имя из friendly_name если выбрано устройство
+                          if (selectedEntityId) {
+                            const entity = entities.find(e => e.entity_id === selectedEntityId)
+                            if (entity && entity.attributes.friendly_name) {
+                              let friendlyName = entity.attributes.friendly_name
+                              // Убираем " Switch 1", " Switch 2" и т.д. из названия
+                              friendlyName = friendlyName.replace(/\s+Switch\s+\d+$/i, '')
+                              friendlyName = friendlyName.replace(/\s+switch[_\s]?\d+$/i, '')
+                              
+                              const newConfigs = [...lightConfigs]
+                              newConfigs[index].name = friendlyName
+                              setLightConfigs(newConfigs)
+                              setHasUnsavedChanges(true)
+                            }
+                          }
+                        }}
+                        className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">-- Выберите устройство --</option>
+                        {entities
+                          .filter(e => {
+                            const domain = e.entity_id.split('.')[0]
+                            return ['light', 'switch', 'input_boolean'].includes(domain)
+                          })
+                          .map(entity => (
+                            <option key={entity.entity_id} value={entity.entity_id}>
+                              {entity.attributes.friendly_name || entity.entity_id} ({entity.entity_id})
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    {light.entityId && (
+                      <button
+                        onClick={() => {
+                          const entity = entities.find(e => e.entity_id === light.entityId)
+                          if (entity) {
+                            navigator.clipboard.writeText(entity.entity_id)
+                          }
+                        }}
+                        className="text-xs bg-dark-cardHover hover:bg-dark-border px-3 py-2 rounded transition-colors flex-shrink-0 whitespace-nowrap"
+                        title="Копировать entity_id"
+                      >
+                        Копировать
+                      </button>
+                    )}
+                  </div>
                 </div>
               )) : (
                 <div className="text-center text-dark-textSecondary py-8">
@@ -391,6 +517,75 @@ const Settings = () => {
               )}
             </div>
           </div>
+          )}
+          {selectedWidget === 'tv-time' && (
+            <div className="bg-dark-card rounded-lg border border-dark-border p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <button
+                  onClick={() => setSelectedWidget(null)}
+                  className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
+                  title="Вернуться к выбору виджета"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+                <div>
+                  <h2 className="font-medium text-lg">TV Time Widget</h2>
+                  <p className="text-sm text-dark-textSecondary mt-1">
+                    Настройка виджета времени работы телевизора
+                  </p>
+                </div>
+              </div>
+              <div className="text-center text-dark-textSecondary py-8">
+                Настройки TV Time Widget (в разработке)
+              </div>
+            </div>
+          )}
+          {selectedWidget === 'sensors' && (
+            <div className="bg-dark-card rounded-lg border border-dark-border p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <button
+                  onClick={() => setSelectedWidget(null)}
+                  className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
+                  title="Вернуться к выбору виджета"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+                <div>
+                  <h2 className="font-medium text-lg">Sensors Widget</h2>
+                  <p className="text-sm text-dark-textSecondary mt-1">
+                    Настройка виджета датчиков
+                  </p>
+                </div>
+              </div>
+              <div className="text-center text-dark-textSecondary py-8">
+                Настройки Sensors Widget (в разработке)
+              </div>
+            </div>
+          )}
+          {selectedWidget === 'cameras' && (
+            <div className="bg-dark-card rounded-lg border border-dark-border p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <button
+                  onClick={() => setSelectedWidget(null)}
+                  className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
+                  title="Вернуться к выбору виджета"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+                <div>
+                  <h2 className="font-medium text-lg">Cameras Widget</h2>
+                  <p className="text-sm text-dark-textSecondary mt-1">
+                    Настройка виджета камер
+                  </p>
+                </div>
+              </div>
+              <div className="text-center text-dark-textSecondary py-8">
+                Настройки Cameras Widget (в разработке)
+              </div>
+            </div>
+          )}
+          </>
+          )}
         </div>
       ) : (
         /* Список всех устройств */

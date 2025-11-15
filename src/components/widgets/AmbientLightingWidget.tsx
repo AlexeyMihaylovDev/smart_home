@@ -86,6 +86,24 @@ const AmbientLightingWidget = () => {
     return entity.state === 'on'
   }
 
+  const getDisplayName = (light: LightConfig): string => {
+    let name = light.name
+    
+    if (light.entityId) {
+      const entity = entities.get(light.entityId)
+      if (entity && entity.attributes.friendly_name) {
+        name = entity.attributes.friendly_name
+      }
+    }
+    
+    // Убираем " Switch 1", " Switch 2" и т.д. из названия
+    name = name.replace(/\s+Switch\s+\d+$/i, '')
+    // Также убираем другие возможные суффиксы типа " switch_1", " switch_2"
+    name = name.replace(/\s+switch[_\s]?\d+$/i, '')
+    
+    return name
+  }
+
   const getIcon = (iconType: 'clock' | 'lightbulb') => {
     return iconType === 'clock' ? Clock : Lightbulb
   }
@@ -108,13 +126,15 @@ const AmbientLightingWidget = () => {
           const isOn = getEntityState(light.entityId)
           const hasEntity = light.entityId !== null
 
+          const displayName = getDisplayName(light)
+
           return (
             <div key={index} className="flex items-center justify-between">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <Icon size={16} className="text-yellow-500 flex-shrink-0" />
-                <span className="text-sm truncate">{light.name}</span>
+                <span className="text-sm truncate" title={displayName}>{displayName}</span>
                 {!hasEntity && (
-                  <span className="text-xs text-red-400 ml-2">Не настроено</span>
+                  <span className="text-xs text-red-400 ml-2 flex-shrink-0">Не настроено</span>
                 )}
               </div>
               <ToggleSwitch
