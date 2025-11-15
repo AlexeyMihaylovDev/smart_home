@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
-import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon } from 'lucide-react'
+import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock } from 'lucide-react'
 import { getAmbientLightingConfigSync, updateAmbientLightingConfig, LightConfig, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getMotorConfigsSync, updateMotorConfigs, MotorConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
 import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 import ToggleSwitch from './ui/ToggleSwitch'
@@ -70,6 +70,7 @@ const Settings = () => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [widgetEnabledStates, setWidgetEnabledStates] = useState<Record<string, boolean>>({})
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+  const [previewEntities, setPreviewEntities] = useState<Map<string, Entity>>(new Map())
 
   const widgetOptions: WidgetOption[] = [
     {
@@ -245,6 +246,46 @@ const Settings = () => {
       loadHAConfig()
     }
   }, [activeTab])
+
+  // Загружаем состояния entities для preview виджета
+  useEffect(() => {
+    if (selectedWidget === 'ambient-lighting' && api && lightConfigs.length > 0) {
+      const loadPreviewEntities = async () => {
+        try {
+          const entityIds = lightConfigs
+            .map(l => l.entityId)
+            .filter((id): id is string => id !== null)
+
+          if (entityIds.length === 0) {
+            setPreviewEntities(new Map())
+            return
+          }
+
+          const states = await Promise.all(
+            entityIds.map(id => api.getState(id).catch(() => null))
+          )
+
+          const newEntities = new Map<string, Entity>()
+          entityIds.forEach((id, index) => {
+            const state = states[index]
+            if (state) {
+              newEntities.set(id, state)
+            }
+          })
+
+          setPreviewEntities(newEntities)
+        } catch (error) {
+          console.error('Ошибка загрузки состояний для preview:', error)
+        }
+      }
+
+      loadPreviewEntities()
+      const interval = setInterval(loadPreviewEntities, 2000)
+      return () => clearInterval(interval)
+    } else {
+      setPreviewEntities(new Map())
+    }
+  }, [selectedWidget, lightConfigs, api])
 
   const loadEntities = async () => {
     if (!api) return
@@ -688,7 +729,10 @@ const Settings = () => {
                 </div>
               )}
             </div>
-            <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
+            {/* Контейнер с настройками и preview */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+              {/* Список настроек */}
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
               {lightConfigs && lightConfigs.length > 0 ? lightConfigs.map((light, index) => (
                 <div key={index} className={`p-4 bg-dark-bg rounded-lg border ${selectedItems.has(index) ? 'border-blue-500' : 'border-dark-border'} space-y-3`}>
                   <div className="flex items-center gap-3">
@@ -771,6 +815,49 @@ const Settings = () => {
                   >
                     Добавить первый переключатель
                   </button>
+                </div>
+              )}
+              </div>
+              {/* Preview виджета */}
+              {lightConfigs.length > 0 && (
+                <div className="lg:border-l lg:border-dark-border lg:pl-4">
+                  <h3 className="text-sm font-medium text-dark-textSecondary mb-3">Предпросмотр виджета:</h3>
+                  <div className="bg-dark-bg rounded-lg border border-dark-border p-4 max-h-[60vh] overflow-y-auto">
+                    <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                      <div className="p-2 bg-yellow-500/20 rounded-lg">
+                        <Lightbulb size={18} className="text-yellow-400" />
+                      </div>
+                      <div className="font-medium text-white">תאורה סביבתית</div>
+                    </div>
+                    <div className="space-y-2">
+                      {lightConfigs.map((light, index) => {
+                        const isOn = light.entityId ? (previewEntities.get(light.entityId)?.state === 'on') : false
+                        const hasEntity = light.entityId !== null
+                        const Icon = light.icon === 'clock' ? Clock : Lightbulb
+
+                        return (
+                          <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors flex-shrink-0">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <Icon size={16} className={`${isOn ? 'text-yellow-400' : 'text-dark-textSecondary'} flex-shrink-0`} />
+                              <span className={`text-sm truncate ${isOn ? 'text-white' : 'text-dark-textSecondary'}`} title={light.name}>
+                                {light.name || 'Без названия'}
+                              </span>
+                              {!hasEntity && (
+                                <span className="text-xs text-red-400 ml-2 flex-shrink-0">Не настроено</span>
+                              )}
+                            </div>
+                            <div className={`w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
+                              isOn ? 'bg-blue-600' : 'bg-gray-600'
+                            } ${!hasEntity ? 'opacity-50' : ''}`}>
+                              <div className={`w-5 h-5 rounded-full bg-white transition-transform mt-0.5 ${
+                                isOn ? 'translate-x-4' : 'translate-x-0.5'
+                              }`} />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
