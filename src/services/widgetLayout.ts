@@ -57,16 +57,28 @@ export const getDashboardLayout = (): DashboardLayout => {
       // Добавляем новые включенные виджеты, которых нет в сохраненном layout
       const missingWidgets = enabledWidgets
         .filter(id => !savedWidgetIds.has(id))
-        .map(id => ({
-          i: id,
-          ...(DEFAULT_LAYOUTS[id] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 })
-        }))
+        .map((id, index) => {
+          // Автоматически размещаем новые виджеты компактно
+          const maxY = enabledLayouts.length > 0 
+            ? Math.max(...enabledLayouts.map(l => l.y + l.h))
+            : -1
+          const defaultLayout = DEFAULT_LAYOUTS[id] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 }
+          return {
+            i: id,
+            ...defaultLayout,
+            y: maxY + 1, // Размещаем после последнего виджета
+            x: (index % 3) * 4 // Распределяем по колонкам
+          }
+        })
       
       // Объединяем сохраненные виджеты с новыми
       const mergedLayouts = [...enabledLayouts, ...missingWidgets]
       
+      // Компактируем layout - убираем пустые места
+      const compactedLayouts = compactLayoutVertical(mergedLayouts, DEFAULT_COLS)
+      
       return {
-        layouts: mergedLayouts,
+        layouts: compactedLayouts,
         cols: parsed.cols || DEFAULT_COLS,
         rowHeight: parsed.rowHeight || DEFAULT_ROW_HEIGHT
       }
@@ -77,17 +89,110 @@ export const getDashboardLayout = (): DashboardLayout => {
   
   // Если нет сохраненного layout, возвращаем только включенные виджеты
   const enabledWidgets = getAllEnabledWidgets()
-  const layouts = enabledWidgets.map(id => ({
-    i: id,
-    ...(DEFAULT_LAYOUTS[id] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 })
-  }))
+  const layouts = enabledWidgets.map((id, index) => {
+    const defaultLayout = DEFAULT_LAYOUTS[id] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 }
+    // Размещаем виджеты компактно в сетке
+    const col = index % 3
+    const row = Math.floor(index / 3)
+    return {
+      i: id,
+      ...defaultLayout,
+      x: col * 4,
+      y: row * 3
+    }
+  })
+  
+  // Компактируем layout
+  const compactedLayouts = compactLayoutVertical(layouts, DEFAULT_COLS)
   
   return {
-    layouts,
+    layouts: compactedLayouts,
     cols: DEFAULT_COLS,
     rowHeight: DEFAULT_ROW_HEIGHT
   }
 }
+
+// Функция для вертикального компактирования layout - убирает пустые места
+const compactLayoutVertical = (layouts: WidgetLayout[], cols: number): WidgetLayout[] => {
+  if (layouts.length === 0) return []
+  
+  // Сортируем виджеты по текущей позиции (сверху вниз, слева направо)
+  const sorted = [...layouts].sort((a, b) => {
+    if (a.y !== b.y) return a.y - b.y
+    return a.x - b.x
+  })
+  
+  // Массив для отслеживания занятых ячеек
+  const occupied: boolean[][] = []
+  
+  const compacted: WidgetLayout[] = []
+  
+  for (const item of sorted) {
+    let placed = false
+    let newY = 0
+    let newX = 0
+    
+    // Ищем первое свободное место, начиная сверху
+    while (!placed) {
+      // Проверяем, помещается ли виджет на текущей позиции
+      let fits = true
+      
+      // Проверяем все ячейки, которые займет виджет
+      for (let dx = 0; dx < item.w && fits; dx++) {
+        for (let dy = 0; dy < item.h && fits; dy++) {
+          const checkX = newX + dx
+          const checkY = newY + dy
+          
+          // Проверяем границы
+          if (checkX >= cols || checkX < 0) {
+            fits = false
+            break
+          }
+          
+          // Проверяем, занята ли ячейка
+          if (!occupied[checkY]) {
+            occupied[checkY] = []
+          }
+          if (occupied[checkY][checkX]) {
+            fits = false
+          }
+        }
+      }
+      
+      if (fits) {
+        // Помечаем ячейки как занятые
+        for (let dx = 0; dx < item.w; dx++) {
+          for (let dy = 0; dy < item.h; dy++) {
+            const markX = newX + dx
+            const markY = newY + dy
+            
+            if (!occupied[markY]) {
+              occupied[markY] = []
+            }
+            occupied[markY][markX] = true
+          }
+        }
+        
+        compacted.push({
+          ...item,
+          x: newX,
+          y: newY
+        })
+        placed = true
+      } else {
+        // Пробуем следующую позицию
+        newX += 1
+        if (newX + item.w > cols) {
+          newX = 0
+          newY += 1
+        }
+      }
+    }
+  }
+  
+  return compacted
+}
+
 
 export const saveDashboardLayout = (layout: DashboardLayout): void => {
   try {
@@ -99,9 +204,11 @@ export const saveDashboardLayout = (layout: DashboardLayout): void => {
 
 export const updateWidgetLayout = (layouts: WidgetLayout[]): void => {
   const current = getDashboardLayout()
+  // Компактируем layout перед сохранением, чтобы убрать пустые места
+  const compactedLayouts = compactLayoutVertical(layouts, current.cols)
   saveDashboardLayout({
     ...current,
-    layouts
+    layouts: compactedLayouts
   })
 }
 

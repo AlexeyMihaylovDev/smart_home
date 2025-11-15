@@ -35,7 +35,24 @@ const widgetComponents: Record<string, React.ComponentType<any>> = {
 }
 
 const WidgetGrid = () => {
-  const [layout, setLayout] = useState<Layout[]>([])
+  // Загружаем layout синхронно до первого рендера
+  const getInitialLayout = (): Layout[] => {
+    const savedLayout = getDashboardLayout()
+    return savedLayout.layouts.map(l => ({
+      i: l.i,
+      x: l.x,
+      y: l.y,
+      w: l.w,
+      h: l.h,
+      minW: l.minW,
+      minH: l.minH,
+      maxW: l.maxW,
+      maxH: l.maxH,
+    }))
+  }
+  
+  const [layout, setLayout] = useState<Layout[]>(getInitialLayout)
+  const [isLoading, setIsLoading] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [longPressProgress, setLongPressProgress] = useState(0)
   const [tripleClickActivated, setTripleClickActivated] = useState(false)
@@ -48,7 +65,7 @@ const WidgetGrid = () => {
   useEffect(() => {
     const loadLayout = () => {
       const savedLayout = getDashboardLayout()
-      setLayout(savedLayout.layouts.map(l => ({
+      const mappedLayout = savedLayout.layouts.map(l => ({
         i: l.i,
         x: l.x,
         y: l.y,
@@ -58,9 +75,12 @@ const WidgetGrid = () => {
         minH: l.minH,
         maxW: l.maxW,
         maxH: l.maxH,
-      })))
+      }))
+      setLayout(mappedLayout)
+      setIsLoading(false)
     }
     
+    // Загружаем layout сразу, без задержки
     loadLayout()
     
     // Слушаем изменения в localStorage для обновления layout при изменении enabled виджетов
@@ -85,20 +105,23 @@ const WidgetGrid = () => {
 
   const handleLayoutChange = useCallback((newLayout: Layout[]) => {
     setLayout(newLayout)
-    // Сохраняем layout при изменении
-    const widgetLayouts: WidgetLayout[] = newLayout.map(l => ({
-      i: l.i,
-      x: l.x || 0,
-      y: l.y || 0,
-      w: l.w || 4,
-      h: l.h || 2,
-      minW: l.minW,
-      minH: l.minH,
-      maxW: l.maxW,
-      maxH: l.maxH,
-    }))
-    updateWidgetLayout(widgetLayouts)
-  }, [])
+    // Сохраняем layout при изменении (только в режиме редактирования)
+    // В обычном режиме react-grid-layout сам компактирует через compactType
+    if (editMode) {
+      const widgetLayouts: WidgetLayout[] = newLayout.map(l => ({
+        i: l.i,
+        x: l.x || 0,
+        y: l.y || 0,
+        w: l.w || 4,
+        h: l.h || 2,
+        minW: l.minW,
+        minH: l.minH,
+        maxW: l.maxW,
+        maxH: l.maxH,
+      }))
+      updateWidgetLayout(widgetLayouts)
+    }
+  }, [editMode])
 
   const TRIPLE_CLICK_TIMEOUT = 500 // 500ms между кликами
   const REQUIRED_CLICKS = 3
@@ -245,6 +268,7 @@ const WidgetGrid = () => {
 
   const savedLayout = getDashboardLayout()
 
+
   return (
     <div className="relative" ref={containerRef}>
       {/* Индикатор тройного клика */}
@@ -322,7 +346,7 @@ const WidgetGrid = () => {
       )}
 
       <GridLayout
-        className="layout"
+        className="layout layout-loaded"
         layout={layout}
         onLayoutChange={handleLayoutChange}
         cols={savedLayout.cols}
@@ -331,10 +355,11 @@ const WidgetGrid = () => {
         isDraggable={editMode}
         isResizable={editMode}
         draggableHandle=".drag-handle"
-        compactType={null}
+        compactType="vertical"
         preventCollision={false}
         margin={[16, 16]}
         containerPadding={[0, 0]}
+        useCSSTransforms={true}
       >
         {layout.map((item) => {
           const WidgetComponent = widgetComponents[item.i]

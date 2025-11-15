@@ -146,20 +146,25 @@ body {
   opacity: 1;
 }
 
-/* Анимация появления виджетов */
-@keyframes fadeInUp {
+/* Анимация появления виджетов - плавное появление без разброса */
+@keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 .react-grid-item {
-  animation: fadeInUp 0.4s ease-out;
+  animation: fadeIn 0.2s ease-out;
+  animation-fill-mode: both;
+}
+
+/* Отключаем анимацию при первой загрузке для предотвращения разброса */
+.react-grid-layout:not(.layout-loaded) .react-grid-item {
+  animation: none;
+  opacity: 1;
 }
 
 /* Улучшенные кнопки */
