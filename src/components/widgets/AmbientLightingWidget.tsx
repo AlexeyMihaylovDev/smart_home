@@ -128,14 +128,14 @@ const AmbientLightingWidget = () => {
   }
 
   return (
-    <div className="h-full p-4">
-      <div className="flex items-center gap-2 mb-4">
+    <div className="h-full p-4 flex flex-col">
+      <div className="flex items-center gap-2 mb-4 flex-shrink-0">
         <div className="p-2 bg-yellow-500/20 rounded-lg">
           <Lightbulb size={18} className="text-yellow-400" />
         </div>
         <div className="font-medium text-white">Ambient Lighting</div>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-2 overflow-y-auto flex-1 min-h-0" style={{ maxHeight: 'calc(5 * (2.5rem + 0.5rem))' }}>
         {Array.isArray(lights) && lights.map((light, index) => {
           const Icon = getIcon(light.icon)
           const isOn = getEntityState(light.entityId)
@@ -144,7 +144,7 @@ const AmbientLightingWidget = () => {
           const displayName = getDisplayName(light)
 
           return (
-            <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors">
+            <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors flex-shrink-0">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <Icon size={16} className={`${isOn ? 'text-yellow-400' : 'text-dark-textSecondary'} flex-shrink-0`} />
                 <span className={`text-sm truncate ${isOn ? 'text-white' : 'text-dark-textSecondary'}`} title={displayName}>{displayName}</span>

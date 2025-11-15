@@ -13,7 +13,11 @@ const USERS_FILE = path.join(DATA_DIR, 'users.json')
 fs.mkdir(DATA_DIR, { recursive: true }).catch(console.error)
 
 // Middleware
-app.use(cors())
+// Настройка CORS для доступа с других компьютеров
+app.use(cors({
+  origin: true, // Разрешаем все источники
+  credentials: true
+}))
 app.use(express.json())
 
 // Простая функция хеширования пароля

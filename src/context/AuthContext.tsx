@@ -46,6 +46,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(response.user)
         localStorage.setItem('user_id', response.user.id)
         localStorage.setItem('username', response.user.username)
+        // Отправляем событие для обновления других компонентов
+        window.dispatchEvent(new Event('user-changed'))
       } else {
         throw new Error('Неверное имя пользователя или пароль')
       }
@@ -59,9 +61,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null)
     localStorage.removeItem('user_id')
     localStorage.removeItem('username')
-    // Также очищаем настройки Home Assistant
-    localStorage.removeItem('ha_url')
-    localStorage.removeItem('ha_token')
+    // Настройки Home Assistant хранятся на сервере, не нужно очищать localStorage
+    // Отправляем событие для обновления других компонентов
+    window.dispatchEvent(new Event('user-changed'))
   }
 
   return (

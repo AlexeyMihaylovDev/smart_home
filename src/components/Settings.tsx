@@ -531,11 +531,22 @@ const Settings = () => {
                 Выберите виджет, который вы хотите настроить
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {widgetOptions.map((widget) => {
-                  const Icon = widget.icon
-                  const widgetId = widget.id || ''
-                  // Используем локальное состояние для немедленного обновления
-                  const enabled = widgetEnabledStates[widgetId] ?? isWidgetEnabled(widgetId)
+                {widgetOptions
+                  .map((widget) => {
+                    const widgetId = widget.id || ''
+                    const enabled = widgetEnabledStates[widgetId] ?? isWidgetEnabledSync(widgetId)
+                    return { ...widget, enabled }
+                  })
+                  .sort((a, b) => {
+                    // Сначала включенные виджеты
+                    if (a.enabled && !b.enabled) return -1
+                    if (!a.enabled && b.enabled) return 1
+                    return 0
+                  })
+                  .map((widget) => {
+                    const Icon = widget.icon
+                    const widgetId = widget.id || ''
+                    const enabled = widget.enabled
                   return (
                     <div
                       key={widget.id}

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../../context/HomeAssistantContext'
 import { Entity } from '../../services/homeAssistantAPI'
 import { getSensorsConfigSync, SensorConfig } from '../../services/widgetConfig'
-import { Activity, User, Gauge, Battery, BatteryLow, BatteryMedium, BatteryFull } from 'lucide-react'
+import { Radio, User, Gauge, Battery, BatteryLow, BatteryMedium, BatteryFull, Activity, Waves } from 'lucide-react'
 
 const SensorsWidget = () => {
   const { api } = useHomeAssistant()
@@ -144,7 +144,7 @@ const SensorsWidget = () => {
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-1.5 bg-blue-500/20 rounded-lg">
-              <Activity size={16} className="text-blue-400" />
+              <Radio size={16} className="text-blue-400" />
             </div>
             <div className="font-medium text-white text-sm">Датчики движения</div>
           </div>
@@ -163,7 +163,7 @@ const SensorsWidget = () => {
                     <div className={`p-1.5 rounded-lg flex-shrink-0 ${
                       isActive ? 'bg-blue-500/20' : 'bg-gray-500/20'
                     }`}>
-                      <Activity
+                      <Radio
                         size={14}
                         className={isActive ? 'text-blue-400' : 'text-gray-400'}
                       />
@@ -199,9 +199,9 @@ const SensorsWidget = () => {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <div className="p-1.5 bg-green-500/20 rounded-lg">
-              <User size={16} className="text-green-400" />
+              <Waves size={16} className="text-green-400" />
             </div>
-            <div className="font-medium text-white text-sm">Датчики присутствия</div>
+            <div className="font-medium text-white text-sm">חיישני נוכחות</div>
           </div>
           <div className="space-y-2">
             {presenceSensors.map((sensor, index) => {
@@ -256,7 +256,7 @@ const SensorsWidget = () => {
                       ? 'bg-green-500/20 text-green-400'
                       : 'bg-gray-500/20 text-gray-400'
                   }`}>
-                    {isActive ? 'Присутствует' : 'Отсутствует'}
+                    {isActive ? 'Присутствует' : 'נעדר'}
                   </div>
                 </div>
               )

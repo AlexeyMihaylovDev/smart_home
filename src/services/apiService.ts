@@ -2,15 +2,12 @@
 import axios from 'axios'
 
 // Определяем URL сервера настроек
-// В dev режиме используем localhost:3001
-// В production используем тот же хост, но порт 3001
+// Используем тот же хост, что и текущая страница, но порт 3001
 const getApiBaseUrl = () => {
-  if (import.meta.env.DEV) {
-    return 'http://localhost:3001'
-  }
-  // В production используем тот же хост, что и текущая страница
   const host = window.location.hostname
   const protocol = window.location.protocol
+  // Если hostname localhost, используем localhost, иначе используем IP
+  // Это позволяет работать как локально, так и с других компьютеров
   return `${protocol}//${host}:3001`
 }
 
@@ -169,24 +166,17 @@ export const saveDashboardLayout = async (layout: DashboardLayout): Promise<void
 export const getConnectionConfig = async (): Promise<{ url: string; token: string } | null> => {
   try {
     const response = await apiClient.get('/api/config/connection')
-    if (response.data.hasToken) {
-      // Для получения токена нужен отдельный запрос или хранить его в памяти
-      // Пока используем localStorage для токена
-      const token = localStorage.getItem('ha_token') || ''
+    // Сервер возвращает url и token напрямую
+    if (response.data && (response.data.url || response.data.token)) {
       return {
         url: response.data.url || '',
-        token: token
+        token: response.data.token || ''
       }
     }
     return null
   } catch (error) {
-    console.error('Ошибка загрузки connection config с сервера, используем localStorage:', error)
-    // Fallback на localStorage
-    const url = localStorage.getItem('ha_url') || ''
-    const token = localStorage.getItem('ha_token') || ''
-    if (url && token) {
-      return { url, token }
-    }
+    console.error('Ошибка загрузки connection config с сервера:', error)
+    // Не используем localStorage как fallback - настройки должны быть на сервере
     return null
   }
 }
@@ -194,14 +184,10 @@ export const getConnectionConfig = async (): Promise<{ url: string; token: strin
 export const saveConnectionConfig = async (config: ConnectionConfig): Promise<void> => {
   try {
     await apiClient.post('/api/config/connection', config)
-    // Также сохраняем в localStorage как backup
-    localStorage.setItem('ha_url', config.url)
-    localStorage.setItem('ha_token', config.token)
+    console.log('Настройки Home Assistant сохранены на сервер для пользователя')
+    // Не сохраняем в localStorage - все настройки на сервере
   } catch (error) {
-    console.error('Ошибка сохранения connection config на сервер, используем localStorage:', error)
-    // Fallback на localStorage
-    localStorage.setItem('ha_url', config.url)
-    localStorage.setItem('ha_token', config.token)
+    console.error('Ошибка сохранения connection config на сервер:', error)
     throw error
   }
 }
