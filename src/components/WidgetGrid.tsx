@@ -8,6 +8,7 @@ import PlexWidget from './widgets/PlexWidget'
 import TVDurationWidget from './widgets/TVDurationWidget'
 import AmbientLightingWidget from './widgets/AmbientLightingWidget'
 import LivingRoomWidget from './widgets/LivingRoomWidget'
+import WeatherCalendarWidget from './widgets/WeatherCalendarWidget'
 
 const WidgetGrid = () => {
   return (
@@ -30,6 +31,7 @@ const WidgetGrid = () => {
 
       {/* Колонка 3 */}
       <div className="space-y-6">
+        <WeatherCalendarWidget />
         <AmbientLightingWidget />
         <LivingRoomWidget />
       </div>
