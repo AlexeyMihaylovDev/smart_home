@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
 import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music } from 'lucide-react'
-import { getAmbientLightingConfig, updateAmbientLightingConfig, LightConfig, getACConfig, updateACConfig, ACConfig, isWidgetEnabled, setWidgetEnabled } from '../services/widgetConfig'
+import { getAmbientLightingConfig, updateAmbientLightingConfig, LightConfig, getACConfigs, updateACConfigs, ACConfig, isWidgetEnabled, setWidgetEnabled } from '../services/widgetConfig'
 import ToggleSwitch from './ui/ToggleSwitch'
+import Toast from './ui/Toast'
 
 type Tab = 'devices' | 'widgets'
 type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | null
@@ -32,16 +33,17 @@ const Settings = () => {
       return []
     }
   })
-  const [acConfig, setACConfig] = useState<ACConfig>(() => {
+  const [acConfigs, setACConfigs] = useState<ACConfig[]>(() => {
     try {
-      return getACConfig()
+      return getACConfigs()
     } catch {
-      return { entityId: null, name: 'Кондиционер' }
+      return []
     }
   })
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [widgetEnabledStates, setWidgetEnabledStates] = useState<Record<string, boolean>>({})
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
   const widgetOptions: WidgetOption[] = [
     {
@@ -149,7 +151,10 @@ const Settings = () => {
       loadEntities()
       setSelectedWidget(null)
     } else {
-      loadWidgetConfigs()
+      // Загружаем конфигурации только если они еще не загружены или если нет несохраненных изменений
+      if (!hasUnsavedChanges) {
+        loadWidgetConfigs()
+      }
       // Загружаем entities для выбора в настройках виджетов
       if (entities.length === 0) {
         loadEntities()
@@ -172,6 +177,9 @@ const Settings = () => {
   const loadWidgetConfigs = () => {
     const config = getAmbientLightingConfig()
     setLightConfigs(config && Array.isArray(config) ? config : [])
+    const acs = getACConfigs()
+    console.log('Settings: загружены AC конфигурации:', acs)
+    setACConfigs(acs && Array.isArray(acs) ? acs : [])
   }
 
   const loadEntities = async () => {
@@ -235,7 +243,8 @@ const Settings = () => {
   const handleSave = () => {
     updateAmbientLightingConfig(lightConfigs)
     setHasUnsavedChanges(false)
-    alert('Настройки сохранены!')
+    window.dispatchEvent(new Event('widgets-changed'))
+    setToast({ message: 'Настройки сохранены!', type: 'success' })
   }
 
   const autoFillFromSwitches = () => {
@@ -717,87 +726,146 @@ const Settings = () => {
                       </p>
                     </div>
                   </div>
-                  {hasUnsavedChanges && (
+                  <div className="flex gap-2">
                     <button
                       onClick={() => {
-                        updateACConfig(acConfig)
-                        setHasUnsavedChanges(false)
-                        alert('Настройки сохранены!')
-                      }}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
-                      title="Сохранить изменения"
-                    >
-                      <Save size={16} />
-                      Сохранить
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="p-4 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Название виджета
-                  </label>
-                  <input
-                    type="text"
-                    value={acConfig.name}
-                    onChange={(e) => {
-                      setACConfig({ ...acConfig, name: e.target.value })
-                      setHasUnsavedChanges(true)
-                    }}
-                    className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Кондиционер"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Entity ID кондиционера
-                  </label>
-                  <div className="flex gap-2">
-                    <select
-                      value={acConfig.entityId || ''}
-                      onChange={(e) => {
-                        const selectedEntityId = e.target.value || null
-                        let friendlyName = acConfig.name
-                        if (selectedEntityId) {
-                          const entity = entities.find(e => e.entity_id === selectedEntityId)
-                          if (entity && entity.attributes.friendly_name) {
-                            friendlyName = entity.attributes.friendly_name
-                          }
+                        const newAC: ACConfig = {
+                          name: `Кондиционер ${acConfigs.length + 1}`,
+                          entityId: null
                         }
-                        setACConfig({ entityId: selectedEntityId, name: friendlyName })
+                        setACConfigs([...acConfigs, newAC])
                         setHasUnsavedChanges(true)
                       }}
-                      className="flex-1 bg-dark-bg border border-dark-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                      title="Добавить новый кондиционер"
                     >
-                      <option value="">-- Выберите кондиционер --</option>
-                      {entities
-                        .filter(e => {
-                          const domain = e.entity_id.split('.')[0]
-                          return domain === 'climate'
-                        })
-                        .map(entity => (
-                          <option key={entity.entity_id} value={entity.entity_id}>
-                            {entity.attributes.friendly_name || entity.entity_id} ({entity.entity_id})
-                          </option>
-                        ))}
-                    </select>
-                    {acConfig.entityId && (
+                      +
+                    </button>
+                    {hasUnsavedChanges && (
                       <button
                         onClick={() => {
-                          navigator.clipboard.writeText(acConfig.entityId || '')
+                          try {
+                            updateACConfigs(acConfigs)
+                            setHasUnsavedChanges(false)
+                            window.dispatchEvent(new Event('widgets-changed'))
+                            setToast({ message: 'Настройки кондиционеров сохранены!', type: 'success' })
+                          } catch (error) {
+                            console.error('Ошибка сохранения:', error)
+                            setToast({ message: 'Ошибка сохранения настроек', type: 'error' })
+                          }
                         }}
-                        className="text-xs bg-dark-cardHover hover:bg-dark-border px-3 py-2 rounded transition-colors whitespace-nowrap"
-                        title="Копировать entity_id"
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
+                        title="Сохранить изменения"
                       >
-                        Копировать
+                        <Save size={16} />
+                        Сохранить
                       </button>
                     )}
                   </div>
-                  <div className="text-xs text-dark-textSecondary mt-2">
-                    {acConfig.entityId || 'Не привязано'}
-                  </div>
                 </div>
+              </div>
+              <div className="p-4 space-y-4">
+                {acConfigs && acConfigs.length > 0 ? acConfigs.map((ac, index) => (
+                  <div key={index} className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <label className="block text-xs text-dark-textSecondary mb-1">
+                          Название кондиционера:
+                        </label>
+                        <input
+                          type="text"
+                          value={ac.name}
+                          onChange={(e) => {
+                            const newConfigs = [...acConfigs]
+                            newConfigs[index].name = e.target.value
+                            setACConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }}
+                          className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Название кондиционера"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (confirm('Удалить этот кондиционер?')) {
+                            const newConfigs = acConfigs.filter((_, i) => i !== index)
+                            setACConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }
+                        }}
+                        className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0 ml-2"
+                        title="Удалить этот кондиционер"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-dark-textSecondary mb-1">
+                        Entity ID кондиционера: {ac.entityId || 'Не привязано'}
+                      </label>
+                      <div className="flex gap-2">
+                        <select
+                          value={ac.entityId || ''}
+                          onChange={(e) => {
+                            const selectedEntityId = e.target.value || null
+                            let friendlyName = ac.name
+                            if (selectedEntityId) {
+                              const entity = entities.find(e => e.entity_id === selectedEntityId)
+                              if (entity && entity.attributes.friendly_name) {
+                                friendlyName = entity.attributes.friendly_name
+                              }
+                            }
+                            const newConfigs = [...acConfigs]
+                            newConfigs[index] = { entityId: selectedEntityId, name: friendlyName }
+                            setACConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }}
+                          className="flex-1 bg-dark-card border border-dark-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">-- Выберите кондиционер --</option>
+                          {entities
+                            .filter(e => {
+                              const domain = e.entity_id.split('.')[0]
+                              return domain === 'climate'
+                            })
+                            .map(entity => (
+                              <option key={entity.entity_id} value={entity.entity_id}>
+                                {entity.attributes.friendly_name || entity.entity_id} ({entity.entity_id})
+                              </option>
+                            ))}
+                        </select>
+                        {ac.entityId && (
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(ac.entityId || '')
+                            }}
+                            className="text-xs bg-dark-cardHover hover:bg-dark-border px-3 py-2 rounded transition-colors flex-shrink-0 whitespace-nowrap"
+                            title="Копировать entity_id"
+                          >
+                            Копировать
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="text-center text-dark-textSecondary py-8">
+                    <p className="mb-4">Нет кондиционеров в виджете</p>
+                    <button
+                      onClick={() => {
+                        const newAC: ACConfig = {
+                          name: 'Кондиционер 1',
+                          entityId: null
+                        }
+                        setACConfigs([newAC])
+                        setHasUnsavedChanges(true)
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    >
+                      Добавить первый кондиционер
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -913,6 +981,15 @@ const Settings = () => {
         </div>
       </div>
         </>
+      )}
+
+      {/* Toast уведомления */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   )

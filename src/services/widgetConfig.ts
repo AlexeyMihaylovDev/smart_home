@@ -16,8 +16,7 @@ export interface WidgetConfig {
     lights: LightConfig[]
   }
   ac: {
-    entityId: string | null
-    name: string
+    airConditioners: ACConfig[]
   }
   enabledWidgets: {
     [widgetId: string]: boolean
@@ -36,8 +35,7 @@ const DEFAULT_CONFIG: WidgetConfig = {
     ]
   },
   ac: {
-    entityId: null,
-    name: 'Кондиционер'
+    airConditioners: []
   },
   enabledWidgets: {}
 }
@@ -48,7 +46,18 @@ export const getWidgetConfig = (): WidgetConfig => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
-      return JSON.parse(stored)
+      const parsed = JSON.parse(stored)
+      // Убеждаемся, что структура правильная
+      if (!parsed.ac || !parsed.ac.airConditioners) {
+        // Если структура неправильная, исправляем её
+        if (parsed.ac && 'entityId' in parsed.ac) {
+          // Старый формат - оставляем как есть для миграции
+          return parsed
+        }
+        // Если ac отсутствует или неправильный формат, добавляем правильную структуру
+        parsed.ac = { airConditioners: [] }
+      }
+      return parsed
     }
   } catch (error) {
     console.error('Ошибка загрузки конфигурации:', error)
@@ -75,15 +84,70 @@ export const getAmbientLightingConfig = (): LightConfig[] => {
   return config.ambientLighting.lights
 }
 
-export const updateACConfig = (acConfig: ACConfig): void => {
+export const updateACConfigs = (airConditioners: ACConfig[]): void => {
   const config = getWidgetConfig()
-  config.ac = acConfig
+  console.log('updateACConfigs: текущая конфигурация перед сохранением:', config)
+  
+  // Убеждаемся, что структура правильная
+  if (!config.ac) {
+    config.ac = { airConditioners: [] }
+  }
+  
+  // Удаляем старый формат, если он есть
+  if ('entityId' in config.ac) {
+    delete (config.ac as any).entityId
+    delete (config.ac as any).name
+  }
+  
+  // Устанавливаем новый формат
+  config.ac.airConditioners = airConditioners
+  
+  console.log('updateACConfigs: конфигурация после обновления:', config)
+  console.log('updateACConfigs: config.ac:', config.ac)
+  console.log('updateACConfigs: config.ac.airConditioners:', config.ac.airConditioners)
+  
   saveWidgetConfig(config)
+  
+  // Проверяем, что сохранилось правильно
+  const saved = getWidgetConfig()
+  console.log('updateACConfigs: проверка сохраненной конфигурации:', saved)
+  console.log('updateACConfigs: сохраненные AC конфигурации:', saved.ac?.airConditioners)
+  
+  console.log('AC конфигурация сохранена:', airConditioners)
 }
 
-export const getACConfig = (): ACConfig => {
+export const getACConfigs = (): ACConfig[] => {
   const config = getWidgetConfig()
-  return config.ac || DEFAULT_CONFIG.ac
+  console.log('getACConfigs: полная конфигурация из localStorage:', config)
+  console.log('getACConfigs: config.ac:', config.ac)
+  
+  // Проверяем наличие нового формата (airConditioners)
+  if (config.ac && 'airConditioners' in config.ac && Array.isArray(config.ac.airConditioners)) {
+    const result = config.ac.airConditioners
+    console.log('AC конфигурация загружена (новый формат):', result)
+    return result
+  }
+  
+  // Поддержка старого формата для миграции
+  if (config.ac && 'entityId' in config.ac && !('airConditioners' in config.ac)) {
+    const oldConfig = config.ac as any
+    if (oldConfig.entityId) {
+      console.log('AC конфигурация загружена (старый формат, миграция):', [{
+        entityId: oldConfig.entityId,
+        name: oldConfig.name || 'Кондиционер'
+      }])
+      return [{
+        entityId: oldConfig.entityId,
+        name: oldConfig.name || 'Кондиционер'
+      }]
+    }
+    return []
+  }
+  
+  // Если структура неправильная или отсутствует
+  const result = config.ac?.airConditioners || []
+  console.log('AC конфигурация загружена (fallback):', result)
+  return result
 }
 
 export const isWidgetEnabled = (widgetId: string): boolean => {

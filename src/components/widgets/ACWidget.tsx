@@ -1,38 +1,90 @@
 import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../../context/HomeAssistantContext'
 import { Entity } from '../../services/homeAssistantAPI'
-import { getACConfig } from '../../services/widgetConfig'
-import { Snowflake, Flame, Droplets, Fan, Power, Settings, MoreVertical, Thermometer } from 'lucide-react'
+import { getACConfigs, ACConfig } from '../../services/widgetConfig'
+import { Snowflake, Flame, Droplets, Fan, Power, Settings, MoreVertical, Thermometer, ChevronDown } from 'lucide-react'
 
 const ACWidget = () => {
-  const [configEntityId, setConfigEntityId] = useState<string | null>(null)
+  const [acConfigs, setACConfigs] = useState<ACConfig[]>([])
+  const [selectedACIndex, setSelectedACIndex] = useState<number>(0)
   const { api } = useHomeAssistant()
-  const [entity, setEntity] = useState<Entity | null>(null)
+  const [entities, setEntities] = useState<Map<string, Entity>>(new Map())
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const config = getACConfig()
-    setConfigEntityId(config.entityId)
+    const loadConfigs = () => {
+      const configs = getACConfigs()
+      console.log('ACWidget: загружены конфигурации:', configs)
+      setACConfigs(configs)
+      if (configs.length > 0 && selectedACIndex >= configs.length) {
+        setSelectedACIndex(0)
+      }
+    }
+
+    loadConfigs()
+
+    // Слушаем изменения конфигурации
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'widget_config') {
+        console.log('ACWidget: обнаружено изменение в localStorage')
+        loadConfigs()
+      }
+    }
+
+    const handleWidgetsChanged = () => {
+      console.log('ACWidget: получено событие widgets-changed')
+      loadConfigs()
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('widgets-changed', handleWidgetsChanged)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('widgets-changed', handleWidgetsChanged)
+    }
   }, [])
 
+  const selectedAC = acConfigs[selectedACIndex]
+  const configEntityId = selectedAC?.entityId || null
+
   useEffect(() => {
-    if (api && configEntityId) {
-      loadEntity()
-      const interval = setInterval(loadEntity, 2000)
+    if (api && acConfigs.length > 0) {
+      loadEntities()
+      const interval = setInterval(loadEntities, 2000)
       return () => clearInterval(interval)
     }
-  }, [api, configEntityId])
+  }, [api, acConfigs])
 
-  const loadEntity = async () => {
-    if (!api || !configEntityId) return
+  const loadEntities = async () => {
+    if (!api || acConfigs.length === 0) return
 
     try {
-      const state = await api.getState(configEntityId)
-      setEntity(state)
+      const entityIds = acConfigs
+        .map(ac => ac.entityId)
+        .filter((id): id is string => id !== null)
+
+      if (entityIds.length === 0) return
+
+      const states = await Promise.all(
+        entityIds.map(id => api.getState(id).catch(() => null))
+      )
+
+      const newEntities = new Map<string, Entity>()
+      entityIds.forEach((id, index) => {
+        const state = states[index]
+        if (state) {
+          newEntities.set(id, state)
+        }
+      })
+
+      setEntities(newEntities)
     } catch (error) {
-      console.error('Ошибка загрузки состояния кондиционера:', error)
+      console.error('Ошибка загрузки состояний кондиционеров:', error)
     }
   }
+
+  const entity = configEntityId ? entities.get(configEntityId) : null
 
   const handleSetTemperature = async (temperature: number) => {
     if (!api || !configEntityId) return
@@ -101,12 +153,23 @@ const ACWidget = () => {
     }
   }
 
+  if (acConfigs.length === 0) {
+    return (
+      <div className="h-full p-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-dark-textSecondary mb-2">Кондиционеры не настроены</div>
+          <div className="text-xs text-dark-textSecondary">Настройте в Settings → Настройка виджетов</div>
+        </div>
+      </div>
+    )
+  }
+
   if (!entity) {
     return (
       <div className="h-full p-4 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-dark-textSecondary mb-2">Кондиционер не настроен</div>
-          <div className="text-xs text-dark-textSecondary">Настройте в Settings → Настройка виджетов</div>
+          <div className="text-dark-textSecondary mb-2">Кондиционер "{selectedAC?.name || 'Неизвестный'}" не подключен</div>
+          <div className="text-xs text-dark-textSecondary">Проверьте настройки entity_id</div>
         </div>
       </div>
     )
@@ -118,8 +181,7 @@ const ACWidget = () => {
   const hvacMode = entity.state || 'off'
   const fanMode = attrs.fan_mode || 'auto'
   const isOn = hvacMode !== 'off'
-  const config = getACConfig()
-  const friendlyName = config.name || attrs.friendly_name || configEntityId?.split('.')[1] || 'Кондиционер'
+  const friendlyName = selectedAC?.name || attrs.friendly_name || configEntityId?.split('.')[1] || 'Кондиционер'
 
   const modes = [
     { id: 'cool', icon: Snowflake, label: 'Охлаждение', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
@@ -164,9 +226,26 @@ const ACWidget = () => {
 
   return (
     <div className="h-full p-6 flex flex-col">
-      {/* Заголовок */}
+      {/* Заголовок с выбором кондиционера */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-medium text-lg text-white">{friendlyName}</h3>
+        {acConfigs.length > 1 ? (
+          <div className="relative flex-1">
+            <select
+              value={selectedACIndex}
+              onChange={(e) => setSelectedACIndex(Number(e.target.value))}
+              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 pr-8 text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer"
+            >
+              {acConfigs.map((ac, index) => (
+                <option key={index} value={index}>
+                  {ac.name || `Кондиционер ${index + 1}`}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={16} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-dark-textSecondary pointer-events-none" />
+          </div>
+        ) : (
+          <h3 className="font-medium text-lg text-white">{friendlyName}</h3>
+        )}
         <button className="p-1.5 hover:bg-white/5 rounded-lg transition-colors">
           <MoreVertical size={18} className="text-dark-textSecondary" />
         </button>
