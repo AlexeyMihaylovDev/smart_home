@@ -6,6 +6,7 @@ import { getAmbientLightingConfigSync, updateAmbientLightingConfig, LightConfig,
 import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 import ToggleSwitch from './ui/ToggleSwitch'
 import Toast from './ui/Toast'
+import SearchableSelect from './ui/SearchableSelect'
 
 type Tab = 'devices' | 'widgets' | 'home-assistant'
 type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | 'water-heater' | 'motors' | null
@@ -719,61 +720,46 @@ const Settings = () => {
                       ✕
                     </button>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <label className="block text-xs text-dark-textSecondary mb-1">
-                        Entity ID: {light.entityId || 'Не привязано'}
-                      </label>
-                      <select
-                        value={light.entityId || ''}
-                        onChange={(e) => {
-                          const selectedEntityId = e.target.value || null
-                          handleLightEntityChange(index, selectedEntityId)
-                          // Обновляем имя из friendly_name если выбрано устройство
-                          if (selectedEntityId) {
-                            const entity = entities.find(e => e.entity_id === selectedEntityId)
-                            if (entity && entity.attributes.friendly_name) {
-                              let friendlyName = entity.attributes.friendly_name
-                              // Убираем " Switch 1", " Switch 2" и т.д. из названия
-                              friendlyName = friendlyName.replace(/\s+Switch\s+\d+$/i, '')
-                              friendlyName = friendlyName.replace(/\s+switch[_\s]?\d+$/i, '')
-                              
-                              const newConfigs = [...lightConfigs]
-                              newConfigs[index].name = friendlyName
-                              setLightConfigs(newConfigs)
-                              setHasUnsavedChanges(true)
-                            }
+                  <div>
+                    <label className="block text-xs text-dark-textSecondary mb-1">
+                      Entity ID: {light.entityId || 'Не привязано'}
+                    </label>
+                    <SearchableSelect
+                      value={light.entityId || ''}
+                      onChange={(selectedEntityId) => {
+                        const entityId = selectedEntityId || null
+                        handleLightEntityChange(index, entityId)
+                        // Обновляем имя из friendly_name если выбрано устройство
+                        if (entityId) {
+                          const entity = entities.find(e => e.entity_id === entityId)
+                          if (entity && entity.attributes.friendly_name) {
+                            let friendlyName = entity.attributes.friendly_name
+                            // Убираем " Switch 1", " Switch 2" и т.д. из названия
+                            friendlyName = friendlyName.replace(/\s+Switch\s+\d+$/i, '')
+                            friendlyName = friendlyName.replace(/\s+switch[_\s]?\d+$/i, '')
+                            
+                            const newConfigs = [...lightConfigs]
+                            newConfigs[index].name = friendlyName
+                            setLightConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
                           }
-                        }}
-                        className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="">-- Выберите устройство --</option>
-                        {entities
+                        }
+                      }}
+                      options={[
+                        { value: '', label: '-- Выберите устройство --' },
+                        ...entities
                           .filter(e => {
                             const domain = e.entity_id.split('.')[0]
                             return ['light', 'switch', 'input_boolean'].includes(domain)
                           })
-                          .map(entity => (
-                            <option key={entity.entity_id} value={entity.entity_id}>
-                              {entity.attributes.friendly_name || entity.entity_id} ({entity.entity_id})
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                    {light.entityId && (
-                      <button
-                        onClick={() => {
-                          const entity = entities.find(e => e.entity_id === light.entityId)
-                          if (entity) {
-                            navigator.clipboard.writeText(entity.entity_id)
-                          }
-                        }}
-                        className="text-xs bg-dark-cardHover hover:bg-dark-border px-3 py-2 rounded transition-colors flex-shrink-0 whitespace-nowrap"
-                        title="Копировать entity_id"
-                      >
-                        Копировать
-                      </button>
-                    )}
+                          .map(entity => ({
+                            value: entity.entity_id,
+                            label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
+                          }))
+                      ]}
+                      placeholder="-- Выберите устройство --"
+                      className="w-full"
+                    />
                   </div>
                 </div>
               )) : (
@@ -952,49 +938,37 @@ const Settings = () => {
                       <label className="block text-xs text-dark-textSecondary mb-1">
                         Entity ID датчика: {sensor.entityId || 'Не привязано'}
                       </label>
-                      <div className="flex gap-2">
-                        <select
-                          value={sensor.entityId || ''}
-                          onChange={(e) => {
-                            const selectedEntityId = e.target.value || null
-                            let friendlyName = sensor.name
-                            if (selectedEntityId) {
-                              const entity = entities.find(e => e.entity_id === selectedEntityId)
-                              if (entity && entity.attributes.friendly_name) {
-                                friendlyName = entity.attributes.friendly_name
-                              }
+                      <SearchableSelect
+                        value={sensor.entityId || ''}
+                        onChange={(selectedEntityId) => {
+                          const entityId = selectedEntityId || null
+                          let friendlyName = sensor.name
+                          if (entityId) {
+                            const entity = entities.find(e => e.entity_id === entityId)
+                            if (entity && entity.attributes.friendly_name) {
+                              friendlyName = entity.attributes.friendly_name
                             }
-                            const newConfigs = [...sensorConfigs]
-                            newConfigs[index] = { ...sensor, entityId: selectedEntityId, name: friendlyName }
-                            setSensorConfigs(newConfigs)
-                            setHasUnsavedChanges(true)
-                          }}
-                          className="flex-1 bg-dark-card border border-dark-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="">-- Выберите датчик --</option>
-                          {entities
+                          }
+                          const newConfigs = [...sensorConfigs]
+                          newConfigs[index] = { ...sensor, entityId, name: friendlyName }
+                          setSensorConfigs(newConfigs)
+                          setHasUnsavedChanges(true)
+                        }}
+                        options={[
+                          { value: '', label: '-- Выберите датчик --' },
+                          ...entities
                             .filter(e => {
                               const domain = e.entity_id.split('.')[0]
                               return domain === 'binary_sensor' || domain === 'sensor'
                             })
-                            .map(entity => (
-                              <option key={entity.entity_id} value={entity.entity_id}>
-                                {entity.attributes.friendly_name || entity.entity_id} ({entity.entity_id})
-                              </option>
-                            ))}
-                        </select>
-                        {sensor.entityId && (
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(sensor.entityId || '')
-                            }}
-                            className="text-xs bg-dark-cardHover hover:bg-dark-border px-3 py-2 rounded transition-colors flex-shrink-0 whitespace-nowrap"
-                            title="Копировать entity_id"
-                          >
-                            Копировать
-                          </button>
-                        )}
-                      </div>
+                            .map(entity => ({
+                              value: entity.entity_id,
+                              label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
+                            }))
+                        ]}
+                        placeholder="-- Выберите датчик --"
+                        className="w-full"
+                      />
                     </div>
                   </div>
                 )) : (
@@ -1134,49 +1108,37 @@ const Settings = () => {
                       <label className="block text-xs text-dark-textSecondary mb-1">
                         Entity ID моторного устройства: {motor.entityId || 'Не привязано'}
                       </label>
-                      <div className="flex gap-2">
-                        <select
-                          value={motor.entityId || ''}
-                          onChange={(e) => {
-                            const selectedEntityId = e.target.value || null
-                            let friendlyName = motor.name
-                            if (selectedEntityId) {
-                              const entity = entities.find(e => e.entity_id === selectedEntityId)
-                              if (entity && entity.attributes.friendly_name) {
-                                friendlyName = entity.attributes.friendly_name
-                              }
+                      <SearchableSelect
+                        value={motor.entityId || ''}
+                        onChange={(selectedEntityId) => {
+                          const entityId = selectedEntityId || null
+                          let friendlyName = motor.name
+                          if (entityId) {
+                            const entity = entities.find(e => e.entity_id === entityId)
+                            if (entity && entity.attributes.friendly_name) {
+                              friendlyName = entity.attributes.friendly_name
                             }
-                            const newConfigs = [...motorConfigs]
-                            newConfigs[index] = { entityId: selectedEntityId, name: friendlyName }
-                            setMotorConfigs(newConfigs)
-                            setHasUnsavedChanges(true)
-                          }}
-                          className="flex-1 bg-dark-card border border-dark-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="">-- Выберите моторное устройство --</option>
-                          {entities
+                          }
+                          const newConfigs = [...motorConfigs]
+                          newConfigs[index] = { entityId, name: friendlyName }
+                          setMotorConfigs(newConfigs)
+                          setHasUnsavedChanges(true)
+                        }}
+                        options={[
+                          { value: '', label: '-- Выберите моторное устройство --' },
+                          ...entities
                             .filter(e => {
                               const domain = e.entity_id.split('.')[0]
                               return domain === 'cover'
                             })
-                            .map(entity => (
-                              <option key={entity.entity_id} value={entity.entity_id}>
-                                {entity.attributes.friendly_name || entity.entity_id} ({entity.entity_id})
-                              </option>
-                            ))}
-                        </select>
-                        {motor.entityId && (
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(motor.entityId || '')
-                            }}
-                            className="text-xs bg-dark-cardHover hover:bg-dark-border px-3 py-2 rounded transition-colors flex-shrink-0 whitespace-nowrap"
-                            title="Копировать entity_id"
-                          >
-                            Копировать
-                          </button>
-                        )}
-                      </div>
+                            .map(entity => ({
+                              value: entity.entity_id,
+                              label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
+                            }))
+                        ]}
+                        placeholder="-- Выберите моторное устройство --"
+                        className="w-full"
+                      />
                     </div>
                   </div>
                 )) : (
@@ -1318,49 +1280,37 @@ const Settings = () => {
                       <label className="block text-xs text-dark-textSecondary mb-1">
                         Entity ID кондиционера: {ac.entityId || 'Не привязано'}
                       </label>
-                      <div className="flex gap-2">
-                        <select
-                          value={ac.entityId || ''}
-                          onChange={(e) => {
-                            const selectedEntityId = e.target.value || null
-                            let friendlyName = ac.name
-                            if (selectedEntityId) {
-                              const entity = entities.find(e => e.entity_id === selectedEntityId)
-                              if (entity && entity.attributes.friendly_name) {
-                                friendlyName = entity.attributes.friendly_name
-                              }
+                      <SearchableSelect
+                        value={ac.entityId || ''}
+                        onChange={(selectedEntityId) => {
+                          const entityId = selectedEntityId || null
+                          let friendlyName = ac.name
+                          if (entityId) {
+                            const entity = entities.find(e => e.entity_id === entityId)
+                            if (entity && entity.attributes.friendly_name) {
+                              friendlyName = entity.attributes.friendly_name
                             }
-                            const newConfigs = [...acConfigs]
-                            newConfigs[index] = { entityId: selectedEntityId, name: friendlyName }
-                            setACConfigs(newConfigs)
-                            setHasUnsavedChanges(true)
-                          }}
-                          className="flex-1 bg-dark-card border border-dark-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="">-- Выберите кондиционер --</option>
-                          {entities
+                          }
+                          const newConfigs = [...acConfigs]
+                          newConfigs[index] = { entityId, name: friendlyName }
+                          setACConfigs(newConfigs)
+                          setHasUnsavedChanges(true)
+                        }}
+                        options={[
+                          { value: '', label: '-- Выберите кондиционер --' },
+                          ...entities
                             .filter(e => {
                               const domain = e.entity_id.split('.')[0]
                               return domain === 'climate'
                             })
-                            .map(entity => (
-                              <option key={entity.entity_id} value={entity.entity_id}>
-                                {entity.attributes.friendly_name || entity.entity_id} ({entity.entity_id})
-                              </option>
-                            ))}
-                        </select>
-                        {ac.entityId && (
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(ac.entityId || '')
-                            }}
-                            className="text-xs bg-dark-cardHover hover:bg-dark-border px-3 py-2 rounded transition-colors flex-shrink-0 whitespace-nowrap"
-                            title="Копировать entity_id"
-                          >
-                            Копировать
-                          </button>
-                        )}
-                      </div>
+                            .map(entity => ({
+                              value: entity.entity_id,
+                              label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
+                            }))
+                        ]}
+                        placeholder="-- Выберите кондиционер --"
+                        className="w-full"
+                      />
                     </div>
                   </div>
                 )) : (
@@ -1446,47 +1396,35 @@ const Settings = () => {
                     <label className="block text-xs text-dark-textSecondary mb-1">
                       Entity ID водонагревателя: {waterHeaterConfig.entityId || 'Не привязано'}
                     </label>
-                    <div className="flex gap-2">
-                      <select
-                        value={waterHeaterConfig.entityId || ''}
-                        onChange={(e) => {
-                          const selectedEntityId = e.target.value || null
-                          let friendlyName = waterHeaterConfig.name
-                          if (selectedEntityId) {
-                            const entity = entities.find(e => e.entity_id === selectedEntityId)
-                            if (entity && entity.attributes.friendly_name) {
-                              friendlyName = entity.attributes.friendly_name
-                            }
+                    <SearchableSelect
+                      value={waterHeaterConfig.entityId || ''}
+                      onChange={(selectedEntityId) => {
+                        const entityId = selectedEntityId || null
+                        let friendlyName = waterHeaterConfig.name
+                        if (entityId) {
+                          const entity = entities.find(e => e.entity_id === entityId)
+                          if (entity && entity.attributes.friendly_name) {
+                            friendlyName = entity.attributes.friendly_name
                           }
-                          setWaterHeaterConfig({ entityId: selectedEntityId, name: friendlyName })
-                          setHasUnsavedChanges(true)
-                        }}
-                        className="flex-1 bg-dark-card border border-dark-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="">-- Выберите водонагреватель --</option>
-                        {entities
+                        }
+                        setWaterHeaterConfig({ entityId, name: friendlyName })
+                        setHasUnsavedChanges(true)
+                      }}
+                      options={[
+                        { value: '', label: '-- Выберите водонагреватель --' },
+                        ...entities
                           .filter(e => {
                             const domain = e.entity_id.split('.')[0]
                             return domain === 'water_heater' || domain === 'climate'
                           })
-                          .map(entity => (
-                            <option key={entity.entity_id} value={entity.entity_id}>
-                              {entity.attributes.friendly_name || entity.entity_id} ({entity.entity_id})
-                            </option>
-                          ))}
-                      </select>
-                      {waterHeaterConfig.entityId && (
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(waterHeaterConfig.entityId || '')
-                          }}
-                          className="text-xs bg-dark-cardHover hover:bg-dark-border px-3 py-2 rounded transition-colors flex-shrink-0 whitespace-nowrap"
-                          title="Копировать entity_id"
-                        >
-                          Копировать
-                        </button>
-                      )}
-                    </div>
+                          .map(entity => ({
+                            value: entity.entity_id,
+                            label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
+                          }))
+                      ]}
+                      placeholder="-- Выберите водонагреватель --"
+                      className="w-full"
+                    />
                   </div>
                 </div>
               </div>
@@ -1585,15 +1523,6 @@ const Settings = () => {
                             Переключатель
                           </span>
                         )}
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(entity.entity_id)
-                          }}
-                          className="text-xs bg-dark-cardHover hover:bg-dark-border px-3 py-1 rounded transition-colors"
-                          title="Копировать entity_id"
-                        >
-                          Копировать ID
-                        </button>
                       </div>
                     </div>
                   </div>
