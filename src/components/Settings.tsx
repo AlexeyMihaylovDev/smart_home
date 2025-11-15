@@ -30,7 +30,7 @@ const PreviewContent = ({ lights, entities, style }: { lights: LightConfig[], en
   }
 
   const getDisplayName = (light: LightConfig): string => {
-    return light.name || 'Без названия'
+    return light.name || 'ללא שם'
   }
 
   const getIcon = (iconType: 'clock' | 'lightbulb') => {
@@ -93,7 +93,7 @@ const Settings = () => {
     try {
       return getWaterHeaterConfigSync()
     } catch {
-      return { entityId: null, name: 'Водонагреватель' }
+      return { entityId: null, name: 'דוד מים' }
     }
   })
   const [sensorConfigs, setSensorConfigs] = useState<SensorConfig[]>(() => {
@@ -412,7 +412,7 @@ const Settings = () => {
     })
 
     if (switchEntities.length === 0) {
-      alert('Не найдено switch устройств в Home Assistant')
+      alert('לא נמצאו מכשירי switch ב-Home Assistant')
       return
     }
 
@@ -451,7 +451,7 @@ const Settings = () => {
     setLightConfigs(newConfigs)
     setSelectedItems(new Set())
     setHasUnsavedChanges(true)
-    alert(`Автозаполнено ${switchEntities.length} переключателей из найденных switch устройств`)
+    alert(`מילא אוטומטית ${switchEntities.length} מתגים ממכשירי switch שנמצאו`)
   }
 
   const handleToggleSelect = (index: number) => {
@@ -474,11 +474,11 @@ const Settings = () => {
 
   const handleDeleteSelected = () => {
     if (selectedItems.size === 0) {
-      alert('Выберите элементы для удаления')
+      alert('בחר אלמנטים למחיקה')
       return
     }
 
-    if (confirm(`Удалить ${selectedItems.size} выбранных элементов?`)) {
+    if (confirm(`למחוק ${selectedItems.size} אלמנטים נבחרים?`)) {
       const newConfigs = lightConfigs.filter((_, index) => !selectedItems.has(index))
       setLightConfigs(newConfigs)
       setSelectedItems(new Set())
@@ -487,7 +487,7 @@ const Settings = () => {
   }
 
   const handleDeleteAll = () => {
-    if (confirm('Удалить все элементы из виджета?')) {
+    if (confirm('למחוק את כל האלמנטים מהווידג\'ט?')) {
       setLightConfigs([])
       setSelectedItems(new Set())
       setHasUnsavedChanges(true)
@@ -506,7 +506,7 @@ const Settings = () => {
   }
 
   const handleDeleteItem = (index: number) => {
-    if (confirm('Удалить этот элемент?')) {
+    if (confirm('למחוק את האלמנט הזה?')) {
       const newConfigs = lightConfigs.filter((_, i) => i !== index)
       setLightConfigs(newConfigs)
       const newSelected = new Set(selectedItems)
@@ -537,7 +537,7 @@ const Settings = () => {
         >
           <div className="flex items-center gap-2">
             <List size={18} />
-            Все устройства
+            כל המכשירים
           </div>
         </button>
         <button
@@ -571,11 +571,11 @@ const Settings = () => {
       {activeTab === 'home-assistant' ? (
         /* Настройка Home Assistant */
         <div className="bg-dark-card rounded-lg border border-dark-border p-6">
-          <h2 className="text-xl font-bold mb-4">Настройка подключения к Home Assistant</h2>
+          <h2 className="text-xl font-bold mb-4">הגדרת חיבור ל-Home Assistant</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">
-                URL Home Assistant
+                כתובת URL של Home Assistant
               </label>
               <input
                 type="text"
@@ -593,11 +593,11 @@ const Settings = () => {
                 type="password"
                 value={haToken}
                 onChange={(e) => setHaToken(e.target.value)}
-                placeholder="Введите токен доступа"
+                placeholder="הכנס אסימון גישה"
                 className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p className="text-xs text-dark-textSecondary mt-2">
-                Создайте токен в профиле Home Assistant
+                צור אסימון בפרופיל Home Assistant
               </p>
             </div>
             <button
@@ -621,7 +621,7 @@ const Settings = () => {
               disabled={haLoading}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors"
             >
-              {haLoading ? 'Сохранение...' : 'Сохранить и подключиться'}
+              {haLoading ? 'שומר...' : 'שמור והתחבר'}
             </button>
           </div>
         </div>
@@ -707,21 +707,21 @@ const Settings = () => {
                   <button
                     onClick={() => setSelectedWidget(null)}
                     className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
-                    title="Вернуться к выбору виджета"
+                    title="חזור לבחירת וידג'ט"
                   >
                     <ArrowLeft size={20} />
                   </button>
                   <div>
-                    <h2 className="font-medium text-lg">Ambient Lighting Widget</h2>
+                    <h2 className="font-medium text-lg">וידג'ט תאורה סביבתית</h2>
                     <p className="text-sm text-dark-textSecondary mt-1">
-                      Настройте привязку переключателей к устройствам Home Assistant
+                      הגדר את הקישור של המתגים למכשירי Home Assistant
                     </p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   {/* Выбор стиля виджета */}
                   <div className="flex items-center gap-2">
-                    <label className="text-sm text-dark-textSecondary whitespace-nowrap">Стиль виджета:</label>
+                    <label className="text-sm text-dark-textSecondary whitespace-nowrap">סגנון וידג'ט:</label>
                     <select
                       value={ambientLightingStyle}
                       onChange={async (e) => {
@@ -733,25 +733,25 @@ const Settings = () => {
                       }}
                       className="bg-dark-bg border border-dark-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="list">Список</option>
-                      <option value="cards">Карточки</option>
-                      <option value="compact">Компактный</option>
-                      <option value="minimal">Минималистичный</option>
+                      <option value="list">רשימה</option>
+                      <option value="cards">כרטיסים</option>
+                      <option value="compact">קומפקטי</option>
+                      <option value="minimal">מינימליסטי</option>
                     </select>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={autoFillFromSwitches}
                       className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
-                      title="Автоматически заполнить все переключатели из switch устройств"
+                      title="מלא אוטומטית את כל המתגים ממכשירי switch"
                     >
                       <RefreshCw size={16} />
-                      Автозаполнить из Switch
+                      מילוי אוטומטי מ-Switch
                     </button>
                     <button
                       onClick={handleAddNew}
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
-                      title="Добавить новый переключатель"
+                      title="הוסף מתג חדש"
                     >
                       +
                     </button>
@@ -759,10 +759,10 @@ const Settings = () => {
                       <button
                         onClick={handleSave}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
-                        title="Сохранить изменения"
+                        title="שמור שינויים"
                       >
                         <Save size={16} />
-                        Сохранить
+                        שמור
                       </button>
                     )}
                   </div>
@@ -777,7 +777,7 @@ const Settings = () => {
                     className="w-4 h-4 rounded border-dark-border bg-dark-bg text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm text-dark-textSecondary">
-                    Выбрать все ({selectedItems.size} выбрано)
+                    בחר הכל ({selectedItems.size} נבחרו)
                   </span>
                   {selectedItems.size > 0 && (
                     <>
@@ -785,13 +785,13 @@ const Settings = () => {
                         onClick={handleDeleteSelected}
                         className="ml-4 px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors"
                       >
-                        Удалить выбранные ({selectedItems.size})
+                        מחק נבחרים ({selectedItems.size})
                       </button>
                       <button
                         onClick={handleDeleteAll}
                         className="px-3 py-1 bg-red-800 hover:bg-red-900 text-white rounded text-sm transition-colors"
                       >
-                        Удалить все
+                        מחק הכל
                       </button>
                     </>
                   )}
@@ -822,20 +822,20 @@ const Settings = () => {
                           setHasUnsavedChanges(true)
                         }}
                         className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Название переключателя"
+                        placeholder="שם המתג"
                       />
                     </div>
                     <button
                       onClick={() => handleDeleteItem(index)}
                       className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0"
-                      title="Удалить этот элемент"
+                      title="מחק את האלמנט הזה"
                     >
                       ✕
                     </button>
                   </div>
                   <div>
                     <label className="block text-xs text-dark-textSecondary mb-1">
-                      Entity ID: {light.entityId || 'Не привязано'}
+                      מזהה ישות: {light.entityId || 'לא מקושר'}
                     </label>
                     <SearchableSelect
                       value={light.entityId || ''}
@@ -859,7 +859,7 @@ const Settings = () => {
                         }
                       }}
                       options={[
-                        { value: '', label: '-- Выберите устройство --' },
+                        { value: '', label: '-- בחר מכשיר --' },
                         ...entities
                           .filter(e => {
                             const domain = e.entity_id.split('.')[0]
@@ -870,19 +870,19 @@ const Settings = () => {
                             label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
                           }))
                       ]}
-                      placeholder="-- Выберите устройство --"
+                      placeholder="-- בחר מכשיר --"
                       className="w-full"
                     />
                   </div>
                 </div>
               )) : (
                 <div className="text-center text-dark-textSecondary py-8">
-                  <p className="mb-4">Нет элементов в виджете</p>
+                  <p className="mb-4">אין אלמנטים בווידג'ט</p>
                   <button
                     onClick={handleAddNew}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                   >
-                    Добавить первый переключатель
+                    הוסף מתג ראשון
                   </button>
                 </div>
               )}
@@ -890,7 +890,7 @@ const Settings = () => {
               {/* Preview виджета */}
               {lightConfigs.length > 0 && (
                 <div className="lg:border-l lg:border-dark-border lg:pl-4">
-                  <h3 className="text-sm font-medium text-dark-textSecondary mb-3">Предпросмотр виджета:</h3>
+                  <h3 className="text-sm font-medium text-dark-textSecondary mb-3">תצוגה מקדימה של הווידג'ט:</h3>
                   <div className="bg-dark-bg rounded-lg border border-dark-border p-4 max-h-[60vh] overflow-y-auto">
                     <div className="flex items-center gap-2 mb-4 flex-shrink-0">
                       <div className="p-2 bg-yellow-500/20 rounded-lg">
@@ -939,7 +939,7 @@ const Settings = () => {
                     <button
                       onClick={() => setSelectedWidget(null)}
                       className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
-                      title="Вернуться к выбору виджета"
+                      title="חזור לבחירת וידג'ט"
                     >
                       <ArrowLeft size={20} />
                     </button>
@@ -954,7 +954,7 @@ const Settings = () => {
                     <button
                       onClick={() => {
                         const newSensor: SensorConfig = {
-                          name: `Датчик движения ${sensorConfigs.filter(s => s.type === 'motion').length + 1}`,
+                          name: `חיישן תנועה ${sensorConfigs.filter(s => s.type === 'motion').length + 1}`,
                           entityId: null,
                           type: 'motion'
                         }
@@ -962,15 +962,15 @@ const Settings = () => {
                         setHasUnsavedChanges(true)
                       }}
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
-                      title="Добавить датчик движения"
+                      title="הוסף חיישן תנועה"
                     >
                       <Activity size={16} />
-                      Добавить движение
+                      הוסף תנועה
                     </button>
                     <button
                       onClick={() => {
                         const newSensor: SensorConfig = {
-                          name: `Датчик присутствия ${sensorConfigs.filter(s => s.type === 'presence').length + 1}`,
+                          name: `חיישן נוכחות ${sensorConfigs.filter(s => s.type === 'presence').length + 1}`,
                           entityId: null,
                           type: 'presence'
                         }
@@ -978,10 +978,10 @@ const Settings = () => {
                         setHasUnsavedChanges(true)
                       }}
                       className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
-                      title="Добавить датчик присутствия"
+                      title="הוסף חיישן נוכחות"
                     >
                       <User size={16} />
-                      Добавить присутствие
+                      הוסף נוכחות
                     </button>
                     {hasUnsavedChanges && (
                       <button
@@ -997,10 +997,10 @@ const Settings = () => {
                           }
                         }}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
-                        title="Сохранить изменения"
+                        title="שמור שינויים"
                       >
                         <Save size={16} />
-                        Сохранить
+                        שמור
                       </button>
                     )}
                   </div>
@@ -1034,7 +1034,7 @@ const Settings = () => {
                               setHasUnsavedChanges(true)
                             }}
                             className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Название датчика"
+                            placeholder="שם החיישן"
                           />
                         </div>
                         <div className="flex items-center gap-2">
@@ -1048,19 +1048,19 @@ const Settings = () => {
                             }}
                             className="bg-dark-card border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
-                            <option value="motion">Движение</option>
-                            <option value="presence">Присутствие</option>
+                            <option value="motion">תנועה</option>
+                            <option value="presence">נוכחות</option>
                           </select>
                           <button
                             onClick={() => {
-                              if (confirm('Удалить этот датчик?')) {
+                              if (confirm('למחוק את החיישן הזה?')) {
                                 const newConfigs = sensorConfigs.filter((_, i) => i !== index)
                                 setSensorConfigs(newConfigs)
                                 setHasUnsavedChanges(true)
                               }
                             }}
                             className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0"
-                            title="Удалить этот датчик"
+                            title="מחק את החיישן הזה"
                           >
                             ✕
                           </button>
@@ -1069,7 +1069,7 @@ const Settings = () => {
                     </div>
                     <div className="flex-1">
                       <label className="block text-xs text-dark-textSecondary mb-1">
-                        Entity ID датчика: {sensor.entityId || 'Не привязано'}
+                        מזהה ישות של חיישן: {sensor.entityId || 'לא מקושר'}
                       </label>
                       <SearchableSelect
                         value={sensor.entityId || ''}
@@ -1088,7 +1088,7 @@ const Settings = () => {
                           setHasUnsavedChanges(true)
                         }}
                         options={[
-                          { value: '', label: '-- Выберите датчик --' },
+                          { value: '', label: '-- בחר חיישן --' },
                           ...entities
                             .filter(e => {
                               const domain = e.entity_id.split('.')[0]
@@ -1099,19 +1099,19 @@ const Settings = () => {
                               label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
                             }))
                         ]}
-                        placeholder="-- Выберите датчик --"
+                        placeholder="-- בחר חיישן --"
                         className="w-full"
                       />
                     </div>
                   </div>
                 )) : (
                   <div className="text-center text-dark-textSecondary py-8">
-                    <p className="mb-4">Нет датчиков в виджете</p>
+                    <p className="mb-4">אין חיישנים בווידג'ט</p>
                     <div className="flex gap-2 justify-center">
                       <button
                         onClick={() => {
                           const newSensor: SensorConfig = {
-                            name: 'Датчик движения 1',
+                            name: 'חיישן תנועה 1',
                             entityId: null,
                             type: 'motion'
                           }
@@ -1121,12 +1121,12 @@ const Settings = () => {
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
                       >
                         <Activity size={16} />
-                        Добавить датчик движения
+                        הוסף חיישן תנועה
                       </button>
                       <button
                         onClick={() => {
                           const newSensor: SensorConfig = {
-                            name: 'Датчик присутствия 1',
+                            name: 'חיישן נוכחות 1',
                             entityId: null,
                             type: 'presence'
                           }
@@ -1136,7 +1136,7 @@ const Settings = () => {
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2"
                       >
                         <User size={16} />
-                        Добавить датчик присутствия
+                        הוסף חיישן נוכחות
                       </button>
                     </div>
                   </div>
@@ -1152,7 +1152,7 @@ const Settings = () => {
                     <button
                       onClick={() => setSelectedWidget(null)}
                       className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
-                      title="Вернуться к выбору виджета"
+                      title="חזור לבחירת וידג'ט"
                     >
                       <ArrowLeft size={20} />
                     </button>
@@ -1167,17 +1167,17 @@ const Settings = () => {
                     <button
                       onClick={() => {
                         const newMotor: MotorConfig = {
-                          name: `Мотор ${motorConfigs.length + 1}`,
+                          name: `מנוע ${motorConfigs.length + 1}`,
                           entityId: null
                         }
                         setMotorConfigs([...motorConfigs, newMotor])
                         setHasUnsavedChanges(true)
                       }}
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
-                      title="Добавить новое моторное устройство"
+                      title="הוסף מכשיר מוטורי חדש"
                     >
                       <GaugeIcon size={16} />
-                      Добавить мотор
+                      הוסף מנוע
                     </button>
                     {hasUnsavedChanges && (
                       <button
@@ -1193,10 +1193,10 @@ const Settings = () => {
                           }
                         }}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
-                        title="Сохранить изменения"
+                        title="שמור שינויים"
                       >
                         <Save size={16} />
-                        Сохранить
+                        שמור
                       </button>
                     )}
                   </div>
@@ -1220,26 +1220,26 @@ const Settings = () => {
                             setHasUnsavedChanges(true)
                           }}
                           className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Название моторного устройства"
+                          placeholder="שם המכשיר המוטורי"
                         />
                       </div>
                       <button
                         onClick={() => {
-                          if (confirm('Удалить это моторное устройство?')) {
+                          if (confirm('למחוק את המכשיר המוטורי הזה?')) {
                             const newConfigs = motorConfigs.filter((_, i) => i !== index)
                             setMotorConfigs(newConfigs)
                             setHasUnsavedChanges(true)
                           }
                         }}
                         className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0 ml-2"
-                        title="Удалить это моторное устройство"
+                        title="מחק את המכשיר המוטורי הזה"
                       >
                         ✕
                       </button>
                     </div>
                     <div className="flex-1">
                       <label className="block text-xs text-dark-textSecondary mb-1">
-                        Entity ID моторного устройства: {motor.entityId || 'Не привязано'}
+                        מזהה ישות של מכשיר מוטורי: {motor.entityId || 'לא מקושר'}
                       </label>
                       <SearchableSelect
                         value={motor.entityId || ''}
@@ -1258,7 +1258,7 @@ const Settings = () => {
                           setHasUnsavedChanges(true)
                         }}
                         options={[
-                          { value: '', label: '-- Выберите моторное устройство --' },
+                          { value: '', label: '-- בחר מכשיר מוטורי --' },
                           ...entities
                             .filter(e => {
                               const domain = e.entity_id.split('.')[0]
@@ -1269,18 +1269,18 @@ const Settings = () => {
                               label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
                             }))
                         ]}
-                        placeholder="-- Выберите моторное устройство --"
+                        placeholder="-- בחר מכשיר מוטורי --"
                         className="w-full"
                       />
                     </div>
                   </div>
                 )) : (
                   <div className="text-center text-dark-textSecondary py-8">
-                    <p className="mb-4">Нет моторных устройств в виджете</p>
+                    <p className="mb-4">אין מכשירים מוטוריים בווידג'ט</p>
                     <button
                       onClick={() => {
                         const newMotor: MotorConfig = {
-                          name: 'Мотор 1',
+                          name: 'מנוע 1',
                           entityId: null
                         }
                         setMotorConfigs([newMotor])
@@ -1288,7 +1288,7 @@ const Settings = () => {
                       }}
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                     >
-                      Добавить первое моторное устройство
+                      הוסף מכשיר מוטורי ראשון
                     </button>
                   </div>
                 )}
@@ -1325,7 +1325,7 @@ const Settings = () => {
                     <button
                       onClick={() => setSelectedWidget(null)}
                       className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
-                      title="Вернуться к выбору виджета"
+                      title="חזור לבחירת וידג'ט"
                     >
                       <ArrowLeft size={20} />
                     </button>
@@ -1340,14 +1340,14 @@ const Settings = () => {
                     <button
                       onClick={() => {
                         const newAC: ACConfig = {
-                          name: `Кондиционер ${acConfigs.length + 1}`,
+                          name: `מזגן ${acConfigs.length + 1}`,
                           entityId: null
                         }
                         setACConfigs([...acConfigs, newAC])
                         setHasUnsavedChanges(true)
                       }}
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
-                      title="Добавить новый кондиционер"
+                      title="הוסף מזגן חדש"
                     >
                       +
                     </button>
@@ -1365,10 +1365,10 @@ const Settings = () => {
                           }
                         }}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
-                        title="Сохранить изменения"
+                        title="שמור שינויים"
                       >
                         <Save size={16} />
-                        Сохранить
+                        שמור
                       </button>
                     )}
                   </div>
@@ -1392,26 +1392,26 @@ const Settings = () => {
                             setHasUnsavedChanges(true)
                           }}
                           className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Название кондиционера"
+                          placeholder="שם המזגן"
                         />
                       </div>
                       <button
                         onClick={() => {
-                          if (confirm('Удалить этот кондиционер?')) {
+                          if (confirm('למחוק את המזגן הזה?')) {
                             const newConfigs = acConfigs.filter((_, i) => i !== index)
                             setACConfigs(newConfigs)
                             setHasUnsavedChanges(true)
                           }
                         }}
                         className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0 ml-2"
-                        title="Удалить этот кондиционер"
+                        title="מחק את המזגן הזה"
                       >
                         ✕
                       </button>
                     </div>
                     <div className="flex-1">
                       <label className="block text-xs text-dark-textSecondary mb-1">
-                        Entity ID кондиционера: {ac.entityId || 'Не привязано'}
+                        מזהה ישות של מזגן: {ac.entityId || 'לא מקושר'}
                       </label>
                       <SearchableSelect
                         value={ac.entityId || ''}
@@ -1430,7 +1430,7 @@ const Settings = () => {
                           setHasUnsavedChanges(true)
                         }}
                         options={[
-                          { value: '', label: '-- Выберите кондиционер --' },
+                          { value: '', label: '-- בחר מזגן --' },
                           ...entities
                             .filter(e => {
                               const domain = e.entity_id.split('.')[0]
@@ -1441,18 +1441,18 @@ const Settings = () => {
                               label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
                             }))
                         ]}
-                        placeholder="-- Выберите кондиционер --"
+                        placeholder="-- בחר מזגן --"
                         className="w-full"
                       />
                     </div>
                   </div>
                 )) : (
                   <div className="text-center text-dark-textSecondary py-8">
-                    <p className="mb-4">Нет кондиционеров в виджете</p>
+                    <p className="mb-4">אין מזגנים בווידג'ט</p>
                     <button
                       onClick={() => {
                         const newAC: ACConfig = {
-                          name: 'Кондиционер 1',
+                          name: 'מזגן 1',
                           entityId: null
                         }
                         setACConfigs([newAC])
@@ -1460,7 +1460,7 @@ const Settings = () => {
                       }}
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                     >
-                      Добавить первый кондиционер
+                      הוסף מזגן ראשון
                     </button>
                   </div>
                 )}
@@ -1475,7 +1475,7 @@ const Settings = () => {
                     <button
                       onClick={() => setSelectedWidget(null)}
                       className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
-                      title="Вернуться к выбору виджета"
+                      title="חזור לבחירת וידג'ט"
                     >
                       <ArrowLeft size={20} />
                     </button>
@@ -1522,12 +1522,12 @@ const Settings = () => {
                         setHasUnsavedChanges(true)
                       }}
                       className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Название водонагревателя"
+                      placeholder="שם דוד המים"
                     />
                   </div>
                   <div className="flex-1">
                     <label className="block text-xs text-dark-textSecondary mb-1">
-                      Entity ID водонагревателя: {waterHeaterConfig.entityId || 'Не привязано'}
+                      מזהה ישות של דוד מים: {waterHeaterConfig.entityId || 'לא מקושר'}
                     </label>
                     <SearchableSelect
                       value={waterHeaterConfig.entityId || ''}
@@ -1544,7 +1544,7 @@ const Settings = () => {
                         setHasUnsavedChanges(true)
                       }}
                       options={[
-                        { value: '', label: '-- Выберите водонагреватель --' },
+                        { value: '', label: '-- בחר דוד מים --' },
                         ...entities
                           .filter(e => {
                             const domain = e.entity_id.split('.')[0]
@@ -1555,7 +1555,7 @@ const Settings = () => {
                             label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
                           }))
                       ]}
-                      placeholder="-- Выберите водонагреватель --"
+                      placeholder="-- בחר דוד מים --"
                       className="w-full"
                     />
                   </div>
@@ -1576,7 +1576,7 @@ const Settings = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-dark-textSecondary" size={20} />
             <input
               type="text"
-              placeholder="Поиск по названию или entity_id..."
+              placeholder="חיפוש לפי שם או entity_id..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-dark-bg border border-dark-border rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1587,7 +1587,7 @@ const Settings = () => {
             onChange={(e) => setFilterDomain(e.target.value)}
             className="bg-dark-bg border border-dark-border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="all">Все домены</option>
+            <option value="all">כל הדומיינים</option>
             {getUniqueDomains().map(domain => (
               <option key={domain} value={domain}>{domain}</option>
             ))}
@@ -1598,29 +1598,29 @@ const Settings = () => {
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-            Обновить
+            רענן
           </button>
         </div>
 
         <div className="text-sm text-dark-textSecondary">
-          Найдено: {filteredEntities.length} из {entities.length} сущностей
+          נמצא: {filteredEntities.length} מתוך {entities.length} ישויות
         </div>
       </div>
 
       {/* Список сущностей */}
       <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
         <div className="p-4 border-b border-dark-border">
-          <h2 className="font-medium">Все устройства Home Assistant</h2>
+          <h2 className="font-medium">כל מכשירי Home Assistant</h2>
         </div>
         <div className="max-h-[600px] overflow-y-auto">
           {loading ? (
             <div className="p-8 text-center text-dark-textSecondary">
               <RefreshCw size={24} className="animate-spin mx-auto mb-2" />
-              Загрузка...
+              טוען...
             </div>
           ) : filteredEntities.length === 0 ? (
             <div className="p-8 text-center text-dark-textSecondary">
-              Сущности не найдены
+              לא נמצאו ישויות
             </div>
           ) : (
             <div className="divide-y divide-dark-border">

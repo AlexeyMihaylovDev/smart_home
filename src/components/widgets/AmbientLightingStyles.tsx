@@ -30,7 +30,7 @@ export const ListStyle = ({ lights, entities, onToggle, getEntityState, getDispl
                 {displayName}
               </span>
               {!hasEntity && (
-                <span className="text-xs text-red-400 ml-2 flex-shrink-0">Не настроено</span>
+                <span className="text-xs text-red-400 ml-2 flex-shrink-0">לא מוגדר</span>
               )}
             </div>
             <ToggleSwitch
@@ -67,13 +67,13 @@ export const CardsStyle = ({ lights, entities, onToggle, getEntityState, getDisp
   }
 
   const getStatusText = (isOn: boolean, hasEntity: boolean, entityId: string | null) => {
-    if (!hasEntity) return 'Не настроено'
+    if (!hasEntity) return 'לא מוגדר'
     const entity = entityId ? entities.get(entityId) : null
     if (entity && entity.attributes.brightness !== undefined) {
       const brightness = Math.round((entity.attributes.brightness / 255) * 100)
       return `${brightness}%`
     }
-    return isOn ? 'Включено' : 'Выключено'
+    return isOn ? 'פועל' : 'כבוי'
   }
 
   return (

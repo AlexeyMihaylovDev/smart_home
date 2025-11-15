@@ -14,7 +14,7 @@ interface SearchableSelectProps {
   className?: string
 }
 
-const SearchableSelect = ({ value, onChange, options, placeholder = '-- Выберите устройство --', className = '' }: SearchableSelectProps) => {
+const SearchableSelect = ({ value, onChange, options, placeholder = '-- בחר מכשיר --', className = '' }: SearchableSelectProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
@@ -75,7 +75,7 @@ const SearchableSelect = ({ value, onChange, options, placeholder = '-- Выбе
             <button
               onClick={handleClear}
               className="p-1 hover:bg-dark-cardHover rounded transition-colors"
-              title="Очистить"
+              title="נקה"
             >
               <X size={14} className="text-dark-textSecondary" />
             </button>
@@ -95,7 +95,7 @@ const SearchableSelect = ({ value, onChange, options, placeholder = '-- Выбе
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Поиск..."
+                placeholder="חיפוש..."
                 className="w-full bg-dark-bg border border-dark-border rounded px-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 onClick={(e) => e.stopPropagation()}
               />
@@ -119,7 +119,7 @@ const SearchableSelect = ({ value, onChange, options, placeholder = '-- Выбе
               ))
             ) : (
               <div className="px-3 py-2 text-sm text-dark-textSecondary text-center">
-                Ничего не найдено
+                לא נמצא כלום
               </div>
             )}
           </div>

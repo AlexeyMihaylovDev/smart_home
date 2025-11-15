@@ -101,7 +101,7 @@ const AmbientLightingWidget = () => {
 
   const getDisplayName = (light: LightConfig): string => {
     // Используем название из конфигурации (то, что пользователь ввел в настройках)
-    return light.name || 'Без названия'
+    return light.name || 'ללא שם'
   }
 
   const getIcon = (iconType: 'clock' | 'lightbulb') => {
@@ -112,7 +112,7 @@ const AmbientLightingWidget = () => {
     return (
       <div className="h-full p-4">
         <div className="font-medium mb-4 text-white">תאורה סביבתית</div>
-        <div className="text-sm text-dark-textSecondary">Загрузка...</div>
+        <div className="text-sm text-dark-textSecondary">טוען...</div>
       </div>
     )
   }
