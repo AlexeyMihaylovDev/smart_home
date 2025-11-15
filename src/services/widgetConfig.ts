@@ -1,4 +1,5 @@
 // Сервис для управления конфигурацией виджетов
+import { getWidgetConfig as getWidgetConfigFromAPI, saveWidgetConfig as saveWidgetConfigToAPI, WidgetConfig as APIWidgetConfig } from './apiService'
 
 export interface LightConfig {
   name: string
@@ -62,23 +63,64 @@ const DEFAULT_CONFIG: WidgetConfig = {
   enabledWidgets: {}
 }
 
-const STORAGE_KEY = 'widget_config'
+// Кэш для синхронного доступа (используется как fallback)
+let configCache: WidgetConfig | null = null
 
-export const getWidgetConfig = (): WidgetConfig => {
+export const getWidgetConfig = async (): Promise<WidgetConfig> => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const config = await getWidgetConfigFromAPI()
+    // Убеждаемся, что структура правильная
+    if (!config.ac || !config.ac.airConditioners) {
+      if (config.ac && 'entityId' in config.ac) {
+        // Старый формат - оставляем как есть для миграции
+        configCache = config as WidgetConfig
+        return config as WidgetConfig
+      }
+      config.ac = { airConditioners: [] }
+    }
+    configCache = config as WidgetConfig
+    return config as WidgetConfig
+  } catch (error) {
+    console.error('Ошибка загрузки конфигурации с сервера:', error)
+    // Fallback на localStorage
+    try {
+      const stored = localStorage.getItem('widget_config')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (!parsed.ac || !parsed.ac.airConditioners) {
+          if (parsed.ac && 'entityId' in parsed.ac) {
+            configCache = parsed
+            return parsed
+          }
+          parsed.ac = { airConditioners: [] }
+        }
+        configCache = parsed
+        return parsed
+      }
+    } catch (localError) {
+      console.error('Ошибка загрузки из localStorage:', localError)
+    }
+    return DEFAULT_CONFIG
+  }
+}
+
+// Синхронная версия для обратной совместимости (использует кэш)
+export const getWidgetConfigSync = (): WidgetConfig => {
+  if (configCache) {
+    return configCache
+  }
+  // Fallback на localStorage
+  try {
+    const stored = localStorage.getItem('widget_config')
     if (stored) {
       const parsed = JSON.parse(stored)
-      // Убеждаемся, что структура правильная
       if (!parsed.ac || !parsed.ac.airConditioners) {
-        // Если структура неправильная, исправляем её
         if (parsed.ac && 'entityId' in parsed.ac) {
-          // Старый формат - оставляем как есть для миграции
           return parsed
         }
-        // Если ac отсутствует или неправильный формат, добавляем правильную структуру
         parsed.ac = { airConditioners: [] }
       }
+      configCache = parsed
       return parsed
     }
   } catch (error) {
@@ -87,27 +129,41 @@ export const getWidgetConfig = (): WidgetConfig => {
   return DEFAULT_CONFIG
 }
 
-export const saveWidgetConfig = (config: WidgetConfig): void => {
+export const saveWidgetConfig = async (config: WidgetConfig): Promise<void> => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
+    await saveWidgetConfigToAPI(config as APIWidgetConfig)
+    configCache = config
   } catch (error) {
-    console.error('Ошибка сохранения конфигурации:', error)
+    console.error('Ошибка сохранения конфигурации на сервер:', error)
+    // Fallback на localStorage
+    try {
+      localStorage.setItem('widget_config', JSON.stringify(config))
+      configCache = config
+    } catch (localError) {
+      console.error('Ошибка сохранения в localStorage:', localError)
+    }
   }
 }
 
-export const updateAmbientLightingConfig = (lights: LightConfig[]): void => {
-  const config = getWidgetConfig()
+export const updateAmbientLightingConfig = async (lights: LightConfig[]): Promise<void> => {
+  const config = await getWidgetConfig()
   config.ambientLighting.lights = lights
-  saveWidgetConfig(config)
+  await saveWidgetConfig(config)
 }
 
-export const getAmbientLightingConfig = (): LightConfig[] => {
-  const config = getWidgetConfig()
+export const getAmbientLightingConfig = async (): Promise<LightConfig[]> => {
+  const config = await getWidgetConfig()
   return config.ambientLighting.lights
 }
 
-export const updateACConfigs = (airConditioners: ACConfig[]): void => {
-  const config = getWidgetConfig()
+// Синхронная версия для обратной совместимости
+export const getAmbientLightingConfigSync = (): LightConfig[] => {
+  const config = getWidgetConfigSync()
+  return config.ambientLighting.lights
+}
+
+export const updateACConfigs = async (airConditioners: ACConfig[]): Promise<void> => {
+  const config = await getWidgetConfig()
   console.log('updateACConfigs: текущая конфигурация перед сохранением:', config)
   
   // Убеждаемся, что структура правильная
@@ -128,19 +184,19 @@ export const updateACConfigs = (airConditioners: ACConfig[]): void => {
   console.log('updateACConfigs: config.ac:', config.ac)
   console.log('updateACConfigs: config.ac.airConditioners:', config.ac.airConditioners)
   
-  saveWidgetConfig(config)
+  await saveWidgetConfig(config)
   
   // Проверяем, что сохранилось правильно
-  const saved = getWidgetConfig()
+  const saved = await getWidgetConfig()
   console.log('updateACConfigs: проверка сохраненной конфигурации:', saved)
   console.log('updateACConfigs: сохраненные AC конфигурации:', saved.ac?.airConditioners)
   
   console.log('AC конфигурация сохранена:', airConditioners)
 }
 
-export const getACConfigs = (): ACConfig[] => {
-  const config = getWidgetConfig()
-  console.log('getACConfigs: полная конфигурация из localStorage:', config)
+export const getACConfigs = async (): Promise<ACConfig[]> => {
+  const config = await getWidgetConfig()
+  console.log('getACConfigs: полная конфигурация с сервера:', config)
   console.log('getACConfigs: config.ac:', config.ac)
   
   // Проверяем наличие нового формата (airConditioners)
@@ -172,47 +228,89 @@ export const getACConfigs = (): ACConfig[] => {
   return result
 }
 
-export const isWidgetEnabled = (widgetId: string): boolean => {
-  const config = getWidgetConfig()
+// Синхронная версия для обратной совместимости
+export const getACConfigsSync = (): ACConfig[] => {
+  const config = getWidgetConfigSync()
+  if (config.ac && 'airConditioners' in config.ac && Array.isArray(config.ac.airConditioners)) {
+    return config.ac.airConditioners
+  }
+  if (config.ac && 'entityId' in config.ac && !('airConditioners' in config.ac)) {
+    const oldConfig = config.ac as any
+    if (oldConfig.entityId) {
+      return [{
+        entityId: oldConfig.entityId,
+        name: oldConfig.name || 'Кондиционер'
+      }]
+    }
+    return []
+  }
+  return config.ac?.airConditioners || []
+}
+
+export const isWidgetEnabled = async (widgetId: string): Promise<boolean> => {
+  const config = await getWidgetConfig()
   return config.enabledWidgets?.[widgetId] === true
 }
 
-export const setWidgetEnabled = (widgetId: string, enabled: boolean): void => {
-  const config = getWidgetConfig()
+export const isWidgetEnabledSync = (widgetId: string): boolean => {
+  const config = getWidgetConfigSync()
+  return config.enabledWidgets?.[widgetId] === true
+}
+
+export const setWidgetEnabled = async (widgetId: string, enabled: boolean): Promise<void> => {
+  const config = await getWidgetConfig()
   if (!config.enabledWidgets) {
     config.enabledWidgets = {}
   }
   config.enabledWidgets[widgetId] = enabled
-  saveWidgetConfig(config)
+  await saveWidgetConfig(config)
 }
 
-export const getWaterHeaterConfig = (): WaterHeaterConfig => {
-  const config = getWidgetConfig()
+export const getWaterHeaterConfig = async (): Promise<WaterHeaterConfig> => {
+  const config = await getWidgetConfig()
   return config.waterHeater || { entityId: null, name: 'Водонагреватель' }
 }
 
-export const updateWaterHeaterConfig = (waterHeaterConfig: WaterHeaterConfig): void => {
-  const config = getWidgetConfig()
-  config.waterHeater = waterHeaterConfig
-  saveWidgetConfig(config)
+export const getWaterHeaterConfigSync = (): WaterHeaterConfig => {
+  const config = getWidgetConfigSync()
+  return config.waterHeater || { entityId: null, name: 'Водонагреватель' }
 }
 
-export const getSensorsConfig = (): SensorConfig[] => {
-  const config = getWidgetConfig()
+export const updateWaterHeaterConfig = async (waterHeaterConfig: WaterHeaterConfig): Promise<void> => {
+  const config = await getWidgetConfig()
+  config.waterHeater = waterHeaterConfig
+  await saveWidgetConfig(config)
+}
+
+export const getSensorsConfig = async (): Promise<SensorConfig[]> => {
+  const config = await getWidgetConfig()
   return config.sensors?.sensors || []
 }
 
-export const updateSensorsConfig = (sensors: SensorConfig[]): void => {
-  const config = getWidgetConfig()
+export const getSensorsConfigSync = (): SensorConfig[] => {
+  const config = getWidgetConfigSync()
+  return config.sensors?.sensors || []
+}
+
+export const updateSensorsConfig = async (sensors: SensorConfig[]): Promise<void> => {
+  const config = await getWidgetConfig()
   if (!config.sensors) {
     config.sensors = { sensors: [] }
   }
   config.sensors.sensors = sensors
-  saveWidgetConfig(config)
+  await saveWidgetConfig(config)
 }
 
-export const getAllEnabledWidgets = (): string[] => {
-  const config = getWidgetConfig()
+export const getAllEnabledWidgets = async (): Promise<string[]> => {
+  const config = await getWidgetConfig()
+  if (!config.enabledWidgets) {
+    return []
+  }
+  return Object.keys(config.enabledWidgets).filter(id => config.enabledWidgets[id] === true)
+}
+
+export const getAllEnabledWidgetsSync = (): string[] => {
+  const config = getWidgetConfigSync()
   if (!config.enabledWidgets) {
     return []
   }

@@ -1,4 +1,5 @@
-import { LayoutGrid, Settings, Zap, User, List, BarChart, Calendar, Play, Camera, Info } from 'lucide-react'
+import { LayoutGrid, Settings, Zap, User, List, BarChart, Calendar, Play, Camera, LogOut } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 type Page = 'dashboard' | 'settings'
 
@@ -8,6 +9,8 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ currentPage, onPageChange }: SidebarProps) => {
+  const { logout } = useAuth()
+
   const menuItems = [
     { icon: LayoutGrid, label: 'Dashboard', page: 'dashboard' as Page },
     { icon: Settings, label: 'Settings', page: 'settings' as Page },
@@ -21,7 +24,7 @@ const Sidebar = ({ currentPage, onPageChange }: SidebarProps) => {
 
   const bottomItems = [
     { icon: Camera, label: 'Cameras' },
-    { icon: Info, label: 'About' },
+    { icon: LogOut, label: 'Выход', action: 'logout' },
   ]
 
   return (
@@ -49,9 +52,15 @@ const Sidebar = ({ currentPage, onPageChange }: SidebarProps) => {
       <div className="flex flex-col gap-4">
         {bottomItems.map((item, index) => {
           const Icon = item.icon
+          const isLogout = item.action === 'logout'
           return (
             <button
               key={index}
+              onClick={() => {
+                if (isLogout) {
+                  logout()
+                }
+              }}
               className="p-3 rounded-lg text-dark-textSecondary hover:bg-dark-cardHover hover:text-white transition-colors"
               title={item.label}
             >

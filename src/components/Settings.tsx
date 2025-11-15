@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
 import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User } from 'lucide-react'
-import { getAmbientLightingConfig, updateAmbientLightingConfig, LightConfig, getACConfigs, updateACConfigs, ACConfig, getWaterHeaterConfig, updateWaterHeaterConfig, WaterHeaterConfig, getSensorsConfig, updateSensorsConfig, SensorConfig, isWidgetEnabled, setWidgetEnabled } from '../services/widgetConfig'
+import { getAmbientLightingConfigSync, updateAmbientLightingConfig, LightConfig, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getSensorsConfigSync, updateSensorsConfig, SensorConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
+import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 import ToggleSwitch from './ui/ToggleSwitch'
 import Toast from './ui/Toast'
 
-type Tab = 'devices' | 'widgets'
+type Tab = 'devices' | 'widgets' | 'home-assistant'
 type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | 'water-heater' | null
 
 interface WidgetOption {
@@ -18,7 +19,7 @@ interface WidgetOption {
 }
 
 const Settings = () => {
-  const { api } = useHomeAssistant()
+  const { api, connect } = useHomeAssistant()
   const [activeTab, setActiveTab] = useState<Tab>('devices')
   const [selectedWidget, setSelectedWidget] = useState<WidgetType>(null)
   const [entities, setEntities] = useState<Entity[]>([])
@@ -28,32 +29,35 @@ const Settings = () => {
   const [filterDomain, setFilterDomain] = useState<string>('all')
   const [lightConfigs, setLightConfigs] = useState<LightConfig[]>(() => {
     try {
-      return getAmbientLightingConfig()
+      return getAmbientLightingConfigSync()
     } catch {
       return []
     }
   })
   const [acConfigs, setACConfigs] = useState<ACConfig[]>(() => {
     try {
-      return getACConfigs()
+      return getACConfigsSync()
     } catch {
       return []
     }
   })
   const [waterHeaterConfig, setWaterHeaterConfig] = useState<WaterHeaterConfig>(() => {
     try {
-      return getWaterHeaterConfig()
+      return getWaterHeaterConfigSync()
     } catch {
       return { entityId: null, name: 'Водонагреватель' }
     }
   })
   const [sensorConfigs, setSensorConfigs] = useState<SensorConfig[]>(() => {
     try {
-      return getSensorsConfig()
+      return getSensorsConfigSync()
     } catch {
       return []
     }
   })
+  const [haUrl, setHaUrl] = useState('http://192.168.3.12:8123')
+  const [haToken, setHaToken] = useState('')
+  const [haLoading, setHaLoading] = useState(false)
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [widgetEnabledStates, setWidgetEnabledStates] = useState<Record<string, boolean>>({})
@@ -184,7 +188,7 @@ const Settings = () => {
       const states: Record<string, boolean> = {}
       widgetOptions.forEach(widget => {
         if (widget.id) {
-          states[widget.id] = isWidgetEnabled(widget.id)
+          states[widget.id] = isWidgetEnabledSync(widget.id)
         }
       })
       setWidgetEnabledStates(states)
@@ -196,16 +200,34 @@ const Settings = () => {
   }, [entities, searchTerm, filterDomain])
 
   const loadWidgetConfigs = () => {
-    const config = getAmbientLightingConfig()
+    const config = getAmbientLightingConfigSync()
     setLightConfigs(config && Array.isArray(config) ? config : [])
-    const acs = getACConfigs()
+    const acs = getACConfigsSync()
     console.log('Settings: загружены AC конфигурации:', acs)
     setACConfigs(acs && Array.isArray(acs) ? acs : [])
-    const wh = getWaterHeaterConfig()
+    const wh = getWaterHeaterConfigSync()
     setWaterHeaterConfig(wh)
-    const sensors = getSensorsConfig()
+    const sensors = getSensorsConfigSync()
     setSensorConfigs(sensors && Array.isArray(sensors) ? sensors : [])
   }
+
+  useEffect(() => {
+    // Загружаем настройки Home Assistant при открытии вкладки
+    if (activeTab === 'home-assistant') {
+      const loadHAConfig = async () => {
+        try {
+          const connection = await getConnectionConfig()
+          if (connection) {
+            setHaUrl(connection.url || 'http://192.168.3.12:8123')
+            setHaToken(connection.token || '')
+          }
+        } catch (error) {
+          console.error('Ошибка загрузки настроек Home Assistant:', error)
+        }
+      }
+      loadHAConfig()
+    }
+  }, [activeTab])
 
   const loadEntities = async () => {
     if (!api) return
@@ -265,11 +287,16 @@ const Settings = () => {
     setHasUnsavedChanges(true)
   }
 
-  const handleSave = () => {
-    updateAmbientLightingConfig(lightConfigs)
-    setHasUnsavedChanges(false)
-    window.dispatchEvent(new Event('widgets-changed'))
-    setToast({ message: 'Настройки сохранены!', type: 'success' })
+  const handleSave = async () => {
+    try {
+      await updateAmbientLightingConfig(lightConfigs)
+      setHasUnsavedChanges(false)
+      window.dispatchEvent(new Event('widgets-changed'))
+      setToast({ message: 'Настройки сохранены!', type: 'success' })
+    } catch (error) {
+      console.error('Ошибка сохранения:', error)
+      setToast({ message: 'Ошибка сохранения настроек', type: 'error' })
+    }
   }
 
   const autoFillFromSwitches = () => {
@@ -421,9 +448,79 @@ const Settings = () => {
             Настройка виджетов
           </div>
         </button>
+        <button
+          onClick={() => setActiveTab('home-assistant')}
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${
+            activeTab === 'home-assistant'
+              ? 'border-blue-500 text-white'
+              : 'border-transparent text-dark-textSecondary hover:text-white'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Power size={18} />
+            Home Assistant
+          </div>
+        </button>
       </div>
 
-      {activeTab === 'widgets' ? (
+      {activeTab === 'home-assistant' ? (
+        /* Настройка Home Assistant */
+        <div className="bg-dark-card rounded-lg border border-dark-border p-6">
+          <h2 className="text-xl font-bold mb-4">Настройка подключения к Home Assistant</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                URL Home Assistant
+              </label>
+              <input
+                type="text"
+                value={haUrl}
+                onChange={(e) => setHaUrl(e.target.value)}
+                placeholder="http://192.168.3.12:8123"
+                className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Long-Lived Access Token
+              </label>
+              <input
+                type="password"
+                value={haToken}
+                onChange={(e) => setHaToken(e.target.value)}
+                placeholder="Введите токен доступа"
+                className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-dark-textSecondary mt-2">
+                Создайте токен в профиле Home Assistant
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                if (!haUrl || !haToken) {
+                  setToast({ message: 'Заполните все поля', type: 'error' })
+                  return
+                }
+                setHaLoading(true)
+                try {
+                  await saveConnectionConfig({ url: haUrl, token: haToken })
+                  await connect(haUrl, haToken)
+                  setToast({ message: 'Настройки Home Assistant сохранены и подключение установлено!', type: 'success' })
+                } catch (error: any) {
+                  console.error('Ошибка сохранения настроек Home Assistant:', error)
+                  setToast({ message: error?.message || 'Ошибка сохранения настроек', type: 'error' })
+                } finally {
+                  setHaLoading(false)
+                }
+              }}
+              disabled={haLoading}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors"
+            >
+              {haLoading ? 'Сохранение...' : 'Сохранить и подключиться'}
+            </button>
+          </div>
+        </div>
+      ) : activeTab === 'widgets' ? (
         /* Настройка виджетов */
         <div className="space-y-6">
           {!selectedWidget ? (
@@ -742,9 +839,9 @@ const Settings = () => {
                     </button>
                     {hasUnsavedChanges && (
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           try {
-                            updateSensorsConfig(sensorConfigs)
+                            await updateSensorsConfig(sensorConfigs)
                             setHasUnsavedChanges(false)
                             window.dispatchEvent(new Event('widgets-changed'))
                             setToast({ message: 'Настройки датчиков сохранены!', type: 'success' })
@@ -971,9 +1068,9 @@ const Settings = () => {
                     </button>
                     {hasUnsavedChanges && (
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           try {
-                            updateACConfigs(acConfigs)
+                            await updateACConfigs(acConfigs)
                             setHasUnsavedChanges(false)
                             window.dispatchEvent(new Event('widgets-changed'))
                             setToast({ message: 'Настройки кондиционеров сохранены!', type: 'success' })
@@ -1118,9 +1215,9 @@ const Settings = () => {
                   </div>
                   {hasUnsavedChanges && (
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         try {
-                          updateWaterHeaterConfig(waterHeaterConfig)
+                          await updateWaterHeaterConfig(waterHeaterConfig)
                           setHasUnsavedChanges(false)
                           window.dispatchEvent(new Event('widgets-changed'))
                           setToast({ message: 'Настройки водонагревателя сохранены!', type: 'success' })

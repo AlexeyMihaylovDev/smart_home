@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
+import { useAuth } from '../context/AuthContext'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
-import ConnectionModal from './ConnectionModal'
+import LoginModal from './LoginModal'
 import WidgetGrid from './WidgetGrid'
 import Settings from './Settings'
 
@@ -14,10 +15,11 @@ interface DashboardProps {
 }
 
 const Dashboard = ({ initialPage }: DashboardProps) => {
+  const { isAuthenticated, login } = useAuth()
   const { isConnected } = useHomeAssistant()
   const navigate = useNavigate()
   const location = useLocation()
-  const [showConnectionModal, setShowConnectionModal] = useState(!isConnected)
+  const [showLoginModal, setShowLoginModal] = useState(!isAuthenticated)
   
   // Определяем текущую страницу из URL
   const getCurrentPage = (): Page => {
@@ -28,8 +30,8 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
   const [currentPage, setCurrentPage] = useState<Page>(initialPage || getCurrentPage())
 
   useEffect(() => {
-    setShowConnectionModal(!isConnected)
-  }, [isConnected])
+    setShowLoginModal(!isAuthenticated)
+  }, [isAuthenticated])
 
   // Синхронизируем currentPage с URL
   useEffect(() => {
@@ -46,11 +48,15 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
     }
   }
 
-  if (!isConnected) {
+  useEffect(() => {
+    console.log('Dashboard: isAuthenticated =', isAuthenticated, 'currentPage =', currentPage)
+  }, [isAuthenticated, currentPage])
+
+  if (!isAuthenticated) {
     return (
-      <ConnectionModal
-        isOpen={showConnectionModal}
-        onClose={() => setShowConnectionModal(false)}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
       />
     )
   }
@@ -60,7 +66,7 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
       <Sidebar currentPage={currentPage} onPageChange={handlePageChange} />
       <div className="flex-1 flex flex-col">
         <TopBar />
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 bg-dark-bg">
           {currentPage === 'dashboard' ? <WidgetGrid /> : <Settings />}
         </div>
       </div>

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../../context/HomeAssistantContext'
 import { Entity } from '../../services/homeAssistantAPI'
-import { getSensorsConfig, SensorConfig } from '../../services/widgetConfig'
-import { Activity, User, Gauge } from 'lucide-react'
+import { getSensorsConfigSync, SensorConfig } from '../../services/widgetConfig'
+import { Activity, User, Gauge, Battery, BatteryLow, BatteryMedium, BatteryFull } from 'lucide-react'
 
 const SensorsWidget = () => {
   const { api } = useHomeAssistant()
@@ -11,7 +11,7 @@ const SensorsWidget = () => {
 
   useEffect(() => {
     const loadConfig = () => {
-      const config = getSensorsConfig()
+      const config = getSensorsConfigSync()
       setSensors(config)
     }
 
@@ -76,7 +76,7 @@ const SensorsWidget = () => {
     if (!entityId) return false
     const entity = entities.get(entityId)
     if (!entity) return false
-    return entity.state === 'on' || entity.state === 'active' || entity.state === 'detected'
+    return entity.state === 'on' || entity.state === 'active' || entity.state === 'detected' || entity.state === 'home'
   }
 
   const getDisplayName = (sensor: SensorConfig): string => {
@@ -91,7 +91,39 @@ const SensorsWidget = () => {
     return 'Неизвестный датчик'
   }
 
-  if (sensors.length === 0) {
+  const getBatteryLevel = (entityId: string | null): number | null => {
+    if (!entityId) return null
+    const entity = entities.get(entityId)
+    if (!entity) return null
+    
+    // Проверяем различные варианты атрибутов батареи
+    const attrs = entity.attributes
+    const battery = attrs.battery_level ?? attrs.battery ?? attrs.battery_percentage ?? null
+    
+    if (typeof battery === 'number') {
+      return Math.max(0, Math.min(100, battery))
+    }
+    
+    return null
+  }
+
+  const getBatteryIcon = (level: number | null) => {
+    if (level === null) return null
+    
+    if (level <= 20) return BatteryLow
+    if (level <= 40) return BatteryMedium
+    if (level <= 60) return BatteryMedium
+    return BatteryFull
+  }
+
+  const getBatteryColor = (level: number | null): string => {
+    if (level === null) return 'text-gray-500'
+    if (level <= 20) return 'text-red-400'
+    if (level <= 40) return 'text-yellow-400'
+    return 'text-green-400'
+  }
+
+  if (!Array.isArray(sensors) || sensors.length === 0) {
     return (
       <div className="h-full p-4 flex items-center justify-center">
         <div className="text-center">
@@ -102,8 +134,8 @@ const SensorsWidget = () => {
     )
   }
 
-  const motionSensors = sensors.filter(s => s.type === 'motion')
-  const presenceSensors = sensors.filter(s => s.type === 'presence')
+  const motionSensors = Array.isArray(sensors) ? sensors.filter(s => s.type === 'motion') : []
+  const presenceSensors = Array.isArray(sensors) ? sensors.filter(s => s.type === 'presence') : []
 
   return (
     <div className="h-full p-4 overflow-y-auto">
@@ -176,6 +208,9 @@ const SensorsWidget = () => {
               const isActive = getEntityState(sensor.entityId)
               const hasEntity = sensor.entityId !== null
               const displayName = getDisplayName(sensor)
+              const batteryLevel = getBatteryLevel(sensor.entityId)
+              const BatteryIcon = batteryLevel !== null ? getBatteryIcon(batteryLevel) : null
+              const batteryColor = getBatteryColor(batteryLevel)
 
               return (
                 <div
@@ -186,10 +221,17 @@ const SensorsWidget = () => {
                     <div className={`p-1.5 rounded-lg flex-shrink-0 ${
                       isActive ? 'bg-green-500/20' : 'bg-gray-500/20'
                     }`}>
-                      <User
-                        size={14}
-                        className={isActive ? 'text-green-400' : 'text-gray-400'}
-                      />
+                      {isActive ? (
+                        <Activity
+                          size={14}
+                          className="text-green-400"
+                        />
+                      ) : (
+                        <User
+                          size={14}
+                          className="text-gray-400"
+                        />
+                      )}
                     </div>
                     <span
                       className={`text-sm truncate ${
@@ -201,6 +243,12 @@ const SensorsWidget = () => {
                     </span>
                     {!hasEntity && (
                       <span className="text-xs text-red-400 ml-2 flex-shrink-0">Не настроено</span>
+                    )}
+                    {batteryLevel !== null && BatteryIcon && (
+                      <div className="flex items-center gap-1 ml-2 flex-shrink-0" title={`Батарея: ${batteryLevel}%`}>
+                        <BatteryIcon size={14} className={batteryColor} />
+                        <span className={`text-xs ${batteryColor}`}>{batteryLevel}%</span>
+                      </div>
                     )}
                   </div>
                   <div className={`px-2 py-1 rounded text-xs font-medium flex-shrink-0 ${

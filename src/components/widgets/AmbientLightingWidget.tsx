@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Clock, Lightbulb } from 'lucide-react'
 import { useHomeAssistant } from '../../context/HomeAssistantContext'
-import { getAmbientLightingConfig, LightConfig } from '../../services/widgetConfig'
+import { getAmbientLightingConfigSync, LightConfig } from '../../services/widgetConfig'
 import { Entity } from '../../services/homeAssistantAPI'
 import ToggleSwitch from '../ui/ToggleSwitch'
 
@@ -13,6 +13,16 @@ const AmbientLightingWidget = () => {
 
   useEffect(() => {
     loadConfig()
+
+    const handleWidgetsChanged = () => {
+      console.log('AmbientLightingWidget: получено событие widgets-changed')
+      loadConfig()
+    }
+
+    window.addEventListener('widgets-changed', handleWidgetsChanged)
+    return () => {
+      window.removeEventListener('widgets-changed', handleWidgetsChanged)
+    }
   }, [])
 
   useEffect(() => {
@@ -25,7 +35,7 @@ const AmbientLightingWidget = () => {
   }, [lights, api])
 
   const loadConfig = () => {
-    const config = getAmbientLightingConfig()
+    const config = getAmbientLightingConfigSync()
     setLights(config)
     setLoading(false)
   }
@@ -126,7 +136,7 @@ const AmbientLightingWidget = () => {
         <div className="font-medium text-white">Ambient Lighting</div>
       </div>
       <div className="space-y-2">
-        {lights.map((light, index) => {
+        {Array.isArray(lights) && lights.map((light, index) => {
           const Icon = getIcon(light.icon)
           const isOn = getEntityState(light.entityId)
           const hasEntity = light.entityId !== null

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../../context/HomeAssistantContext'
 import { Entity } from '../../services/homeAssistantAPI'
-import { getWaterHeaterConfig } from '../../services/widgetConfig'
+import { getWaterHeaterConfigSync } from '../../services/widgetConfig'
 import { Flame, Power, MoreVertical, Thermometer } from 'lucide-react'
 
 const WaterHeaterWidget = () => {
@@ -11,8 +11,22 @@ const WaterHeaterWidget = () => {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const config = getWaterHeaterConfig()
-    setConfigEntityId(config.entityId)
+    const loadConfig = () => {
+      const config = getWaterHeaterConfigSync()
+      setConfigEntityId(config.entityId)
+    }
+
+    loadConfig()
+
+    const handleWidgetsChanged = () => {
+      console.log('WaterHeaterWidget: получено событие widgets-changed')
+      loadConfig()
+    }
+
+    window.addEventListener('widgets-changed', handleWidgetsChanged)
+    return () => {
+      window.removeEventListener('widgets-changed', handleWidgetsChanged)
+    }
   }, [])
 
   useEffect(() => {
@@ -150,7 +164,7 @@ const WaterHeaterWidget = () => {
     isOn = entity.state !== 'off' && entity.state !== 'eco'
   }
 
-  const config = getWaterHeaterConfig()
+  const config = getWaterHeaterConfigSync()
   const friendlyName = config.name || attrs.friendly_name || configEntityId?.split('.')[1] || 'Водонагреватель'
 
   const minTemp = attrs.min_temp || 20

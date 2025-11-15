@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
+import { getConnectionConfig } from '../services/apiService'
 
 interface ConnectionModalProps {
   isOpen: boolean
@@ -8,16 +9,39 @@ interface ConnectionModalProps {
 
 const ConnectionModal = ({ isOpen, onClose }: ConnectionModalProps) => {
   const { connect } = useHomeAssistant()
-  const [url, setUrl] = useState(() => {
-    const saved = localStorage.getItem('ha_url')
-    return saved || 'http://192.168.3.12:8123'
-  })
-  const [token, setToken] = useState(() => {
-    const saved = localStorage.getItem('ha_token')
-    return saved || ''
-  })
+  const [url, setUrl] = useState('http://192.168.3.12:8123')
+  const [token, setToken] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    // Загружаем сохраненные настройки при открытии модального окна
+    if (isOpen) {
+      const loadConnection = async () => {
+        try {
+          const connection = await getConnectionConfig()
+          if (connection) {
+            setUrl(connection.url || 'http://192.168.3.12:8123')
+            setToken(connection.token || '')
+          } else {
+            // Fallback на localStorage
+            const savedUrl = localStorage.getItem('ha_url')
+            const savedToken = localStorage.getItem('ha_token')
+            if (savedUrl) setUrl(savedUrl)
+            if (savedToken) setToken(savedToken)
+          }
+        } catch (error) {
+          console.error('Ошибка загрузки настроек подключения:', error)
+          // Fallback на localStorage
+          const savedUrl = localStorage.getItem('ha_url')
+          const savedToken = localStorage.getItem('ha_token')
+          if (savedUrl) setUrl(savedUrl)
+          if (savedToken) setToken(savedToken)
+        }
+      }
+      loadConnection()
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 

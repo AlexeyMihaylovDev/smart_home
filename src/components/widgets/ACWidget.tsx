@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../../context/HomeAssistantContext'
 import { Entity } from '../../services/homeAssistantAPI'
-import { getACConfigs, ACConfig } from '../../services/widgetConfig'
+import { getACConfigsSync, ACConfig } from '../../services/widgetConfig'
 import { Snowflake, Flame, Droplets, Fan, Power, Settings, Thermometer } from 'lucide-react'
 
 interface ACUnitProps {
@@ -251,7 +251,7 @@ const ACWidget = () => {
 
   useEffect(() => {
     const loadConfigs = () => {
-      const configs = getACConfigs()
+      const configs = getACConfigsSync()
       console.log('ACWidget: загружены конфигурации:', configs)
       setACConfigs(configs)
     }
@@ -335,7 +335,7 @@ const ACWidget = () => {
           ? 'grid-cols-1 md:grid-cols-2' 
           : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
       }`}>
-        {acConfigs.map((acConfig, index) => (
+        {Array.isArray(acConfigs) && acConfigs.map((acConfig, index) => (
           <ACUnit
             key={acConfig.entityId || index}
             acConfig={acConfig}

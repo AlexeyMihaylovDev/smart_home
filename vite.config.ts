@@ -13,6 +13,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, '/api')
+      },
+      // Прокси для сервера настроек (если нужно, но обычно используется прямой доступ)
+      '/api/config': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false
       }
     }
   },

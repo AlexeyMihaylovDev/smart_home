@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { HomeAssistantAPI } from '../services/homeAssistantAPI'
+import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 
 interface HomeAssistantContextType {
   api: HomeAssistantAPI | null
@@ -27,13 +28,31 @@ export const HomeAssistantProvider: React.FC<HomeAssistantProviderProps> = ({ ch
   const [isConnected, setIsConnected] = useState(false)
 
   useEffect(() => {
-    // Попытка загрузить сохраненные настройки
-    const savedUrl = localStorage.getItem('ha_url')
-    const savedToken = localStorage.getItem('ha_token')
-    
-    if (savedUrl && savedToken) {
-      connect(savedUrl, savedToken).catch(console.error)
+    // Проверяем, есть ли пользователь
+    const userId = localStorage.getItem('user_id')
+    if (!userId) {
+      // Если пользователь не авторизован, не пытаемся подключаться
+      return
     }
+
+    // Попытка загрузить сохраненные настройки с сервера
+    const loadConnection = async () => {
+      try {
+        const connection = await getConnectionConfig()
+        if (connection && connection.url && connection.token) {
+          await connect(connection.url, connection.token)
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки настроек подключения:', error)
+        // Fallback на localStorage
+        const savedUrl = localStorage.getItem('ha_url')
+        const savedToken = localStorage.getItem('ha_token')
+        if (savedUrl && savedToken) {
+          connect(savedUrl, savedToken).catch(console.error)
+        }
+      }
+    }
+    loadConnection()
   }, [])
 
   const connect = async (url: string, token: string) => {
@@ -42,17 +61,31 @@ export const HomeAssistantProvider: React.FC<HomeAssistantProviderProps> = ({ ch
       await newApi.testConnection()
       setApi(newApi)
       setIsConnected(true)
-      localStorage.setItem('ha_url', url)
-      localStorage.setItem('ha_token', token)
+      // Сохраняем на сервер
+      try {
+        await saveConnectionConfig({ url, token })
+      } catch (error) {
+        console.error('Ошибка сохранения настроек подключения на сервер:', error)
+        // Fallback на localStorage
+        localStorage.setItem('ha_url', url)
+        localStorage.setItem('ha_token', token)
+      }
     } catch (error) {
       console.error('Failed to connect to Home Assistant:', error)
       throw error
     }
   }
 
-  const disconnect = () => {
+  const disconnect = async () => {
     setApi(null)
     setIsConnected(false)
+    // Удаляем с сервера
+    try {
+      await saveConnectionConfig({ url: '', token: '' })
+    } catch (error) {
+      console.error('Ошибка удаления настроек подключения с сервера:', error)
+    }
+    // Также удаляем из localStorage
     localStorage.removeItem('ha_url')
     localStorage.removeItem('ha_token')
   }

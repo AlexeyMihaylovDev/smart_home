@@ -1,5 +1,6 @@
 // Сервис для управления layout виджетов
-import { getAllEnabledWidgets } from './widgetConfig'
+import { getAllEnabledWidgets, getAllEnabledWidgetsSync } from './widgetConfig'
+import { getDashboardLayout as getDashboardLayoutFromAPI, saveDashboardLayout as saveDashboardLayoutToAPI, DashboardLayout as APIDashboardLayout } from './apiService'
 
 export interface WidgetLayout {
   i: string // id виджета
@@ -23,6 +24,9 @@ const STORAGE_KEY = 'dashboard_layout'
 const DEFAULT_COLS = 12
 const DEFAULT_ROW_HEIGHT = 60
 
+// Кэш для синхронного доступа
+let layoutCache: DashboardLayout | null = null
+
 // Дефолтные layout для всех виджетов (используются только для новых виджетов)
 const DEFAULT_LAYOUTS: Record<string, Omit<WidgetLayout, 'i'>> = {
   'tv-time': { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 },
@@ -41,14 +45,13 @@ const DEFAULT_LAYOUTS: Record<string, Omit<WidgetLayout, 'i'>> = {
   'sensors': { x: 0, y: 13, w: 4, h: 4, minW: 2, minH: 3 },
 }
 
-export const getDashboardLayout = (): DashboardLayout => {
+export const getDashboardLayout = async (): Promise<DashboardLayout> => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    const enabledWidgets = getAllEnabledWidgets()
+    const stored = await getDashboardLayoutFromAPI()
+    const enabledWidgets = await getAllEnabledWidgets()
     
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      const savedLayouts = parsed.layouts || []
+    if (stored && stored.layouts && stored.layouts.length > 0) {
+      const savedLayouts = stored.layouts || []
       
       // Фильтруем только включенные виджеты
       const enabledLayouts = savedLayouts.filter((l: WidgetLayout) => enabledWidgets.includes(l.i))
@@ -79,18 +82,56 @@ export const getDashboardLayout = (): DashboardLayout => {
       // Компактируем layout - убираем пустые места
       const compactedLayouts = compactLayoutVertical(mergedLayouts, DEFAULT_COLS)
       
-      return {
+      const result = {
         layouts: compactedLayouts,
-        cols: parsed.cols || DEFAULT_COLS,
-        rowHeight: parsed.rowHeight || DEFAULT_ROW_HEIGHT
+        cols: stored.cols || DEFAULT_COLS,
+        rowHeight: stored.rowHeight || DEFAULT_ROW_HEIGHT
       }
+      layoutCache = result
+      return result
     }
   } catch (error) {
-    console.error('Ошибка загрузки layout:', error)
+    console.error('Ошибка загрузки layout с сервера:', error)
+    // Fallback на localStorage
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        const enabledWidgets = getAllEnabledWidgetsSync()
+        const savedLayouts = parsed.layouts || []
+        const enabledLayouts = savedLayouts.filter((l: WidgetLayout) => enabledWidgets.includes(l.i))
+        const savedWidgetIds = new Set(enabledLayouts.map((l: WidgetLayout) => l.i))
+        const missingWidgets = enabledWidgets
+          .filter(id => !savedWidgetIds.has(id))
+          .map((id, index) => {
+            const maxY = enabledLayouts.length > 0 
+              ? Math.max(...enabledLayouts.map(l => l.y + l.h))
+              : -1
+            const defaultLayout = DEFAULT_LAYOUTS[id] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 }
+            return {
+              i: id,
+              ...defaultLayout,
+              y: maxY + 1,
+              x: (index % 3) * 4
+            }
+          })
+        const mergedLayouts = [...enabledLayouts, ...missingWidgets]
+        const compactedLayouts = compactLayoutVertical(mergedLayouts, DEFAULT_COLS)
+        const result = {
+          layouts: compactedLayouts,
+          cols: parsed.cols || DEFAULT_COLS,
+          rowHeight: parsed.rowHeight || DEFAULT_ROW_HEIGHT
+        }
+        layoutCache = result
+        return result
+      }
+    } catch (localError) {
+      console.error('Ошибка загрузки из localStorage:', localError)
+    }
   }
   
   // Если нет сохраненного layout, возвращаем только включенные виджеты
-  const enabledWidgets = getAllEnabledWidgets()
+  const enabledWidgets = await getAllEnabledWidgets()
   const layouts = enabledWidgets.map((id, index) => {
     const defaultLayout = DEFAULT_LAYOUTS[id] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 }
     // Размещаем виджеты компактно в сетке
@@ -107,11 +148,79 @@ export const getDashboardLayout = (): DashboardLayout => {
   // Компактируем layout
   const compactedLayouts = compactLayoutVertical(layouts, DEFAULT_COLS)
   
-  return {
+  const result = {
     layouts: compactedLayouts,
     cols: DEFAULT_COLS,
     rowHeight: DEFAULT_ROW_HEIGHT
   }
+  layoutCache = result
+  return result
+}
+
+// Синхронная версия для обратной совместимости
+export const getDashboardLayoutSync = (): DashboardLayout => {
+  if (layoutCache) {
+    return layoutCache
+  }
+  
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    const enabledWidgets = getAllEnabledWidgetsSync()
+    
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      const savedLayouts = parsed.layouts || []
+      const enabledLayouts = savedLayouts.filter((l: WidgetLayout) => enabledWidgets.includes(l.i))
+      const savedWidgetIds = new Set(enabledLayouts.map((l: WidgetLayout) => l.i))
+      const missingWidgets = enabledWidgets
+        .filter(id => !savedWidgetIds.has(id))
+        .map((id, index) => {
+          const maxY = enabledLayouts.length > 0 
+            ? Math.max(...enabledLayouts.map(l => l.y + l.h))
+            : -1
+          const defaultLayout = DEFAULT_LAYOUTS[id] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 }
+          return {
+            i: id,
+            ...defaultLayout,
+            y: maxY + 1,
+            x: (index % 3) * 4
+          }
+        })
+      const mergedLayouts = [...enabledLayouts, ...missingWidgets]
+      const compactedLayouts = compactLayoutVertical(mergedLayouts, DEFAULT_COLS)
+      const result = {
+        layouts: compactedLayouts,
+        cols: parsed.cols || DEFAULT_COLS,
+        rowHeight: parsed.rowHeight || DEFAULT_ROW_HEIGHT
+      }
+      layoutCache = result
+      return result
+    }
+  } catch (error) {
+    console.error('Ошибка загрузки layout:', error)
+  }
+  
+  const enabledWidgets = getAllEnabledWidgetsSync()
+  const layouts = enabledWidgets.map((id, index) => {
+    const defaultLayout = DEFAULT_LAYOUTS[id] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 }
+    const col = index % 3
+    const row = Math.floor(index / 3)
+    return {
+      i: id,
+      ...defaultLayout,
+      x: col * 4,
+      y: row * 3
+    }
+  })
+  
+  const compactedLayouts = compactLayoutVertical(layouts, DEFAULT_COLS)
+  const result = {
+    layouts: compactedLayouts,
+    cols: DEFAULT_COLS,
+    rowHeight: DEFAULT_ROW_HEIGHT
+  }
+  layoutCache = result
+  return result
 }
 
 // Функция для вертикального компактирования layout - убирает пустые места
@@ -196,19 +305,29 @@ const compactLayoutVertical = (layouts: WidgetLayout[], cols: number): WidgetLay
 }
 
 
-export const saveDashboardLayout = (layout: DashboardLayout): void => {
+export const saveDashboardLayout = async (layout: DashboardLayout): Promise<void> => {
   try {
+    await saveDashboardLayoutToAPI(layout as APIDashboardLayout)
+    layoutCache = layout
+    // Также сохраняем в localStorage как backup
     localStorage.setItem(STORAGE_KEY, JSON.stringify(layout))
   } catch (error) {
-    console.error('Ошибка сохранения layout:', error)
+    console.error('Ошибка сохранения layout на сервер:', error)
+    // Fallback на localStorage
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(layout))
+      layoutCache = layout
+    } catch (localError) {
+      console.error('Ошибка сохранения в localStorage:', localError)
+    }
   }
 }
 
-export const updateWidgetLayout = (layouts: WidgetLayout[]): void => {
-  const current = getDashboardLayout()
+export const updateWidgetLayout = async (layouts: WidgetLayout[]): Promise<void> => {
+  const current = await getDashboardLayout()
   // Компактируем layout перед сохранением, чтобы убрать пустые места
   const compactedLayouts = compactLayoutVertical(layouts, current.cols)
-  saveDashboardLayout({
+  await saveDashboardLayout({
     ...current,
     layouts: compactedLayouts
   })

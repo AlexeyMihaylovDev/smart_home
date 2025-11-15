@@ -1,0 +1,249 @@
+const express = require('express')
+const cors = require('cors')
+const fs = require('fs').promises
+const path = require('path')
+const crypto = require('crypto')
+
+const app = express()
+const PORT = 3001
+const DATA_DIR = path.join(__dirname, 'data')
+const USERS_FILE = path.join(DATA_DIR, 'users.json')
+
+// Убеждаемся, что папка data существует
+fs.mkdir(DATA_DIR, { recursive: true }).catch(console.error)
+
+// Middleware
+app.use(cors())
+app.use(express.json())
+
+// Простая функция хеширования пароля
+function hashPassword(password) {
+  return crypto.createHash('sha256').update(password).digest('hex')
+}
+
+// Инициализация пользователей при первом запуске
+async function initializeUsers() {
+  try {
+    let users
+    try {
+      users = await readDataFile('users.json')
+    } catch (error) {
+      // Файл не существует, это нормально
+      users = null
+    }
+    
+    if (!users || !Array.isArray(users) || users.length === 0) {
+      // Создаем дефолтного пользователя
+      const defaultUsers = [
+        {
+          id: '1',
+          username: 'mihuliki',
+          passwordHash: hashPassword('1q1q1q'),
+          createdAt: new Date().toISOString()
+        }
+      ]
+      await writeDataFile('users.json', defaultUsers)
+      console.log('✓ Создан дефолтный пользователь: mihuliki / 1q1q1q')
+    } else {
+      console.log(`✓ Загружено пользователей: ${users.length}`)
+    }
+  } catch (error) {
+    console.error('✗ Ошибка инициализации пользователей:', error)
+  }
+}
+
+// Вспомогательная функция для чтения файла
+async function readDataFile(filename) {
+  try {
+    const filePath = path.join(DATA_DIR, filename)
+    const data = await fs.readFile(filePath, 'utf-8')
+    return JSON.parse(data)
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return null
+    }
+    throw error
+  }
+}
+
+// Вспомогательная функция для записи файла
+async function writeDataFile(filename, data) {
+  const filePath = path.join(DATA_DIR, filename)
+  await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8')
+}
+
+// Инициализируем пользователей при запуске (после определения функций)
+initializeUsers()
+
+// Middleware для проверки аутентификации
+function requireAuth(req, res, next) {
+  const userId = req.headers['x-user-id']
+  if (!userId) {
+    return res.status(401).json({ error: 'Требуется аутентификация' })
+  }
+  req.userId = userId
+  next()
+}
+
+// API для аутентификации
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Имя пользователя и пароль обязательны' })
+    }
+
+    const users = await readDataFile('users.json')
+    if (!users || !Array.isArray(users)) {
+      return res.status(401).json({ error: 'Неверное имя пользователя или пароль' })
+    }
+
+    const user = users.find(u => u.username === username)
+    if (!user || user.passwordHash !== hashPassword(password)) {
+      return res.status(401).json({ error: 'Неверное имя пользователя или пароль' })
+    }
+
+    // Возвращаем информацию о пользователе (без пароля)
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username
+      }
+    })
+  } catch (error) {
+    console.error('Ошибка входа:', error)
+    res.status(500).json({ error: 'Ошибка входа' })
+  }
+})
+
+// API для widget config (требует аутентификации)
+app.get('/api/config/widget', requireAuth, async (req, res) => {
+  try {
+    const userId = req.userId
+    const config = await readDataFile(`widget_config_${userId}.json`)
+    if (config) {
+      res.json(config)
+    } else {
+      // Возвращаем дефолтную конфигурацию
+      const defaultConfig = {
+        ambientLighting: {
+          lights: [
+            { name: 'Clock Light', entityId: null, icon: 'clock' },
+            { name: 'TV Ambilight', entityId: null, icon: 'lightbulb' },
+            { name: 'TV Ambilight Hyperion', entityId: null, icon: 'lightbulb' },
+            { name: 'Downstairs Lights', entityId: null, icon: 'lightbulb' },
+            { name: 'Interior Lights', entityId: null, icon: 'lightbulb' },
+            { name: 'Bonus Room Lights', entityId: null, icon: 'lightbulb' },
+          ]
+        },
+        ac: {
+          airConditioners: []
+        },
+        waterHeater: {
+          entityId: null,
+          name: 'Водонагреватель'
+        },
+        sensors: {
+          sensors: []
+        },
+        enabledWidgets: {}
+      }
+      res.json(defaultConfig)
+    }
+  } catch (error) {
+    console.error('Ошибка чтения widget config:', error)
+    res.status(500).json({ error: 'Ошибка чтения конфигурации' })
+  }
+})
+
+app.post('/api/config/widget', requireAuth, async (req, res) => {
+  try {
+    const userId = req.userId
+    await writeDataFile(`widget_config_${userId}.json`, req.body)
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Ошибка сохранения widget config:', error)
+    res.status(500).json({ error: 'Ошибка сохранения конфигурации' })
+  }
+})
+
+// API для dashboard layout (требует аутентификации)
+app.get('/api/config/layout', requireAuth, async (req, res) => {
+  try {
+    const userId = req.userId
+    const layout = await readDataFile(`dashboard_layout_${userId}.json`)
+    if (layout) {
+      res.json(layout)
+    } else {
+      // Возвращаем дефолтный layout
+      res.json({
+        layouts: [],
+        cols: 12,
+        rowHeight: 60
+      })
+    }
+  } catch (error) {
+    console.error('Ошибка чтения layout:', error)
+    res.status(500).json({ error: 'Ошибка чтения layout' })
+  }
+})
+
+app.post('/api/config/layout', requireAuth, async (req, res) => {
+  try {
+    const userId = req.userId
+    await writeDataFile(`dashboard_layout_${userId}.json`, req.body)
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Ошибка сохранения layout:', error)
+    res.status(500).json({ error: 'Ошибка сохранения layout' })
+  }
+})
+
+// API для connection settings (Home Assistant) (требует аутентификации)
+app.get('/api/config/connection', requireAuth, async (req, res) => {
+  try {
+    const userId = req.userId
+    const connection = await readDataFile(`connection_${userId}.json`)
+    if (connection) {
+      // Не возвращаем токен в открытом виде для безопасности
+      res.json({
+        url: connection.url || '',
+        hasToken: !!connection.token,
+        token: connection.token || '' // Возвращаем токен для использования
+      })
+    } else {
+      res.json({
+        url: '',
+        hasToken: false,
+        token: ''
+      })
+    }
+  } catch (error) {
+    console.error('Ошибка чтения connection:', error)
+    res.status(500).json({ error: 'Ошибка чтения настроек подключения' })
+  }
+})
+
+app.post('/api/config/connection', requireAuth, async (req, res) => {
+  try {
+    const userId = req.userId
+    const { url, token } = req.body
+    await writeDataFile(`connection_${userId}.json`, { url, token })
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Ошибка сохранения connection:', error)
+    res.status(500).json({ error: 'Ошибка сохранения настроек подключения' })
+  }
+})
+
+// Проверка здоровья сервера
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' })
+})
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Сервер настроек запущен на http://0.0.0.0:${PORT}`)
+  console.log(`Данные сохраняются в: ${DATA_DIR}`)
+})
+

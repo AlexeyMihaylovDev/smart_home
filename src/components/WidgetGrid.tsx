@@ -17,7 +17,7 @@ import WeatherCalendarWidget from './widgets/WeatherCalendarWidget'
 import ACWidget from './widgets/ACWidget'
 import WaterHeaterWidget from './widgets/WaterHeaterWidget'
 import SensorsWidget from './widgets/SensorsWidget'
-import { getDashboardLayout, updateWidgetLayout, WidgetLayout } from '../services/widgetLayout'
+import { getDashboardLayout, getDashboardLayoutSync, updateWidgetLayout, WidgetLayout } from '../services/widgetLayout'
 import { GripVertical, Pencil, X } from 'lucide-react'
 
 // Маппинг виджетов
@@ -39,9 +39,9 @@ const widgetComponents: Record<string, React.ComponentType<any>> = {
 }
 
 const WidgetGrid = () => {
-  // Загружаем layout синхронно до первого рендера
+  // Загружаем layout синхронно до первого рендера (используем sync версию для начальной загрузки)
   const getInitialLayout = (): Layout[] => {
-    const savedLayout = getDashboardLayout()
+    const savedLayout = getDashboardLayoutSync()
     return savedLayout.layouts.map(l => ({
       i: l.i,
       x: l.x,
@@ -56,7 +56,7 @@ const WidgetGrid = () => {
   }
   
   const [layout, setLayout] = useState<Layout[]>(getInitialLayout)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
   const [longPressProgress, setLongPressProgress] = useState(0)
   const [tripleClickActivated, setTripleClickActivated] = useState(false)
@@ -67,24 +67,29 @@ const WidgetGrid = () => {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const loadLayout = () => {
-      const savedLayout = getDashboardLayout()
-      const mappedLayout = savedLayout.layouts.map(l => ({
-        i: l.i,
-        x: l.x,
-        y: l.y,
-        w: l.w,
-        h: l.h,
-        minW: l.minW,
-        minH: l.minH,
-        maxW: l.maxW,
-        maxH: l.maxH,
-      }))
-      setLayout(mappedLayout)
-      setIsLoading(false)
+    const loadLayout = async () => {
+      try {
+        const savedLayout = await getDashboardLayout()
+        const mappedLayout = savedLayout.layouts.map(l => ({
+          i: l.i,
+          x: l.x,
+          y: l.y,
+          w: l.w,
+          h: l.h,
+          minW: l.minW,
+          minH: l.minH,
+          maxW: l.maxW,
+          maxH: l.maxH,
+        }))
+        setLayout(mappedLayout)
+        setIsLoading(false)
+      } catch (error) {
+        console.error('Ошибка загрузки layout:', error)
+        setIsLoading(false)
+      }
     }
     
-    // Загружаем layout сразу, без задержки
+    // Загружаем layout с сервера
     loadLayout()
     
     // Слушаем изменения в localStorage для обновления layout при изменении enabled виджетов
@@ -107,7 +112,7 @@ const WidgetGrid = () => {
     }
   }, [])
 
-  const handleLayoutChange = useCallback((newLayout: Layout[]) => {
+  const handleLayoutChange = useCallback(async (newLayout: Layout[]) => {
     setLayout(newLayout)
     // Сохраняем layout при изменении (только в режиме редактирования)
     // В обычном режиме react-grid-layout сам компактирует через compactType
@@ -123,7 +128,11 @@ const WidgetGrid = () => {
         maxW: l.maxW,
         maxH: l.maxH,
       }))
-      updateWidgetLayout(widgetLayouts)
+      try {
+        await updateWidgetLayout(widgetLayouts)
+      } catch (error) {
+        console.error('Ошибка сохранения layout:', error)
+      }
     }
   }, [editMode])
 
@@ -270,8 +279,7 @@ const WidgetGrid = () => {
     }
   }, [handleTripleClick, handleLongPressStart, handleLongPressEnd])
 
-  const savedLayout = getDashboardLayout()
-
+  const savedLayout = getDashboardLayoutSync()
 
   return (
     <div className="relative" ref={containerRef}>
