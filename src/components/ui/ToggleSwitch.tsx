@@ -1,14 +1,20 @@
 interface ToggleSwitchProps {
   checked: boolean
   onChange: () => void
+  disabled?: boolean
 }
 
-const ToggleSwitch = ({ checked, onChange }: ToggleSwitchProps) => {
+const ToggleSwitch = ({ checked, onChange, disabled = false }: ToggleSwitchProps) => {
   return (
     <button
       onClick={onChange}
+      disabled={disabled}
       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-        checked ? 'bg-green-500' : 'bg-gray-600'
+        disabled
+          ? 'bg-gray-700 cursor-not-allowed opacity-50'
+          : checked
+          ? 'bg-green-500'
+          : 'bg-gray-600'
       }`}
     >
       <span

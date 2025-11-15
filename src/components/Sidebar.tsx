@@ -1,8 +1,16 @@
-import { LayoutGrid, Zap, User, List, BarChart, Calendar, Play, Camera, Info } from 'lucide-react'
+import { LayoutGrid, Settings, Zap, User, List, BarChart, Calendar, Play, Camera, Info } from 'lucide-react'
 
-const Sidebar = () => {
+type Page = 'dashboard' | 'settings'
+
+interface SidebarProps {
+  currentPage: Page
+  onPageChange: (page: Page) => void
+}
+
+const Sidebar = ({ currentPage, onPageChange }: SidebarProps) => {
   const menuItems = [
-    { icon: LayoutGrid, label: 'Dashboard', active: true },
+    { icon: LayoutGrid, label: 'Dashboard', page: 'dashboard' as Page },
+    { icon: Settings, label: 'Settings', page: 'settings' as Page },
     { icon: Zap, label: 'Energy' },
     { icon: User, label: 'Profile' },
     { icon: List, label: 'Devices' },
@@ -21,11 +29,13 @@ const Sidebar = () => {
       <div className="flex-1 flex flex-col gap-4">
         {menuItems.map((item, index) => {
           const Icon = item.icon
+          const isActive = item.page === currentPage
           return (
             <button
               key={index}
+              onClick={() => item.page && onPageChange(item.page)}
               className={`p-3 rounded-lg transition-colors ${
-                item.active
+                isActive
                   ? 'bg-dark-cardHover text-white'
                   : 'text-dark-textSecondary hover:bg-dark-cardHover hover:text-white'
               }`}
