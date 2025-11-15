@@ -52,8 +52,8 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-dark-card rounded-lg p-8 w-full max-w-md border border-dark-border">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+      <div className="bg-dark-card rounded-lg p-6 sm:p-8 w-full max-w-md border border-dark-border">
         <h2 className="text-2xl font-bold mb-6 text-center">Вход в систему</h2>
         
         <form onSubmit={handleLogin} className="space-y-4">

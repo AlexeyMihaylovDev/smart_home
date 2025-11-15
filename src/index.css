@@ -48,6 +48,13 @@ body {
   position: relative;
 }
 
+/* Адаптивность для мобильных устройств */
+@media (max-width: 640px) {
+  .react-grid-item {
+    min-width: 0 !important;
+  }
+}
+
 .react-grid-item {
   transition: all 200ms ease;
   transition-property: left, top, width, height;

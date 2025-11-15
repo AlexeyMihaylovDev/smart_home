@@ -20,6 +20,7 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
   const navigate = useNavigate()
   const location = useLocation()
   const [showLoginModal, setShowLoginModal] = useState(!isAuthenticated)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   
   // Определяем текущую страницу из URL
   const getCurrentPage = (): Page => {
@@ -38,6 +39,17 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
     const page = getCurrentPage()
     setCurrentPage(page)
   }, [location.pathname])
+
+  // Закрываем мобильное меню при изменении размера окна (если стало больше lg)
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsMobileMenuOpen(false)
+      }
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const handlePageChange = (page: Page) => {
     setCurrentPage(page)
@@ -63,10 +75,15 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
 
   return (
     <div className="flex h-screen bg-dark-bg text-dark-text overflow-hidden">
-      <Sidebar currentPage={currentPage} onPageChange={handlePageChange} />
-      <div className="flex-1 flex flex-col">
-        <TopBar />
-        <div className="flex-1 overflow-y-auto p-6 bg-dark-bg">
+      <Sidebar 
+        currentPage={currentPage} 
+        onPageChange={handlePageChange}
+        isMobileMenuOpen={isMobileMenuOpen}
+        onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+      />
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-0">
+        <TopBar onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-dark-bg">
           {currentPage === 'dashboard' ? <WidgetGrid /> : <Settings />}
         </div>
       </div>

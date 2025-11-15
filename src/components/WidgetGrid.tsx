@@ -41,24 +41,38 @@ const widgetComponents: Record<string, React.ComponentType<any>> = {
 }
 
 const WidgetGrid = () => {
+  // Определяем количество колонок в зависимости от размера экрана
+  const getCols = (): number => {
+    if (typeof window === 'undefined') return 12
+    if (window.innerWidth < 640) return 4  // Мобильные телефоны
+    if (window.innerWidth < 1024) return 6  // Планшеты
+    return 12  // Десктоп
+  }
+
   // Загружаем layout синхронно до первого рендера (используем sync версию для начальной загрузки)
   const getInitialLayout = (): Layout[] => {
     const savedLayout = getDashboardLayoutSync()
-    return savedLayout.layouts.map(l => ({
-      i: l.i,
-      x: l.x,
-      y: l.y,
-      w: l.w,
-      h: l.h,
-      minW: l.minW,
-      minH: l.minH,
-      maxW: l.maxW,
-      maxH: l.maxH,
-    }))
+    const cols = getCols()
+    // Масштабируем layout для мобильных устройств
+    return savedLayout.layouts.map(l => {
+      const scale = cols / savedLayout.cols
+      return {
+        i: l.i,
+        x: Math.round(l.x * scale),
+        y: l.y,
+        w: Math.max(1, Math.round(l.w * scale)),
+        h: l.h,
+        minW: l.minW,
+        minH: l.minH,
+        maxW: l.maxW,
+        maxH: l.maxH,
+      }
+    })
   }
   
   const [layout, setLayout] = useState<Layout[]>(getInitialLayout)
   const [isLoading, setIsLoading] = useState(true)
+  const [cols, setCols] = useState(getCols())
   const [editMode, setEditMode] = useState(false)
   const [longPressProgress, setLongPressProgress] = useState(0)
   const [tripleClickActivated, setTripleClickActivated] = useState(false)
@@ -72,11 +86,13 @@ const WidgetGrid = () => {
     const loadLayout = async () => {
       try {
         const savedLayout = await getDashboardLayout()
+        const currentCols = getCols()
+        const scale = currentCols / savedLayout.cols
         const mappedLayout = savedLayout.layouts.map(l => ({
           i: l.i,
-          x: l.x,
+          x: Math.round(l.x * scale),
           y: l.y,
-          w: l.w,
+          w: Math.max(1, Math.round(l.w * scale)),
           h: l.h,
           minW: l.minW,
           minH: l.minH,
@@ -84,10 +100,29 @@ const WidgetGrid = () => {
           maxH: l.maxH,
         }))
         setLayout(mappedLayout)
+        setCols(currentCols)
         setIsLoading(false)
       } catch (error) {
         console.error('Ошибка загрузки layout:', error)
         setIsLoading(false)
+      }
+    }
+
+    const handleResize = () => {
+      const newCols = getCols()
+      if (newCols !== cols) {
+        setCols(newCols)
+        // Пересчитываем layout при изменении количества колонок
+        setLayout(prevLayout => {
+          const savedLayout = getDashboardLayoutSync()
+          const oldCols = cols || savedLayout.cols
+          const scale = newCols / oldCols
+          return prevLayout.map(l => ({
+            ...l,
+            x: Math.round(l.x * scale),
+            w: Math.max(1, Math.round(l.w * scale)),
+          }))
+        })
       }
     }
     
@@ -108,11 +143,13 @@ const WidgetGrid = () => {
     
     window.addEventListener('storage', handleStorageChange)
     window.addEventListener('widgets-changed', handleWidgetsChanged)
+    window.addEventListener('resize', handleResize)
     return () => {
       window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('widgets-changed', handleWidgetsChanged)
+      window.removeEventListener('resize', handleResize)
     }
-  }, [])
+  }, [cols])
 
   const handleLayoutChange = useCallback(async (newLayout: Layout[]) => {
     setLayout(newLayout)
@@ -282,6 +319,7 @@ const WidgetGrid = () => {
   }, [handleTripleClick, handleLongPressStart, handleLongPressEnd])
 
   const savedLayout = getDashboardLayoutSync()
+  const currentCols = cols || getCols()
 
   return (
     <div className="relative" ref={containerRef}>
@@ -363,15 +401,18 @@ const WidgetGrid = () => {
         className="layout layout-loaded"
         layout={layout}
         onLayoutChange={handleLayoutChange}
-        cols={savedLayout.cols}
+        cols={currentCols}
         rowHeight={savedLayout.rowHeight}
-        width={typeof window !== 'undefined' ? window.innerWidth - 100 : 1200}
+        width={typeof window !== 'undefined' ? 
+          (window.innerWidth < 640 ? window.innerWidth - 32 : 
+           window.innerWidth < 1024 ? window.innerWidth - 64 : 
+           window.innerWidth - 100) : 1200}
         isDraggable={editMode}
         isResizable={editMode}
         draggableHandle=".drag-handle"
         compactType="vertical"
         preventCollision={false}
-        margin={[16, 16]}
+        margin={[8, 8]}
         containerPadding={[0, 0]}
         useCSSTransforms={true}
       >

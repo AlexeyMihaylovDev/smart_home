@@ -428,16 +428,16 @@ const Settings = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Настройки Dashboard</h1>
-        <p className="text-dark-textSecondary">
+    <div className="max-w-6xl mx-auto w-full px-2 sm:px-4 md:px-6">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Настройки Dashboard</h1>
+        <p className="text-sm sm:text-base text-dark-textSecondary">
           Управление привязкой виджетов к устройствам Home Assistant
         </p>
       </div>
 
-      {/* Вкладки */}
-      <div className="flex gap-2 mb-6 border-b border-dark-border">
+            {/* Вкладки */}
+            <div className="flex gap-2 mb-4 sm:mb-6 border-b border-dark-border overflow-x-auto">
         <button
           onClick={() => setActiveTab('devices')}
           className={`px-4 py-2 font-medium transition-colors border-b-2 ${
