@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
-import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music } from 'lucide-react'
-import { getAmbientLightingConfig, updateAmbientLightingConfig, LightConfig, getACConfigs, updateACConfigs, ACConfig, isWidgetEnabled, setWidgetEnabled } from '../services/widgetConfig'
+import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet } from 'lucide-react'
+import { getAmbientLightingConfig, updateAmbientLightingConfig, LightConfig, getACConfigs, updateACConfigs, ACConfig, getWaterHeaterConfig, updateWaterHeaterConfig, WaterHeaterConfig, isWidgetEnabled, setWidgetEnabled } from '../services/widgetConfig'
 import ToggleSwitch from './ui/ToggleSwitch'
 import Toast from './ui/Toast'
 
 type Tab = 'devices' | 'widgets'
-type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | null
+type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | 'water-heater' | null
 
 interface WidgetOption {
   id: WidgetType
@@ -38,6 +38,13 @@ const Settings = () => {
       return getACConfigs()
     } catch {
       return []
+    }
+  })
+  const [waterHeaterConfig, setWaterHeaterConfig] = useState<WaterHeaterConfig>(() => {
+    try {
+      return getWaterHeaterConfig()
+    } catch {
+      return { entityId: null, name: 'Водонагреватель' }
     }
   })
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
@@ -131,6 +138,13 @@ const Settings = () => {
       color: 'bg-cyan-500'
     },
     {
+      id: 'water-heater',
+      name: 'Water Heater Widget',
+      description: 'Управление газовым водонагревателем',
+      icon: Droplet,
+      color: 'bg-orange-500'
+    },
+    {
       id: 'sensors',
       name: 'Sensors Widget',
       description: 'Управление датчиками',
@@ -180,6 +194,8 @@ const Settings = () => {
     const acs = getACConfigs()
     console.log('Settings: загружены AC конфигурации:', acs)
     setACConfigs(acs && Array.isArray(acs) ? acs : [])
+    const wh = getWaterHeaterConfig()
+    setWaterHeaterConfig(wh)
   }
 
   const loadEntities = async () => {
@@ -866,6 +882,114 @@ const Settings = () => {
                     </button>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+          {selectedWidget === 'water-heater' && (
+            <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
+              <div className="p-4 border-b border-dark-border">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setSelectedWidget(null)}
+                      className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
+                      title="Вернуться к выбору виджета"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                      <h2 className="font-medium text-lg">Water Heater Widget</h2>
+                      <p className="text-sm text-dark-textSecondary mt-1">
+                        Настройка виджета газового водонагревателя
+                      </p>
+                    </div>
+                  </div>
+                  {hasUnsavedChanges && (
+                    <button
+                      onClick={() => {
+                        try {
+                          updateWaterHeaterConfig(waterHeaterConfig)
+                          setHasUnsavedChanges(false)
+                          window.dispatchEvent(new Event('widgets-changed'))
+                          setToast({ message: 'Настройки водонагревателя сохранены!', type: 'success' })
+                        } catch (error) {
+                          console.error('Ошибка сохранения:', error)
+                          setToast({ message: 'Ошибка сохранения настроек', type: 'error' })
+                        }
+                      }}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
+                      title="Сохранить изменения"
+                    >
+                      <Save size={16} />
+                      Сохранить
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="p-4 space-y-4">
+                <div className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
+                  <div className="flex-1">
+                    <label className="block text-xs text-dark-textSecondary mb-1">
+                      Название водонагревателя:
+                    </label>
+                    <input
+                      type="text"
+                      value={waterHeaterConfig.name}
+                      onChange={(e) => {
+                        setWaterHeaterConfig({ ...waterHeaterConfig, name: e.target.value })
+                        setHasUnsavedChanges(true)
+                      }}
+                      className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Название водонагревателя"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs text-dark-textSecondary mb-1">
+                      Entity ID водонагревателя: {waterHeaterConfig.entityId || 'Не привязано'}
+                    </label>
+                    <div className="flex gap-2">
+                      <select
+                        value={waterHeaterConfig.entityId || ''}
+                        onChange={(e) => {
+                          const selectedEntityId = e.target.value || null
+                          let friendlyName = waterHeaterConfig.name
+                          if (selectedEntityId) {
+                            const entity = entities.find(e => e.entity_id === selectedEntityId)
+                            if (entity && entity.attributes.friendly_name) {
+                              friendlyName = entity.attributes.friendly_name
+                            }
+                          }
+                          setWaterHeaterConfig({ entityId: selectedEntityId, name: friendlyName })
+                          setHasUnsavedChanges(true)
+                        }}
+                        className="flex-1 bg-dark-card border border-dark-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">-- Выберите водонагреватель --</option>
+                        {entities
+                          .filter(e => {
+                            const domain = e.entity_id.split('.')[0]
+                            return domain === 'water_heater' || domain === 'climate'
+                          })
+                          .map(entity => (
+                            <option key={entity.entity_id} value={entity.entity_id}>
+                              {entity.attributes.friendly_name || entity.entity_id} ({entity.entity_id})
+                            </option>
+                          ))}
+                      </select>
+                      {waterHeaterConfig.entityId && (
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(waterHeaterConfig.entityId || '')
+                          }}
+                          className="text-xs bg-dark-cardHover hover:bg-dark-border px-3 py-2 rounded transition-colors flex-shrink-0 whitespace-nowrap"
+                          title="Копировать entity_id"
+                        >
+                          Копировать
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}

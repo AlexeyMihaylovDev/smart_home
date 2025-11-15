@@ -11,6 +11,11 @@ export interface ACConfig {
   name: string
 }
 
+export interface WaterHeaterConfig {
+  entityId: string | null
+  name: string
+}
+
 export interface WidgetConfig {
   ambientLighting: {
     lights: LightConfig[]
@@ -18,6 +23,7 @@ export interface WidgetConfig {
   ac: {
     airConditioners: ACConfig[]
   }
+  waterHeater: WaterHeaterConfig
   enabledWidgets: {
     [widgetId: string]: boolean
   }
@@ -36,6 +42,10 @@ const DEFAULT_CONFIG: WidgetConfig = {
   },
   ac: {
     airConditioners: []
+  },
+  waterHeater: {
+    entityId: null,
+    name: 'Водонагреватель'
   },
   enabledWidgets: {}
 }
@@ -161,6 +171,17 @@ export const setWidgetEnabled = (widgetId: string, enabled: boolean): void => {
     config.enabledWidgets = {}
   }
   config.enabledWidgets[widgetId] = enabled
+  saveWidgetConfig(config)
+}
+
+export const getWaterHeaterConfig = (): WaterHeaterConfig => {
+  const config = getWidgetConfig()
+  return config.waterHeater || { entityId: null, name: 'Водонагреватель' }
+}
+
+export const updateWaterHeaterConfig = (waterHeaterConfig: WaterHeaterConfig): void => {
+  const config = getWidgetConfig()
+  config.waterHeater = waterHeaterConfig
   saveWidgetConfig(config)
 }
 
