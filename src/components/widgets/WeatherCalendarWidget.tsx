@@ -185,7 +185,7 @@ const WeatherCalendarWidget = () => {
   const days = getDaysInMonth(currentDate)
 
   return (
-    <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
+    <div className="h-full overflow-hidden flex flex-col">
       {/* Погода */}
       {weatherData && (
         <div className="p-4 border-b border-dark-border">

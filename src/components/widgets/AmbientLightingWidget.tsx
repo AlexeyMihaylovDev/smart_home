@@ -110,17 +110,22 @@ const AmbientLightingWidget = () => {
 
   if (loading) {
     return (
-      <div className="bg-dark-card rounded-lg p-4 border border-dark-border">
-        <div className="font-medium mb-4">Ambient Lighting</div>
+      <div className="h-full p-4">
+        <div className="font-medium mb-4 text-white">Ambient Lighting</div>
         <div className="text-sm text-dark-textSecondary">Загрузка...</div>
       </div>
     )
   }
 
   return (
-    <div className="bg-dark-card rounded-lg p-4 border border-dark-border">
-      <div className="font-medium mb-4">Ambient Lighting</div>
-      <div className="space-y-3">
+    <div className="h-full p-4">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="p-2 bg-yellow-500/20 rounded-lg">
+          <Lightbulb size={18} className="text-yellow-400" />
+        </div>
+        <div className="font-medium text-white">Ambient Lighting</div>
+      </div>
+      <div className="space-y-2">
         {lights.map((light, index) => {
           const Icon = getIcon(light.icon)
           const isOn = getEntityState(light.entityId)
@@ -129,10 +134,10 @@ const AmbientLightingWidget = () => {
           const displayName = getDisplayName(light)
 
           return (
-            <div key={index} className="flex items-center justify-between">
+            <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors">
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <Icon size={16} className="text-yellow-500 flex-shrink-0" />
-                <span className="text-sm truncate" title={displayName}>{displayName}</span>
+                <Icon size={16} className={`${isOn ? 'text-yellow-400' : 'text-dark-textSecondary'} flex-shrink-0`} />
+                <span className={`text-sm truncate ${isOn ? 'text-white' : 'text-dark-textSecondary'}`} title={displayName}>{displayName}</span>
                 {!hasEntity && (
                   <span className="text-xs text-red-400 ml-2 flex-shrink-0">Не настроено</span>
                 )}

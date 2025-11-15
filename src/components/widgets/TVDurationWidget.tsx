@@ -9,19 +9,19 @@ const TVDurationWidget = () => {
   ]
 
   return (
-    <div className="bg-dark-card rounded-lg p-4 border border-dark-border">
+    <div className="h-full p-4">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <div className="font-medium">TV Duration</div>
+          <div className="font-medium text-white">TV Duration</div>
           <div className="text-sm text-dark-textSecondary">0h</div>
         </div>
         <ChevronRight size={16} className="text-dark-textSecondary" />
       </div>
       <div className="space-y-2">
         {services.map((service, index) => (
-          <div key={index} className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${service.dot}`} />
-            <span className="text-sm">{service.name}</span>
+          <div key={index} className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 transition-colors">
+            <div className={`w-2.5 h-2.5 rounded-full ${service.dot} shadow-lg`} />
+            <span className="text-sm text-white">{service.name}</span>
           </div>
         ))}
       </div>

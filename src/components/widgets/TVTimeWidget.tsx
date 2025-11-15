@@ -3,11 +3,13 @@ import ToggleSwitch from '../ui/ToggleSwitch'
 
 const TVTimeWidget = () => {
   return (
-    <div className="bg-dark-card rounded-lg p-4 border border-dark-border">
+    <div className="h-full p-4 flex flex-col justify-between">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
-          <Tv size={20} className="text-dark-textSecondary" />
-          <span className="font-medium">TV Time</span>
+          <div className="p-2 bg-blue-500/20 rounded-lg">
+            <Tv size={20} className="text-blue-400" />
+          </div>
+          <span className="font-medium text-white">TV Time</span>
         </div>
       </div>
       <div className="flex items-center justify-between">

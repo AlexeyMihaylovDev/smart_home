@@ -43,8 +43,20 @@ export const getDashboardLayout = (): DashboardLayout => {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
       const parsed = JSON.parse(stored)
+      const savedLayouts = parsed.layouts || []
+      
+      // Получаем список ID виджетов из сохраненного layout
+      const savedWidgetIds = new Set(savedLayouts.map((l: WidgetLayout) => l.i))
+      
+      // Добавляем виджеты из DEFAULT_LAYOUTS, которых нет в сохраненном layout
+      const defaultWidgetIds = new Set(DEFAULT_LAYOUTS.map(l => l.i))
+      const missingWidgets = DEFAULT_LAYOUTS.filter(l => !savedWidgetIds.has(l.i))
+      
+      // Объединяем сохраненные виджеты с новыми
+      const mergedLayouts = [...savedLayouts, ...missingWidgets]
+      
       return {
-        layouts: parsed.layouts || DEFAULT_LAYOUTS,
+        layouts: mergedLayouts,
         cols: parsed.cols || DEFAULT_COLS,
         rowHeight: parsed.rowHeight || DEFAULT_ROW_HEIGHT
       }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../../context/HomeAssistantContext'
 import { Entity } from '../../services/homeAssistantAPI'
 import { getACConfig } from '../../services/widgetConfig'
-import { Snowflake, Flame, Droplets, Fan, Power, Settings } from 'lucide-react'
+import { Snowflake, Flame, Droplets, Fan, Power, Settings, MoreVertical, Thermometer } from 'lucide-react'
 
 const ACWidget = () => {
   const [configEntityId, setConfigEntityId] = useState<string | null>(null)
@@ -82,35 +82,59 @@ const ACWidget = () => {
     await handleSetMode('off')
   }
 
+  const handleSetFanMode = async (fanMode: string) => {
+    if (!api || !configEntityId) return
+
+    setLoading(true)
+    try {
+      await api.callService({
+        domain: 'climate',
+        service: 'set_fan_mode',
+        target: { entity_id: configEntityId },
+        service_data: { fan_mode: fanMode }
+      })
+      await loadEntity()
+    } catch (error) {
+      console.error('Ошибка установки скорости вентилятора:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (!entity) {
     return (
-      <div className="bg-dark-card rounded-lg p-4 border border-dark-border">
-        <div className="text-center text-dark-textSecondary">
-          Кондиционер не настроен
+      <div className="h-full p-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-dark-textSecondary mb-2">Кондиционер не настроен</div>
+          <div className="text-xs text-dark-textSecondary">Настройте в Settings → Настройка виджетов</div>
         </div>
       </div>
     )
   }
 
   const attrs = entity.attributes
-  const currentTemp = attrs.current_temperature || attrs.temperature || 0
+  const currentTemp = attrs.current_temperature || 0
   const targetTemp = attrs.temperature || attrs.target_temp_high || 25
   const hvacMode = entity.state || 'off'
+  const fanMode = attrs.fan_mode || 'auto'
   const isOn = hvacMode !== 'off'
   const config = getACConfig()
   const friendlyName = config.name || attrs.friendly_name || configEntityId?.split('.')[1] || 'Кондиционер'
 
   const modes = [
-    { id: 'cool', icon: Snowflake, label: 'Охлаждение', color: 'text-blue-400' },
-    { id: 'heat', icon: Flame, label: 'Обогрев', color: 'text-red-400' },
-    { id: 'dry', icon: Droplets, label: 'Осушение', color: 'text-cyan-400' },
-    { id: 'fan_only', icon: Fan, label: 'Вентилятор', color: 'text-gray-400' },
-    { id: 'auto', icon: Settings, label: 'Авто', color: 'text-yellow-400' },
-    { id: 'off', icon: Power, label: 'Выкл', color: 'text-gray-500' },
+    { id: 'cool', icon: Snowflake, label: 'Охлаждение', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
+    { id: 'heat', icon: Flame, label: 'Обогрев', color: 'text-red-400', bgColor: 'bg-red-500/20' },
+    { id: 'dry', icon: Droplets, label: 'Осушение', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20' },
+    { id: 'fan_only', icon: Fan, label: 'Вентилятор', color: 'text-gray-400', bgColor: 'bg-gray-500/20' },
+    { id: 'auto', icon: Settings, label: 'Авто', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' },
+    { id: 'off', icon: Power, label: 'Выкл', color: 'text-gray-500', bgColor: 'bg-gray-500/20' },
   ]
 
   const availableModes = attrs.hvac_modes || ['off', 'cool', 'heat', 'auto']
   const filteredModes = modes.filter(m => availableModes.includes(m.id))
+
+  const availableFanModes = attrs.fan_modes || []
+  const hasFanControl = availableFanModes.length > 0
 
   const minTemp = attrs.min_temp || 16
   const maxTemp = attrs.max_temp || 30
@@ -125,85 +149,101 @@ const ACWidget = () => {
   const tempRange = maxTemp - minTemp
   const tempPosition = ((targetTemp - minTemp) / tempRange) * 360
 
+  // Получаем название режима для отображения
+  const getModeLabel = (mode: string) => {
+    const modeMap: Record<string, string> = {
+      'cool': 'COOL',
+      'heat': 'HEAT',
+      'dry': 'DRY',
+      'fan_only': 'FAN',
+      'auto': 'AUTO',
+      'off': 'OFF'
+    }
+    return modeMap[mode] || mode.toUpperCase()
+  }
+
   return (
-    <div className="bg-dark-card rounded-lg p-6 border border-dark-border">
+    <div className="h-full p-6 flex flex-col">
       {/* Заголовок */}
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="font-medium text-lg">{friendlyName}</h3>
-        <button className="p-1 hover:bg-dark-cardHover rounded">
-          <Settings size={18} className="text-dark-textSecondary" />
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-medium text-lg text-white">{friendlyName}</h3>
+        <button className="p-1.5 hover:bg-white/5 rounded-lg transition-colors">
+          <MoreVertical size={18} className="text-dark-textSecondary" />
         </button>
       </div>
 
       {/* Круговой регулятор температуры */}
-      <div className="relative mb-6">
-        <div className="flex flex-col items-center">
-          {/* Статус */}
-          <div className="mb-2 text-sm font-medium">
-            {isOn ? hvacMode.toUpperCase() : 'OFF'}
-          </div>
+      <div className="relative mb-4 flex items-center justify-center flex-1 min-h-0">
+        <div className="flex items-center gap-6">
+          {/* Кнопка уменьшения температуры (слева) */}
+          <button
+            onClick={() => handleTempChange(-tempStep)}
+            disabled={loading || targetTemp <= minTemp || !isOn}
+            className="w-14 h-14 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center text-3xl font-light text-white hover:scale-110 active:scale-95 shadow-lg"
+          >
+            −
+          </button>
 
-          {/* Круговой индикатор */}
-          <div className="relative w-64 h-64 mb-4">
-            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 200 200">
-              {/* Фоновый круг */}
-              <circle
-                cx="100"
-                cy="100"
-                r="80"
-                fill="none"
-                stroke="#2a2a2a"
-                strokeWidth="12"
-              />
-              {/* Активный сегмент */}
-              <circle
-                cx="100"
-                cy="100"
-                r="80"
-                fill="none"
-                stroke="#3b82f6"
-                strokeWidth="12"
-                strokeDasharray={`${(tempPosition / 360) * 502.65} 502.65`}
-                strokeLinecap="round"
-                className="transition-all duration-300"
-              />
-            </svg>
+          {/* Центральная часть с кругом */}
+          <div className="flex flex-col items-center">
+            {/* Статус */}
+            <div className="mb-3 text-sm font-semibold text-white">
+              {getModeLabel(hvacMode)}
+            </div>
 
-            {/* Центральная информация */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className="text-5xl font-bold mb-1">
-                {targetTemp.toFixed(1)}
-              </div>
-              <div className="text-lg text-dark-textSecondary mb-2">°C</div>
-              <div className="flex items-center gap-1 text-sm text-dark-textSecondary">
-                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                {currentTemp.toFixed(1)} °C
+            {/* Круговой индикатор */}
+            <div className="relative w-56 h-56">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 200 200">
+                {/* Фоновый круг */}
+                <circle
+                  cx="100"
+                  cy="100"
+                  r="75"
+                  fill="none"
+                  stroke="rgba(255, 255, 255, 0.1)"
+                  strokeWidth="10"
+                />
+                {/* Активный сегмент */}
+                <circle
+                  cx="100"
+                  cy="100"
+                  r="75"
+                  fill="none"
+                  stroke={isOn ? "#3b82f6" : "#6b7280"}
+                  strokeWidth="10"
+                  strokeDasharray={`${(tempPosition / 360) * 471.24} 471.24`}
+                  strokeLinecap="round"
+                  className="transition-all duration-300"
+                />
+              </svg>
+
+              {/* Центральная информация */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <div className="text-5xl font-bold mb-1 text-white">
+                  {targetTemp.toFixed(1)}
+                </div>
+                <div className="text-lg text-dark-textSecondary mb-2">°C</div>
+                <div className="flex items-center gap-1.5 text-sm text-dark-textSecondary">
+                  <Thermometer size={14} className="text-blue-400" />
+                  <span>{currentTemp.toFixed(1)} °C</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Кнопки изменения температуры */}
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => handleTempChange(-tempStep)}
-              disabled={loading || targetTemp <= minTemp}
-              className="w-12 h-12 rounded-full bg-dark-bg border border-dark-border hover:bg-dark-cardHover disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center text-2xl font-light"
-            >
-              −
-            </button>
-            <button
-              onClick={() => handleTempChange(tempStep)}
-              disabled={loading || targetTemp >= maxTemp}
-              className="w-12 h-12 rounded-full bg-dark-bg border border-dark-border hover:bg-dark-cardHover disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center text-2xl font-light"
-            >
-              +
-            </button>
-          </div>
+          {/* Кнопка увеличения температуры (справа) */}
+          <button
+            onClick={() => handleTempChange(tempStep)}
+            disabled={loading || targetTemp >= maxTemp || !isOn}
+            className="w-14 h-14 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center text-3xl font-light text-white hover:scale-110 active:scale-95 shadow-lg"
+          >
+            +
+          </button>
         </div>
       </div>
 
       {/* Режимы работы */}
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 mb-3">
         {filteredModes.map((mode) => {
           const Icon = mode.icon
           const isActive = hvacMode === mode.id
@@ -218,18 +258,44 @@ const ACWidget = () => {
                 }
               }}
               disabled={loading}
-              className={`flex-1 p-3 rounded-lg transition-all ${
+              className={`flex-1 p-3 rounded-xl transition-all ${
                 isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-dark-bg hover:bg-dark-cardHover text-dark-textSecondary'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                  : 'bg-white/5 hover:bg-white/10 text-dark-textSecondary border border-white/5'
+              } disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95`}
               title={mode.label}
             >
-              <Icon size={24} className={`mx-auto ${isActive ? 'text-white' : mode.color}`} />
+              <Icon size={22} className={`mx-auto ${isActive ? 'text-white' : mode.color}`} />
             </button>
           )
         })}
       </div>
+
+      {/* Управление вентилятором (если поддерживается) */}
+      {hasFanControl && isOn && (
+        <div className="mt-2 pt-3 border-t border-white/10">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-dark-textSecondary">Скорость вентилятора</span>
+            <span className="text-xs font-medium text-white">{fanMode.toUpperCase()}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {availableFanModes.map((fm: string) => (
+              <button
+                key={fm}
+                onClick={() => handleSetFanMode(fm)}
+                disabled={loading}
+                className={`flex-1 px-2 py-1.5 rounded-lg text-xs transition-all ${
+                  fanMode === fm
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white/5 hover:bg-white/10 text-dark-textSecondary'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {fm}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

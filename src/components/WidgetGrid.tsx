@@ -329,8 +329,10 @@ const WidgetGrid = () => {
                   </div>
                 </div>
               )}
-              <div className={`h-full ${editMode ? 'opacity-90' : ''}`}>
-                <WidgetComponent />
+              <div className={`h-full ${editMode ? 'opacity-90' : ''} widget-wrapper`}>
+                <div className="widget-card h-full">
+                  <WidgetComponent />
+                </div>
               </div>
             </div>
           )
