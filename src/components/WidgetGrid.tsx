@@ -20,7 +20,7 @@ import SensorsWidget from './widgets/SensorsWidget'
 import MotorWidget from './widgets/MotorWidget'
 import BoseWidget from './widgets/BoseWidget'
 import VacuumWidget from './widgets/VacuumWidget'
-import { getDashboardLayout, getDashboardLayoutSync, updateWidgetLayout, WidgetLayout } from '../services/widgetLayout'
+import { getDashboardLayout, getDashboardLayoutSync, updateWidgetLayout, saveDashboardLayout, WidgetLayout } from '../services/widgetLayout'
 import { GripVertical, Pencil, X } from 'lucide-react'
 
 // Маппинг виджетов
@@ -76,24 +76,25 @@ const WidgetGrid = () => {
       let newW = Math.max(1, Math.round(l.w * scale))
       let newH = l.h
       
-      // Для маленьких экранов уменьшаем высоту виджетов
-      if (window.innerWidth < 640) {
-        newH = Math.max(1, Math.round(l.h * 0.8)) // Уменьшаем на 20%
-      } else if (window.innerWidth < 1024) {
+      // Для мобильных устройств делаем виджеты на всю ширину для лучшей читаемости
+      if (typeof window !== 'undefined' && window.innerWidth < 640) {
+        newW = currentCols // На всю ширину на мобильных
+        newH = Math.max(2, Math.round(l.h * 0.7)) // Уменьшаем высоту на 30% для компактности
+      } else if (typeof window !== 'undefined' && window.innerWidth < 1024) {
         newH = Math.max(1, Math.round(l.h * 0.9)) // Уменьшаем на 10%
-      } else if (window.innerWidth >= 1920) {
+      } else if (typeof window !== 'undefined' && window.innerWidth >= 1920) {
         newH = Math.max(1, Math.round(l.h * 1.1)) // Увеличиваем на 10% для больших экранов
       }
       
       return {
         i: l.i,
-        x: Math.round(l.x * scale),
+        x: (typeof window !== 'undefined' && window.innerWidth < 640) ? 0 : Math.round(l.x * scale), // На мобильных всегда x=0
         y: l.y,
         w: newW,
         h: newH,
-        minW: l.minW,
+        minW: (typeof window !== 'undefined' && window.innerWidth < 640) ? currentCols : l.minW, // На мобильных minW = cols
         minH: l.minH,
-        maxW: l.maxW,
+        maxW: (typeof window !== 'undefined' && window.innerWidth < 640) ? currentCols : l.maxW, // На мобильных maxW = cols
         maxH: l.maxH,
       }
     })
@@ -125,9 +126,10 @@ const WidgetGrid = () => {
           let newW = Math.max(1, Math.round(l.w * scale))
           let newH = l.h
           
-          // Адаптируем высоту в зависимости от размера экрана
+          // Для мобильных устройств делаем виджеты на всю ширину
           if (window.innerWidth < 640) {
-            newH = Math.max(1, Math.round(l.h * 0.8))
+            newW = currentCols // На всю ширину на мобильных
+            newH = Math.max(2, Math.round(l.h * 0.7)) // Уменьшаем высоту на 30%
           } else if (window.innerWidth < 1024) {
             newH = Math.max(1, Math.round(l.h * 0.9))
           } else if (window.innerWidth >= 1920) {
@@ -136,13 +138,13 @@ const WidgetGrid = () => {
           
           return {
             i: l.i,
-            x: Math.round(l.x * scale),
+            x: window.innerWidth < 640 ? 0 : Math.round(l.x * scale), // На мобильных всегда x=0
             y: l.y,
             w: newW,
             h: newH,
-            minW: l.minW,
+            minW: window.innerWidth < 640 ? currentCols : l.minW,
             minH: l.minH,
-            maxW: l.maxW,
+            maxW: window.innerWidth < 640 ? currentCols : l.maxW,
             maxH: l.maxH,
           }
         })
@@ -178,9 +180,10 @@ const WidgetGrid = () => {
               let newW = Math.max(1, Math.round(l.w * scale))
               let newH = l.h
               
-              // Адаптируем высоту в зависимости от размера экрана
+              // Для мобильных устройств делаем виджеты на всю ширину
               if (window.innerWidth < 640) {
-                newH = Math.max(1, Math.round(l.h * 0.8))
+                newW = newCols // На всю ширину на мобильных
+                newH = Math.max(2, Math.round(l.h * 0.7)) // Уменьшаем высоту на 30%
               } else if (window.innerWidth < 1024) {
                 newH = Math.max(1, Math.round(l.h * 0.9))
               } else if (window.innerWidth >= 1920) {
@@ -189,9 +192,11 @@ const WidgetGrid = () => {
               
               return {
                 ...l,
-                x: Math.round(l.x * scale),
+                x: window.innerWidth < 640 ? 0 : Math.round(l.x * scale), // На мобильных всегда x=0
                 w: newW,
                 h: newH,
+                minW: window.innerWidth < 640 ? newCols : l.minW,
+                maxW: window.innerWidth < 640 ? newCols : l.maxW,
               }
             })
           })
@@ -241,12 +246,14 @@ const WidgetGrid = () => {
         maxH: l.maxH,
       }))
       try {
-        await updateWidgetLayout(widgetLayouts)
+        // Сохраняем layout с текущим количеством колонок и высотой строки
+        const currentColsValue = cols || getCols()
+        await updateWidgetLayout(widgetLayouts, currentColsValue, rowHeight)
       } catch (error) {
         console.error('Ошибка сохранения layout:', error)
       }
     }
-  }, [editMode])
+  }, [editMode, cols, rowHeight])
 
   const TRIPLE_CLICK_TIMEOUT = 500 // 500ms между кликами
   const REQUIRED_CLICKS = 3

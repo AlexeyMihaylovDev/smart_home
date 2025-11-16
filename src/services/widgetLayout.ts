@@ -356,13 +356,17 @@ export const saveDashboardLayout = async (layout: DashboardLayout): Promise<void
   }
 }
 
-export const updateWidgetLayout = async (layouts: WidgetLayout[]): Promise<void> => {
+export const updateWidgetLayout = async (layouts: WidgetLayout[], cols?: number, rowHeight?: number): Promise<void> => {
   const current = await getDashboardLayout()
+  // Используем переданные cols или текущие из сохраненного layout
+  const targetCols = cols || current.cols || DEFAULT_COLS
+  const targetRowHeight = rowHeight || current.rowHeight || DEFAULT_ROW_HEIGHT
   // Компактируем layout перед сохранением, чтобы убрать пустые места
-  const compactedLayouts = compactLayoutVertical(layouts, current.cols)
+  const compactedLayouts = compactLayoutVertical(layouts, targetCols)
   await saveDashboardLayout({
-    ...current,
-    layouts: compactedLayouts
+    layouts: compactedLayouts,
+    cols: targetCols,
+    rowHeight: targetRowHeight
   })
 }
 

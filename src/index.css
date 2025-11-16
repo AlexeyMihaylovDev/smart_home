@@ -52,10 +52,29 @@ body {
 @media (max-width: 640px) {
   .react-grid-item {
     min-width: 0 !important;
+    width: 100% !important;
   }
   
   .widget-card {
     font-size: 0.875rem;
+    padding: 0.75rem;
+  }
+  
+  /* Улучшаем читаемость на мобильных */
+  .widget-card h2,
+  .widget-card h3 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .widget-card button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  /* Уменьшаем отступы между элементами */
+  .widget-card > * + * {
+    margin-top: 0.5rem;
   }
 }
 
