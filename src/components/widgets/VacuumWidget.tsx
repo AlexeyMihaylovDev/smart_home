@@ -2,59 +2,101 @@ import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../../context/HomeAssistantContext'
 import { Entity } from '../../services/homeAssistantAPI'
 import { getVacuumConfigsSync, VacuumConfig } from '../../services/widgetConfig'
+import { getConnectionConfig } from '../../services/apiService'
 import { 
   Play, Pause, Square, Home, Battery, Map as MapIcon, 
   Clock, Settings, ChevronDown, ChevronUp, 
-  RefreshCw, Navigation, Zap
+  RefreshCw, Navigation, Zap, Activity, 
+  Gauge, Timer, Ruler, AlertCircle, CheckCircle2
 } from 'lucide-react'
 
 interface VacuumUnitProps {
   vacuumConfig: VacuumConfig
   entity: Entity | null
   mapEntity: Entity | null
+  relatedEntities: Map<string, Entity>
   api: any
   loading: boolean
   onLoadingChange: (loading: boolean) => void
 }
 
-const VacuumUnit = ({ vacuumConfig, entity, mapEntity, api, loading, onLoadingChange }: VacuumUnitProps) => {
+const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loading, onLoadingChange }: VacuumUnitProps) => {
   const [localLoading, setLocalLoading] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [mapImage, setMapImage] = useState<string | null>(null)
+  const [mapError, setMapError] = useState(false)
+  const [mapRefreshKey, setMapRefreshKey] = useState(0)
+
+  const [haBaseUrl, setHaBaseUrl] = useState<string>('')
+
+  // Загружаем базовый URL Home Assistant
+  useEffect(() => {
+    const loadHABaseUrl = async () => {
+      try {
+        const connection = await getConnectionConfig()
+        if (connection?.url) {
+          setHaBaseUrl(connection.url.replace(/\/$/, ''))
+        } else {
+          // Fallback на текущий хост
+          setHaBaseUrl(`${window.location.protocol}//${window.location.hostname}:8123`)
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки URL Home Assistant:', error)
+        // Fallback на текущий хост
+        setHaBaseUrl(`${window.location.protocol}//${window.location.hostname}:8123`)
+      }
+    }
+    loadHABaseUrl()
+  }, [])
+
+  // Функция для правильного добавления параметра времени к URL
+  const addTimestampToUrl = (url: string): string => {
+    const separator = url.includes('?') ? '&' : '?'
+    return `${url}${separator}t=${Date.now()}`
+  }
 
   useEffect(() => {
+    if (!haBaseUrl) return // Ждем загрузки базового URL
+    
+    setMapError(false)
+    
     // Загружаем карту из map entity или из основного entity
     if (mapEntity) {
       // Пробуем разные атрибуты для карты
-      const mapUrl = mapEntity.attributes.map_image || 
-                     mapEntity.attributes.entity_picture || 
-                     mapEntity.attributes.image ||
-                     (mapEntity.state && mapEntity.state !== 'unknown' && mapEntity.state !== 'unavailable' ? `http://${window.location.hostname}:8123/api/camera_proxy/${mapEntity.entity_id}` : null)
+      let mapUrl = mapEntity.attributes.map_image || 
+                   mapEntity.attributes.entity_picture || 
+                   mapEntity.attributes.image
       
       if (mapUrl) {
-        const fullUrl = mapUrl.startsWith('http') 
-          ? mapUrl 
-          : `http://${window.location.hostname}:8123${mapUrl}`
-        setMapImage(fullUrl)
+        // Если URL относительный, делаем его абсолютным
+        if (!mapUrl.startsWith('http')) {
+          mapUrl = mapUrl.startsWith('/') ? `${haBaseUrl}${mapUrl}` : `${haBaseUrl}/${mapUrl}`
+        }
+        setMapImage(mapUrl)
       } else if (mapEntity.entity_id.startsWith('camera.') || mapEntity.entity_id.startsWith('image.')) {
         // Для camera/image entities используем proxy
-        const fullUrl = `http://${window.location.hostname}:8123/api/camera_proxy/${mapEntity.entity_id}`
+        const fullUrl = `${haBaseUrl}/api/camera_proxy/${mapEntity.entity_id}`
         setMapImage(fullUrl)
+      } else {
+        setMapImage(null)
       }
     } else if (entity) {
       const mapUrl = entity.attributes.map_image || 
                      entity.attributes.entity_picture || 
                      entity.attributes.image
       if (mapUrl) {
+        // Если URL относительный, делаем его абсолютным
         const fullUrl = mapUrl.startsWith('http') 
           ? mapUrl 
-          : `http://${window.location.hostname}:8123${mapUrl}`
+          : (mapUrl.startsWith('/') ? `${haBaseUrl}${mapUrl}` : `${haBaseUrl}/${mapUrl}`)
         setMapImage(fullUrl)
+      } else {
+        setMapImage(null)
       }
     } else {
       setMapImage(null)
     }
-  }, [entity, mapEntity])
+  }, [entity, mapEntity, haBaseUrl])
 
   const state = entity?.state || 'unknown'
   const isCleaning = state === 'cleaning'
@@ -67,6 +109,62 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, api, loading, onLoadingCh
   const fanSpeedList = entity?.attributes.fan_speed_list || []
   const currentRoom = entity?.attributes.current_room
   const friendlyName = vacuumConfig.name || entity?.attributes.friendly_name || vacuumConfig.entityId || 'Vacuum'
+  
+  // Дополнительная информация из атрибутов
+  const cleanedArea = entity?.attributes.cleaned_area
+  const cleaningTime = entity?.attributes.cleaning_time
+  const totalCleanedArea = entity?.attributes.total_cleaned_area
+  const totalCleaningTime = entity?.attributes.total_cleaning_time
+  const error = entity?.attributes.error
+  const errorMessage = entity?.attributes.error_message
+  const mainBrushLife = entity?.attributes.main_brush_life
+  const sideBrushLife = entity?.attributes.side_brush_life
+  const filterLife = entity?.attributes.filter_life
+  const sensorDirtyLife = entity?.attributes.sensor_dirty_life
+  
+  // Получаем данные из связанных entities (ищем по паттернам)
+  const getRelatedEntityValue = (pattern: string): string | undefined => {
+    for (const [id, entity] of relatedEntities.entries()) {
+      if (id.toLowerCase().includes(pattern.toLowerCase())) {
+        return entity.state
+      }
+    }
+    return undefined
+  }
+  
+  const mappingTime = getRelatedEntityValue('mapping_time') || getRelatedEntityValue('mapping')
+  const cleanedAreaSensor = getRelatedEntityValue('cleaned_area')
+  const cleaningTimeSensor = getRelatedEntityValue('cleaning_time')
+  
+  // Форматируем время
+  const formatTime = (time: any): string => {
+    if (!time) return '-'
+    if (typeof time === 'number') {
+      const hours = Math.floor(time / 3600)
+      const minutes = Math.floor((time % 3600) / 60)
+      return hours > 0 ? `${hours}ч ${minutes}м` : `${minutes}м`
+    }
+    return String(time)
+  }
+  
+  // Форматируем площадь
+  const formatArea = (area: any): string => {
+    if (!area) return '-'
+    if (typeof area === 'number') {
+      return `${area.toFixed(1)} м²`
+    }
+    return String(area)
+  }
+  
+  // Автообновление карты каждые 5 секунд во время уборки
+  useEffect(() => {
+    if (isCleaning && mapImage && !mapError) {
+      const interval = setInterval(() => {
+        setMapRefreshKey(prev => prev + 1)
+      }, 5000)
+      return () => clearInterval(interval)
+    }
+  }, [isCleaning, mapImage, mapError])
 
   const handleStart = async () => {
     if (!api || !vacuumConfig.entityId) return
@@ -270,29 +368,61 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, api, loading, onLoadingCh
         </div>
       </div>
 
-      {/* Карта дома */}
-      {mapImage && (
-        <div className="mb-2 sm:mb-3 rounded-lg overflow-hidden border border-dark-border bg-dark-card">
-          <div className="relative w-full" style={{ aspectRatio: '1', minHeight: '150px', maxHeight: '300px' }}>
+      {/* Карта дома - улучшенное отображение */}
+      {mapImage && !mapError && (
+        <div className="mb-3 sm:mb-4 rounded-lg overflow-hidden border-2 border-blue-500/30 bg-dark-card shadow-lg">
+          <div className="relative w-full bg-gradient-to-br from-blue-900/20 to-purple-900/20" 
+               style={{ aspectRatio: '1', minHeight: '200px', maxHeight: '400px' }}>
             <img 
-              src={mapImage}
+              key={`map-${mapRefreshKey}`}
+              src={addTimestampToUrl(mapImage)}
               alt="Map"
               className="w-full h-full object-contain"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none'
+              onError={() => {
+                setMapError(true)
               }}
+              onLoad={() => setMapError(false)}
             />
+            {/* Overlay с информацией */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+            
+            {/* Текущая комната */}
             {currentRoom && (
-              <div className="absolute top-2 left-2 px-2 py-1 bg-blue-600/80 backdrop-blur-sm rounded text-xs text-white">
+              <div className="absolute bottom-2 left-2 px-2.5 py-1.5 bg-blue-600/90 backdrop-blur-md rounded-lg text-xs font-medium text-white shadow-lg flex items-center gap-1.5 pointer-events-auto">
+                <MapIcon size={12} />
                 {currentRoom}
               </div>
             )}
+            
+            {/* Статус очистки */}
             {isCleaning && (
-              <div className="absolute top-2 right-2 px-2 py-1 bg-green-600/80 backdrop-blur-sm rounded text-xs text-white flex items-center gap-1">
-                <Zap size={10} />
+              <div className="absolute top-2 right-2 px-2.5 py-1.5 bg-green-600/90 backdrop-blur-md rounded-lg text-xs font-medium text-white shadow-lg flex items-center gap-1.5 pointer-events-auto">
+                <Zap size={12} className="animate-pulse" />
                 מנקה
               </div>
             )}
+            
+            {/* Индикатор батареи на карте */}
+            <div className={`absolute top-2 left-2 px-2 py-1 rounded-lg backdrop-blur-md text-xs font-medium shadow-lg flex items-center gap-1.5 pointer-events-auto ${
+              batteryLevel > 50 ? 'bg-green-600/90 text-white' :
+              batteryLevel > 20 ? 'bg-yellow-600/90 text-white' :
+              'bg-red-600/90 text-white'
+            }`}>
+              <Battery size={12} />
+              {batteryLevel}%
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Сообщение об ошибке карты или отсутствии карты */}
+      {(!mapImage || mapError) && (
+        <div className="mb-3 sm:mb-4 rounded-lg border border-dark-border bg-dark-card/50 p-4 flex items-center justify-center min-h-[150px]">
+          <div className="text-center">
+            <MapIcon size={32} className="mx-auto mb-2 text-dark-textSecondary opacity-50" />
+            <div className="text-xs text-dark-textSecondary">
+              {mapError ? 'שגיאה בטעינת מפה' : 'מפה לא זמינה'}
+            </div>
           </div>
         </div>
       )}
@@ -397,6 +527,74 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, api, loading, onLoadingCh
         </div>
       )}
 
+      {/* Статистика и информация */}
+      <div className="mb-2 sm:mb-3 grid grid-cols-2 gap-2">
+        {/* Площадь очищена */}
+        {(cleanedArea || cleanedAreaSensor) && (
+          <div className="bg-dark-card/50 rounded-lg p-2 border border-dark-border">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Ruler size={12} className="text-blue-400" />
+              <span className="text-[10px] text-dark-textSecondary">שטח נקי</span>
+            </div>
+            <div className="text-xs sm:text-sm font-medium text-white">
+              {formatArea(cleanedArea || cleanedAreaSensor)}
+            </div>
+          </div>
+        )}
+        
+        {/* Время очистки */}
+        {(cleaningTime || cleaningTimeSensor) && (
+          <div className="bg-dark-card/50 rounded-lg p-2 border border-dark-border">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Timer size={12} className="text-green-400" />
+              <span className="text-[10px] text-dark-textSecondary">זמן ניקוי</span>
+            </div>
+            <div className="text-xs sm:text-sm font-medium text-white">
+              {formatTime(cleaningTime || cleaningTimeSensor)}
+            </div>
+          </div>
+        )}
+        
+        {/* Общая площадь */}
+        {totalCleanedArea && (
+          <div className="bg-dark-card/50 rounded-lg p-2 border border-dark-border">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Activity size={12} className="text-purple-400" />
+              <span className="text-[10px] text-dark-textSecondary">סה"כ שטח</span>
+            </div>
+            <div className="text-xs sm:text-sm font-medium text-white">
+              {formatArea(totalCleanedArea)}
+            </div>
+          </div>
+        )}
+        
+        {/* Общее время */}
+        {totalCleaningTime && (
+          <div className="bg-dark-card/50 rounded-lg p-2 border border-dark-border">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Clock size={12} className="text-yellow-400" />
+              <span className="text-[10px] text-dark-textSecondary">סה"כ זמן</span>
+            </div>
+            <div className="text-xs sm:text-sm font-medium text-white">
+              {formatTime(totalCleaningTime)}
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Ошибки */}
+      {error && (
+        <div className="mb-2 sm:mb-3 p-2 bg-red-900/20 border border-red-500/30 rounded-lg">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={14} className="text-red-400 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-medium text-red-400">שגיאה</div>
+              <div className="text-[10px] text-red-300 truncate">{errorMessage || error}</div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Расширенные настройки */}
       <div className="border-t border-dark-border pt-2 mt-2">
         <button
@@ -415,21 +613,81 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, api, loading, onLoadingCh
         
         {showAdvanced && (
           <div className="mt-2 space-y-2 pt-2 border-t border-dark-border">
-            {/* Дополнительная информация */}
-            <div className="space-y-1 text-[10px] text-dark-textSecondary">
-              {entity.attributes.cleaned_area !== undefined && (
-                <div className="flex justify-between">
-                  <span>שטח נקי:</span>
-                  <span className="text-white">{entity.attributes.cleaned_area} m²</span>
-                </div>
-              )}
-              {entity.attributes.cleaning_time !== undefined && (
-                <div className="flex justify-between">
-                  <span>זמן ניקוי:</span>
-                  <span className="text-white">{entity.attributes.cleaning_time}</span>
-                </div>
-              )}
-            </div>
+            {/* Статистика из связанных entities */}
+            {mappingTime && (
+              <div className="flex items-center justify-between text-[10px] text-dark-textSecondary">
+                <span className="flex items-center gap-1.5">
+                  <MapIcon size={10} />
+                  זמן מיפוי:
+                </span>
+                <span className="text-white">{formatTime(mappingTime)}</span>
+              </div>
+            )}
+            
+            {/* Состояние компонентов */}
+            {(mainBrushLife !== undefined || sideBrushLife !== undefined || filterLife !== undefined) && (
+              <div className="space-y-1.5 pt-1 border-t border-dark-border/50">
+                <div className="text-[10px] text-dark-textSecondary mb-1">מצב רכיבים:</div>
+                {mainBrushLife !== undefined && (
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-dark-textSecondary">מברשת ראשית:</span>
+                    <span className={`font-medium ${
+                      mainBrushLife > 50 ? 'text-green-400' :
+                      mainBrushLife > 20 ? 'text-yellow-400' :
+                      'text-red-400'
+                    }`}>
+                      {mainBrushLife}%
+                    </span>
+                  </div>
+                )}
+                {sideBrushLife !== undefined && (
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-dark-textSecondary">מברשת צד:</span>
+                    <span className={`font-medium ${
+                      sideBrushLife > 50 ? 'text-green-400' :
+                      sideBrushLife > 20 ? 'text-yellow-400' :
+                      'text-red-400'
+                    }`}>
+                      {sideBrushLife}%
+                    </span>
+                  </div>
+                )}
+                {filterLife !== undefined && (
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-dark-textSecondary">מסנן:</span>
+                    <span className={`font-medium ${
+                      filterLife > 50 ? 'text-green-400' :
+                      filterLife > 20 ? 'text-yellow-400' :
+                      'text-red-400'
+                    }`}>
+                      {filterLife}%
+                    </span>
+                  </div>
+                )}
+                {sensorDirtyLife !== undefined && (
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-dark-textSecondary">חיישן לכלוך:</span>
+                    <span className={`font-medium ${
+                      sensorDirtyLife > 50 ? 'text-green-400' :
+                      sensorDirtyLife > 20 ? 'text-yellow-400' :
+                      'text-red-400'
+                    }`}>
+                      {sensorDirtyLife}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Все атрибуты для отладки (опционально) */}
+            {process.env.NODE_ENV === 'development' && (
+              <details className="text-[10px] text-dark-textSecondary">
+                <summary className="cursor-pointer hover:text-white">כל האטריבוטים</summary>
+                <pre className="mt-1 p-2 bg-dark-card rounded text-[8px] overflow-auto max-h-32">
+                  {JSON.stringify(entity?.attributes, null, 2)}
+                </pre>
+              </details>
+            )}
           </div>
         )}
       </div>
@@ -442,6 +700,7 @@ const VacuumWidget = () => {
   const { api } = useHomeAssistant()
   const [entities, setEntities] = useState<Map<string, Entity>>(new Map())
   const [mapEntities, setMapEntities] = useState<Map<string, Entity>>(new Map())
+  const [relatedEntities, setRelatedEntities] = useState<Map<string, Entity>>(new Map())
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -518,7 +777,8 @@ const VacuumWidget = () => {
         }
       })
 
-      // Загружаем также все связанные entities (для будущего использования)
+      // Загружаем также все связанные entities
+      const newRelatedEntities = new Map<string, Entity>()
       relatedEntityIds.forEach((id) => {
         const state = states[allEntityIds.indexOf(id)]
         if (state) {
@@ -526,13 +786,16 @@ const VacuumWidget = () => {
           if (id.includes('map') || id.includes('mappin') || 
               id.startsWith('camera.') || id.startsWith('image.')) {
             newMapEntities.set(id, state)
+          } else {
+            // Остальные связанные entities сохраняем для использования в виджете
+            newRelatedEntities.set(id, state)
           }
-          // Остальные связанные entities можно использовать для расширенной функциональности
         }
       })
 
       setEntities(newEntities)
       setMapEntities(newMapEntities)
+      setRelatedEntities(newRelatedEntities)
     } catch (error) {
       console.error('Ошибка загрузки состояний пылесосов:', error)
     }
@@ -564,6 +827,7 @@ const VacuumWidget = () => {
             vacuumConfig={vacuumConfig}
             entity={vacuumConfig.entityId ? entities.get(vacuumConfig.entityId) || null : null}
             mapEntity={vacuumConfig.mapEntityId ? mapEntities.get(vacuumConfig.mapEntityId) || null : null}
+            relatedEntities={relatedEntities}
             api={api}
             loading={loading}
             onLoadingChange={setLoading}
