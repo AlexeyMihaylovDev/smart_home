@@ -7,7 +7,8 @@ import {
   Play, Pause, Square, Home, Battery, Map as MapIcon, 
   Clock, Settings, ChevronDown, ChevronUp, 
   RefreshCw, Navigation, Zap, Activity, 
-  Gauge, Timer, Ruler, AlertCircle, CheckCircle2
+  Gauge, Timer, Ruler, AlertCircle, CheckCircle2,
+  ZoomIn, ZoomOut, RotateCcw, Box
 } from 'lucide-react'
 
 interface VacuumUnitProps {
@@ -26,6 +27,11 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
   const [mapImage, setMapImage] = useState<string | null>(null)
   const [mapError, setMapError] = useState(false)
   const [mapRefreshKey, setMapRefreshKey] = useState(0)
+  const [mapZoom, setMapZoom] = useState(1) // Уровень зума (1 = 100%)
+  const [map3D, setMap3D] = useState(false) // Режим 3D
+  const [mapPosition, setMapPosition] = useState({ x: 0, y: 0 }) // Позиция карты для перетаскивания
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
 
   const [haBaseUrl, setHaBaseUrl] = useState<string>('')
 
@@ -53,6 +59,97 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
   const addTimestampToUrl = (url: string): string => {
     const separator = url.includes('?') ? '&' : '?'
     return `${url}${separator}t=${Date.now()}`
+  }
+
+  // Функции для управления зумом
+  const handleZoomIn = () => {
+    setMapZoom(prev => Math.min(prev + 0.25, 3)) // Максимум 300%
+  }
+
+  const handleZoomOut = () => {
+    setMapZoom(prev => Math.max(prev - 0.25, 0.5)) // Минимум 50%
+  }
+
+  const handleZoomReset = () => {
+    setMapZoom(1)
+    setMapPosition({ x: 0, y: 0 })
+  }
+
+  // Обработка колеса мыши для зума
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault()
+    const delta = e.deltaY > 0 ? -0.1 : 0.1
+    setMapZoom(prev => Math.max(0.5, Math.min(3, prev + delta)))
+  }
+
+  // Обработка перетаскивания карты
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (mapZoom > 1) {
+      setIsDragging(true)
+      setDragStart({ x: e.clientX - mapPosition.x, y: e.clientY - mapPosition.y })
+      e.preventDefault()
+    }
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging && mapZoom > 1) {
+      setMapPosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      })
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  // Обработка touch-жестов для мобильных устройств
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (mapZoom > 1 && e.touches.length === 1) {
+      setIsDragging(true)
+      const touch = e.touches[0]
+      setDragStart({ x: touch.clientX - mapPosition.x, y: touch.clientY - mapPosition.y })
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isDragging && mapZoom > 1 && e.touches.length === 1) {
+      const touch = e.touches[0]
+      setMapPosition({
+        x: touch.clientX - dragStart.x,
+        y: touch.clientY - dragStart.y
+      })
+    }
+  }
+
+  const handleTouchEnd = () => {
+    setIsDragging(false)
+  }
+
+  // Получаем URL для 3D карты (если доступно)
+  const getMapUrl = (): string | null => {
+    if (!mapImage) return null
+    
+    if (map3D) {
+      // Пробуем найти 3D версию карты в атрибутах
+      const map3DUrl = mapEntity?.attributes.map_3d || 
+                       mapEntity?.attributes.map_image_3d ||
+                       entity?.attributes.map_3d ||
+                       entity?.attributes.map_image_3d
+      
+      if (map3DUrl) {
+        if (!map3DUrl.startsWith('http')) {
+          return map3DUrl.startsWith('/') ? `${haBaseUrl}${map3DUrl}` : `${haBaseUrl}/${map3DUrl}`
+        }
+        return map3DUrl
+      }
+      
+      // Если 3D версии нет, используем обычную карту с 3D эффектом
+      return mapImage
+    }
+    
+    return mapImage
   }
 
   useEffect(() => {
@@ -368,21 +465,105 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
         </div>
       </div>
 
-      {/* Карта дома - улучшенное отображение */}
+      {/* Карта дома - улучшенное отображение с зумом и 3D */}
       {mapImage && !mapError && (
-        <div className="mb-3 sm:mb-4 rounded-lg overflow-hidden border-2 border-blue-500/30 bg-dark-card shadow-lg">
-          <div className="relative w-full bg-gradient-to-br from-blue-900/20 to-purple-900/20" 
-               style={{ aspectRatio: '1', minHeight: '200px', maxHeight: '400px' }}>
-            <img 
-              key={`map-${mapRefreshKey}`}
-              src={addTimestampToUrl(mapImage)}
-              alt="Map"
-              className="w-full h-full object-contain"
-              onError={() => {
-                setMapError(true)
+        <div className="mb-3 sm:mb-4 rounded-lg overflow-hidden border-2 border-blue-500/30 bg-dark-card shadow-lg relative">
+          {/* Элементы управления картой */}
+          <div className="absolute top-2 right-2 z-20 flex flex-col gap-1.5">
+            {/* Переключатель 2D/3D */}
+            <button
+              onClick={() => setMap3D(!map3D)}
+              className={`p-2 rounded-lg backdrop-blur-md shadow-lg transition-all ${
+                map3D 
+                  ? 'bg-blue-600/90 text-white' 
+                  : 'bg-dark-card/90 text-dark-textSecondary hover:text-white'
+              }`}
+              title={map3D ? 'Переключить на 2D' : 'Переключить на 3D'}
+            >
+              <Box size={16} />
+            </button>
+            
+            {/* Кнопки зума */}
+            <div className="flex flex-col gap-1 bg-dark-card/90 backdrop-blur-md rounded-lg p-1">
+              <button
+                onClick={handleZoomIn}
+                disabled={mapZoom >= 3}
+                className="p-1.5 rounded text-white hover:bg-dark-cardHover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Приблизить"
+              >
+                <ZoomIn size={14} />
+              </button>
+              <button
+                onClick={handleZoomOut}
+                disabled={mapZoom <= 0.5}
+                className="p-1.5 rounded text-white hover:bg-dark-cardHover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Отдалить"
+              >
+                <ZoomOut size={14} />
+              </button>
+              {mapZoom !== 1 && (
+                <button
+                  onClick={handleZoomReset}
+                  className="p-1.5 rounded text-white hover:bg-dark-cardHover transition-colors"
+                  title="Сбросить зум"
+                >
+                  <RotateCcw size={14} />
+                </button>
+              )}
+            </div>
+            
+            {/* Индикатор уровня зума */}
+            {mapZoom !== 1 && (
+              <div className="px-2 py-1 bg-dark-card/90 backdrop-blur-md rounded text-xs text-white text-center">
+                {Math.round(mapZoom * 100)}%
+              </div>
+            )}
+          </div>
+
+          {/* Контейнер карты с возможностью зума и перетаскивания */}
+          <div 
+            className="relative w-full bg-gradient-to-br from-blue-900/20 to-purple-900/20 overflow-hidden"
+            style={{ 
+              aspectRatio: '1', 
+              minHeight: '200px', 
+              maxHeight: '400px',
+              cursor: mapZoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default'
+            }}
+            onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div
+              className="w-full h-full transition-transform duration-200 ease-out"
+              style={{
+                transform: map3D 
+                  ? `scale(${mapZoom}) translate(${mapPosition.x / mapZoom}px, ${mapPosition.y / mapZoom}px) perspective(1000px) rotateX(15deg) rotateY(-10deg)`
+                  : `scale(${mapZoom}) translate(${mapPosition.x / mapZoom}px, ${mapPosition.y / mapZoom}px)`,
+                transformOrigin: 'center center',
+                transformStyle: 'preserve-3d',
               }}
-              onLoad={() => setMapError(false)}
-            />
+            >
+              <img 
+                key={`map-${mapRefreshKey}-${map3D ? '3d' : '2d'}`}
+                src={addTimestampToUrl(getMapUrl() || mapImage)}
+                alt="Map"
+                className="w-full h-full object-contain select-none"
+                style={{
+                  filter: map3D ? 'brightness(1.1) contrast(1.1)' : 'none',
+                  transition: 'filter 0.3s ease-out',
+                }}
+                draggable={false}
+                onError={() => {
+                  setMapError(true)
+                }}
+                onLoad={() => setMapError(false)}
+              />
+            </div>
             {/* Overlay с информацией */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
             
@@ -394,16 +575,27 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
               </div>
             )}
             
+            {/* Overlay с информацией */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none z-10" />
+            
+            {/* Текущая комната */}
+            {currentRoom && (
+              <div className="absolute bottom-2 left-2 px-2.5 py-1.5 bg-blue-600/90 backdrop-blur-md rounded-lg text-xs font-medium text-white shadow-lg flex items-center gap-1.5 pointer-events-auto z-20">
+                <MapIcon size={12} />
+                {currentRoom}
+              </div>
+            )}
+            
             {/* Статус очистки */}
             {isCleaning && (
-              <div className="absolute top-2 right-2 px-2.5 py-1.5 bg-green-600/90 backdrop-blur-md rounded-lg text-xs font-medium text-white shadow-lg flex items-center gap-1.5 pointer-events-auto">
+              <div className="absolute top-2 left-2 px-2.5 py-1.5 bg-green-600/90 backdrop-blur-md rounded-lg text-xs font-medium text-white shadow-lg flex items-center gap-1.5 pointer-events-auto z-20">
                 <Zap size={12} className="animate-pulse" />
                 מנקה
               </div>
             )}
             
             {/* Индикатор батареи на карте */}
-            <div className={`absolute top-2 left-2 px-2 py-1 rounded-lg backdrop-blur-md text-xs font-medium shadow-lg flex items-center gap-1.5 pointer-events-auto ${
+            <div className={`absolute bottom-2 right-2 px-2 py-1 rounded-lg backdrop-blur-md text-xs font-medium shadow-lg flex items-center gap-1.5 pointer-events-auto z-20 ${
               batteryLevel > 50 ? 'bg-green-600/90 text-white' :
               batteryLevel > 20 ? 'bg-yellow-600/90 text-white' :
               'bg-red-600/90 text-white'
