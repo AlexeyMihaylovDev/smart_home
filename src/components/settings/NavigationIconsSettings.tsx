@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { GripVertical, Home, Globe, Camera, Sparkles, Plus, X, Settings, Save, Check, Pencil, Check as CheckIcon, X as XIcon } from 'lucide-react'
-import { NavigationIcon, getNavigationIconsSync, updateNavigationIcons, isWidgetEnabledSync } from '../../services/widgetConfig'
+import { NavigationIcon, getNavigationIconsSync, getNavigationIcons, updateNavigationIcons, isWidgetEnabledSync } from '../../services/widgetConfig'
 import ToggleSwitch from '../ui/ToggleSwitch'
 import { WidgetOption } from './WidgetSelector'
 
@@ -25,6 +25,30 @@ const NavigationIconsSettings = ({ onIconsChange, widgetOptions = [] }: Navigati
   const [hasChanges, setHasChanges] = useState(false)
   const [editingIconId, setEditingIconId] = useState<string | null>(null)
   const [editingLabel, setEditingLabel] = useState<string>('')
+
+  // Загружаем navigation icons с сервера при монтировании
+  useEffect(() => {
+    const loadIconsFromServer = async () => {
+      try {
+        console.log('[NavigationIconsSettings] Загрузка navigation icons с сервера при монтировании...')
+        await getNavigationIcons()
+        console.log('[NavigationIconsSettings] Navigation icons загружены с сервера, обновляем локальное состояние')
+        // После загрузки обновляем локальное состояние
+        const newIcons = getNavigationIconsSync()
+        setNavigationIcons(newIcons)
+      } catch (error) {
+        console.error('[NavigationIconsSettings] Ошибка загрузки navigation icons с сервера:', error)
+        // В случае ошибки все равно загружаем из кэша/localStorage
+        try {
+          const newIcons = getNavigationIconsSync()
+          setNavigationIcons(newIcons)
+        } catch (e) {
+          console.error('[NavigationIconsSettings] Ошибка загрузки из кэша:', e)
+        }
+      }
+    }
+    loadIconsFromServer()
+  }, []) // Загружаем только один раз при монтировании
 
   useEffect(() => {
     const handleIconsChange = () => {

@@ -198,12 +198,21 @@ if (typeof window !== 'undefined') {
 
 export const getWidgetConfig = async (): Promise<WidgetConfig> => {
   try {
+    console.log('[WidgetConfig] Загрузка конфигурации с сервера...')
     const config = await getWidgetConfigFromAPI()
+    console.log('[WidgetConfig] Конфигурация загружена с сервера:', config)
+    
     // Убеждаемся, что структура правильная
     if (!config.ac || !config.ac.airConditioners) {
       if (config.ac && 'entityId' in config.ac) {
         // Старый формат - оставляем как есть для миграции
         configCache = config as WidgetConfig
+        // Сохраняем в localStorage как backup
+        try {
+          localStorage.setItem('widget_config', JSON.stringify(config))
+        } catch (e) {
+          console.warn('[WidgetConfig] Не удалось сохранить в localStorage:', e)
+        }
         return config as WidgetConfig
       }
       config.ac = { airConditioners: [] }
@@ -213,13 +222,21 @@ export const getWidgetConfig = async (): Promise<WidgetConfig> => {
       config.navigationIcons = DEFAULT_CONFIG.navigationIcons
     }
     configCache = config as WidgetConfig
+    // Сохраняем в localStorage как backup
+    try {
+      localStorage.setItem('widget_config', JSON.stringify(config))
+      console.log('[WidgetConfig] Конфигурация сохранена в localStorage как backup')
+    } catch (e) {
+      console.warn('[WidgetConfig] Не удалось сохранить в localStorage:', e)
+    }
     return config as WidgetConfig
   } catch (error) {
-    console.error('Ошибка загрузки конфигурации с сервера:', error)
-    // Fallback на localStorage
+    console.error('[WidgetConfig] Ошибка загрузки конфигурации с сервера:', error)
+    // Fallback на localStorage только если сервер недоступен
     try {
       const stored = localStorage.getItem('widget_config')
       if (stored) {
+        console.log('[WidgetConfig] Используем конфигурацию из localStorage (fallback)')
         const parsed = JSON.parse(stored)
         if (!parsed.ac || !parsed.ac.airConditioners) {
           if (parsed.ac && 'entityId' in parsed.ac) {
@@ -236,13 +253,15 @@ export const getWidgetConfig = async (): Promise<WidgetConfig> => {
         return parsed
       }
     } catch (localError) {
-      console.error('Ошибка загрузки из localStorage:', localError)
+      console.error('[WidgetConfig] Ошибка загрузки из localStorage:', localError)
     }
+    console.warn('[WidgetConfig] Используем DEFAULT_CONFIG (сервер недоступен и localStorage пуст)')
     return DEFAULT_CONFIG
   }
 }
 
 // Синхронная версия для обратной совместимости (использует кэш)
+// ВАЖНО: Эта функция не загружает с сервера! Используйте getWidgetConfig() для загрузки с сервера
 export const getWidgetConfigSync = (): WidgetConfig => {
   if (configCache) {
     // Убеждаемся, что navigationIcons инициализирован
@@ -251,13 +270,14 @@ export const getWidgetConfigSync = (): WidgetConfig => {
     }
     return configCache
   }
-  // Fallback на localStorage
+  // Fallback на localStorage (только если кэш пуст)
   try {
     const stored = localStorage.getItem('widget_config')
     if (stored) {
       const parsed = JSON.parse(stored)
       if (!parsed.ac || !parsed.ac.airConditioners) {
         if (parsed.ac && 'entityId' in parsed.ac) {
+          configCache = parsed
           return parsed
         }
         parsed.ac = { airConditioners: [] }
@@ -270,31 +290,41 @@ export const getWidgetConfigSync = (): WidgetConfig => {
       return parsed
     }
   } catch (error) {
-    console.error('Ошибка загрузки конфигурации:', error)
+    console.error('[WidgetConfig] Ошибка загрузки конфигурации из localStorage:', error)
   }
   return DEFAULT_CONFIG
 }
 
 export const saveWidgetConfig = async (config: WidgetConfig): Promise<void> => {
   try {
+    console.log('[WidgetConfig] Сохранение конфигурации на сервер...', {
+      ambientLighting: config.ambientLighting?.lights?.length || 0,
+      ac: config.ac?.airConditioners?.length || 0,
+      vacuum: config.vacuum?.vacuums?.length || 0,
+      bose: config.bose?.soundbars?.length || 0,
+      navigationIcons: config.navigationIcons?.icons?.length || 0,
+      enabledWidgets: Object.keys(config.enabledWidgets || {}).length
+    })
     // Всегда сохраняем на сервер в первую очередь
     await saveWidgetConfigToAPI(config as APIWidgetConfig)
+    console.log('[WidgetConfig] Конфигурация успешно сохранена на сервер')
     configCache = config
     // Также сохраняем в localStorage как backup
     try {
       localStorage.setItem('widget_config', JSON.stringify(config))
+      console.log('[WidgetConfig] Конфигурация сохранена в localStorage как backup')
     } catch (localError) {
-      console.warn('Не удалось сохранить в localStorage (backup):', localError)
+      console.warn('[WidgetConfig] Не удалось сохранить в localStorage (backup):', localError)
     }
   } catch (error) {
-    console.error('Ошибка сохранения конфигурации на сервер:', error)
+    console.error('[WidgetConfig] Ошибка сохранения конфигурации на сервер:', error)
     // Fallback на localStorage только если сервер недоступен
     try {
       localStorage.setItem('widget_config', JSON.stringify(config))
       configCache = config
-      console.warn('Конфигурация сохранена в localStorage как fallback')
+      console.warn('[WidgetConfig] Конфигурация сохранена в localStorage как fallback')
     } catch (localError) {
-      console.error('Ошибка сохранения в localStorage:', localError)
+      console.error('[WidgetConfig] Ошибка сохранения в localStorage:', localError)
       throw error // Пробрасываем ошибку дальше
     }
   }

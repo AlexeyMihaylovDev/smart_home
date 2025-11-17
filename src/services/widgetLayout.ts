@@ -78,7 +78,9 @@ const DEFAULT_LAYOUTS: Record<string, Omit<WidgetLayout, 'i'>> = {
 
 export const getDashboardLayout = async (): Promise<DashboardLayout> => {
   try {
+    console.log('[WidgetLayout] Загрузка dashboard layout с сервера...')
     const stored = await getDashboardLayoutFromAPI()
+    console.log('[WidgetLayout] Dashboard layout загружен с сервера:', stored)
     const enabledWidgets = await getAllEnabledWidgets()
     
     if (stored && stored.layouts && stored.layouts.length > 0) {
@@ -184,14 +186,16 @@ export const getDashboardLayout = async (): Promise<DashboardLayout> => {
           rowHeight: parsed.rowHeight || DEFAULT_ROW_HEIGHT
         }
         layoutCache = result
+        console.log('[WidgetLayout] Используем layout из localStorage (fallback)')
         return result
       }
     } catch (localError) {
-      console.error('Ошибка загрузки из localStorage:', localError)
+      console.error('[WidgetLayout] Ошибка загрузки из localStorage:', localError)
     }
   }
   
   // Если нет сохраненного layout, возвращаем только включенные виджеты
+  console.log('[WidgetLayout] Создаем новый layout для включенных виджетов')
   const enabledWidgets = await getAllEnabledWidgets()
   const layouts = enabledWidgets.map((id, index) => {
     const defaultLayout = DEFAULT_LAYOUTS[id] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 }
@@ -454,29 +458,41 @@ export const saveDashboardLayoutByDashboardId = async (dashboardId: string, layo
 
 export const getAllDashboardLayouts = async (): Promise<DashboardLayouts> => {
   if (dashboardLayoutsCache) {
+    console.log('[WidgetLayout] Используем кэш dashboard layouts')
     return dashboardLayoutsCache
   }
   
   try {
+    console.log('[WidgetLayout] Загрузка dashboard layouts с сервера...')
     // Используем API для загрузки с сервера
     const layouts = await getAllDashboardLayoutsFromAPI()
+    console.log('[WidgetLayout] Dashboard layouts загружены с сервера:', layouts)
     dashboardLayoutsCache = layouts
+    // Сохраняем в localStorage как backup
+    try {
+      localStorage.setItem(STORAGE_KEY_DASHBOARDS, JSON.stringify(layouts))
+      console.log('[WidgetLayout] Dashboard layouts сохранены в localStorage как backup')
+    } catch (e) {
+      console.warn('[WidgetLayout] Не удалось сохранить в localStorage:', e)
+    }
     return layouts
   } catch (error) {
-    console.error('Ошибка загрузки dashboard layouts:', error)
-    // Fallback на localStorage
+    console.error('[WidgetLayout] Ошибка загрузки dashboard layouts с сервера:', error)
+    // Fallback на localStorage только если сервер недоступен
     try {
       const stored = localStorage.getItem(STORAGE_KEY_DASHBOARDS)
       if (stored) {
+        console.log('[WidgetLayout] Используем dashboard layouts из localStorage (fallback)')
         const parsed = JSON.parse(stored)
         dashboardLayoutsCache = parsed
         return parsed
       }
     } catch (localError) {
-      console.error('Ошибка загрузки из localStorage:', localError)
+      console.error('[WidgetLayout] Ошибка загрузки из localStorage:', localError)
     }
   }
   
+  console.warn('[WidgetLayout] Возвращаем пустой объект (сервер недоступен и localStorage пуст)')
   dashboardLayoutsCache = {}
   return {}
 }

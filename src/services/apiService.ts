@@ -32,6 +32,9 @@ apiClient.interceptors.request.use(
     const userId = getUserId()
     if (userId) {
       config.headers['x-user-id'] = userId
+      console.log(`[API] Запрос к ${config.url} с userId: ${userId}`)
+    } else {
+      console.warn(`[API] Запрос к ${config.url} без userId!`)
     }
     return config
   },
@@ -146,14 +149,21 @@ export interface ConnectionConfig {
 // Widget Config API
 export const getWidgetConfig = async (): Promise<WidgetConfig> => {
   try {
+    console.log('[API] Загрузка widget config с сервера...')
     const response = await apiClient.get('/api/config/widget')
+    console.log('[API] Widget config загружен с сервера:', response.data)
     return response.data
-  } catch (error) {
-    console.error('Ошибка загрузки widget config с сервера, используем localStorage:', error)
-    // Fallback на localStorage
-    const stored = localStorage.getItem('widget_config')
-    if (stored) {
-      return JSON.parse(stored)
+  } catch (error: any) {
+    console.error('[API] Ошибка загрузки widget config с сервера:', error)
+    // Fallback на localStorage только если сервер недоступен
+    try {
+      const stored = localStorage.getItem('widget_config')
+      if (stored) {
+        console.log('[API] Используем widget config из localStorage (fallback)')
+        return JSON.parse(stored)
+      }
+    } catch (localError) {
+      console.error('[API] Ошибка чтения из localStorage:', localError)
     }
     throw error
   }
@@ -161,13 +171,25 @@ export const getWidgetConfig = async (): Promise<WidgetConfig> => {
 
 export const saveWidgetConfig = async (config: WidgetConfig): Promise<void> => {
   try {
+    console.log('[API] Сохранение widget config на сервер...', config)
     await apiClient.post('/api/config/widget', config)
+    console.log('[API] Widget config успешно сохранен на сервер')
     // Также сохраняем в localStorage как backup
-    localStorage.setItem('widget_config', JSON.stringify(config))
-  } catch (error) {
-    console.error('Ошибка сохранения widget config на сервер, используем localStorage:', error)
-    // Fallback на localStorage
-    localStorage.setItem('widget_config', JSON.stringify(config))
+    try {
+      localStorage.setItem('widget_config', JSON.stringify(config))
+      console.log('[API] Widget config сохранен в localStorage как backup')
+    } catch (localError) {
+      console.warn('[API] Не удалось сохранить в localStorage (backup):', localError)
+    }
+  } catch (error: any) {
+    console.error('[API] Ошибка сохранения widget config на сервер:', error)
+    // Fallback на localStorage только если сервер недоступен
+    try {
+      localStorage.setItem('widget_config', JSON.stringify(config))
+      console.warn('[API] Widget config сохранен в localStorage как fallback')
+    } catch (localError) {
+      console.error('[API] Ошибка сохранения в localStorage:', localError)
+    }
     throw error
   }
 }
@@ -204,14 +226,21 @@ export const saveDashboardLayout = async (layout: DashboardLayout): Promise<void
 // Dashboard Layouts API (для всех дашбордов пользователя)
 export const getAllDashboardLayouts = async (): Promise<DashboardLayouts> => {
   try {
+    console.log('[API] Загрузка dashboard layouts с сервера...')
     const response = await apiClient.get('/api/config/dashboard-layouts')
+    console.log('[API] Dashboard layouts загружены с сервера:', response.data)
     return response.data || {}
-  } catch (error) {
-    console.error('Ошибка загрузки dashboard layouts с сервера, используем localStorage:', error)
-    // Fallback на localStorage
-    const stored = localStorage.getItem('dashboard_layouts')
-    if (stored) {
-      return JSON.parse(stored)
+  } catch (error: any) {
+    console.error('[API] Ошибка загрузки dashboard layouts с сервера:', error)
+    // Fallback на localStorage только если сервер недоступен
+    try {
+      const stored = localStorage.getItem('dashboard_layouts')
+      if (stored) {
+        console.log('[API] Используем dashboard layouts из localStorage (fallback)')
+        return JSON.parse(stored)
+      }
+    } catch (localError) {
+      console.error('[API] Ошибка чтения из localStorage:', localError)
     }
     return {}
   }

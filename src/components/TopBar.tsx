@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Home, Globe, Camera, Menu, Sparkles, Lightbulb, Tv, Music } from 'lucide-react'
-import { getNavigationIconsSync, NavigationIcon } from '../services/widgetConfig'
+import { getNavigationIconsSync, getNavigationIcons, NavigationIcon } from '../services/widgetConfig'
 import { isWidgetEnabledSync } from '../services/widgetConfig'
 
 interface TopBarProps {
@@ -28,6 +28,28 @@ const TopBar = ({ onMenuClick, onTabChange, currentTab }: TopBarProps) => {
       return []
     }
   })
+
+  // Загружаем navigation icons с сервера при монтировании
+  useEffect(() => {
+    const loadIconsFromServer = async () => {
+      try {
+        console.log('[TopBar] Загрузка navigation icons с сервера при монтировании...')
+        await getNavigationIcons()
+        console.log('[TopBar] Navigation icons загружены с сервера, обновляем локальное состояние')
+        // После загрузки обновляем локальное состояние
+        setNavigationIcons(getNavigationIconsSync())
+      } catch (error) {
+        console.error('[TopBar] Ошибка загрузки navigation icons с сервера:', error)
+        // В случае ошибки все равно загружаем из кэша/localStorage
+        try {
+          setNavigationIcons(getNavigationIconsSync())
+        } catch (e) {
+          console.error('[TopBar] Ошибка загрузки из кэша:', e)
+        }
+      }
+    }
+    loadIconsFromServer()
+  }, []) // Загружаем только один раз при монтировании
 
   useEffect(() => {
     const handleIconsChange = () => {

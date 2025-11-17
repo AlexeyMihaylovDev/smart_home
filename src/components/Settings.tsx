@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
 import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock, Navigation, Plus, Sparkles, ChevronDown } from 'lucide-react'
-import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getWaterHeaterStyleSync, updateWaterHeaterStyle, WaterHeaterStyle, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getSensorsStyleSync, updateSensorsStyle, SensorsStyle, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getMotorsStyleSync, updateMotorsStyle, MotorsStyle, getSpotifyConfigSync, updateSpotifyConfig, SpotifyConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, getCameraConfigsSync, updateCameraConfigs, CameraConfig, getCamerasStyleSync, updateCamerasStyle, CamerasStyle, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
+import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getWaterHeaterStyleSync, updateWaterHeaterStyle, WaterHeaterStyle, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getSensorsStyleSync, updateSensorsStyle, SensorsStyle, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getMotorsStyleSync, updateMotorsStyle, MotorsStyle, getSpotifyConfigSync, updateSpotifyConfig, SpotifyConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, getCameraConfigsSync, updateCameraConfigs, CameraConfig, getCamerasStyleSync, updateCamerasStyle, CamerasStyle, isWidgetEnabledSync, setWidgetEnabled, getWidgetConfig } from '../services/widgetConfig'
 import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 import ToggleSwitch from './ui/ToggleSwitch'
 import Toast from './ui/Toast'
@@ -313,6 +313,24 @@ const Settings = () => {
       color: 'bg-purple-500'
     }
   ]
+
+  // Загружаем конфигурацию с сервера при монтировании компонента
+  useEffect(() => {
+    const loadConfigFromServer = async () => {
+      try {
+        console.log('[Settings] Загрузка конфигурации с сервера при монтировании...')
+        await getWidgetConfig()
+        console.log('[Settings] Конфигурация загружена с сервера, обновляем локальное состояние')
+        // После загрузки обновляем локальное состояние
+        loadWidgetConfigs()
+      } catch (error) {
+        console.error('[Settings] Ошибка загрузки конфигурации с сервера:', error)
+        // В случае ошибки все равно загружаем из кэша/localStorage
+        loadWidgetConfigs()
+      }
+    }
+    loadConfigFromServer()
+  }, []) // Загружаем только один раз при монтировании
 
   useEffect(() => {
     if (activeTab === 'devices') {
