@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
-import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock, Navigation } from 'lucide-react'
+import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock, Navigation, Plus } from 'lucide-react'
 import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
 import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 import ToggleSwitch from './ui/ToggleSwitch'
@@ -1551,6 +1551,7 @@ const Settings = () => {
                           name: `שואב אבק ${vacuumConfigs.length + 1}`,
                           entityId: null,
                           mapEntityId: null,
+                          mapEntityIds: [],
                           relatedEntities: []
                         }
                         setVacuumConfigs([...vacuumConfigs, newVacuum])
@@ -1703,7 +1704,12 @@ const Settings = () => {
                               })
                               
                               if (mapEntity) {
-                                updatedVacuum.mapEntityId = mapEntity.entity_id
+                                // Сохраняем найденную карту в массив mapEntityIds
+                                const currentMapIds = updatedVacuum.mapEntityIds || (updatedVacuum.mapEntityId ? [updatedVacuum.mapEntityId] : [])
+                                if (!currentMapIds.includes(mapEntity.entity_id)) {
+                                  updatedVacuum.mapEntityIds = [...currentMapIds, mapEntity.entity_id]
+                                }
+                                updatedVacuum.mapEntityId = mapEntity.entity_id // Для обратной совместимости
                               }
                               
                               // Формируем список всех найденных связанных entities
@@ -1978,61 +1984,157 @@ const Settings = () => {
                     </div>
                     <div className="flex-1 space-y-3">
                       <div>
-                        <label className="block text-xs text-dark-textSecondary mb-1">
-                          מזהה ישות של מפה (אופציונלי): {vacuum.mapEntityId || 'לא מוגדר'}
-                        </label>
-                        <SearchableSelect
-                          value={vacuum.mapEntityId || ''}
-                          onChange={(selectedEntityId) => {
-                            const mapEntityId = selectedEntityId || null
-                            const newConfigs = [...vacuumConfigs]
-                            newConfigs[index] = { ...vacuum, mapEntityId }
-                            setVacuumConfigs(newConfigs)
-                            setHasUnsavedChanges(true)
-                          }}
-                          options={[
-                            { value: '', label: '-- בחר ישות מפה (אופציונלי) --' },
-                            ...entities
-                            .filter(e => {
-                              if (!vacuum.entityId) return false
-                              const entityId = e.entity_id.toLowerCase()
-                              const baseName = vacuum.entityId.split('.').slice(1).join('.').toLowerCase()
-                              const eBase = e.entity_id.split('.').slice(1).join('.').toLowerCase()
-                              
-                              // Показываем связанные entities в первую очередь
-                              const isRelated = eBase.includes(baseName) && (
-                                entityId.includes('map') || 
-                                (entityId.includes('camera') && (e.attributes.entity_picture || e.attributes.map_image))
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-xs text-dark-textSecondary">
+                            מפות (אופציונלי): {(() => {
+                              const mapIds = vacuum.mapEntityIds || (vacuum.mapEntityId ? [vacuum.mapEntityId] : [])
+                              return mapIds.length > 0 ? `${mapIds.length} נוספו` : 'לא מוגדר'
+                            })()}
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newConfigs = [...vacuumConfigs]
+                              const currentMapIds = vacuum.mapEntityIds || (vacuum.mapEntityId ? [vacuum.mapEntityId] : [])
+                              newConfigs[index] = { 
+                                ...vacuum, 
+                                mapEntityIds: [...currentMapIds, ''],
+                                mapEntityId: vacuum.mapEntityId // Сохраняем для обратной совместимости
+                              }
+                              setVacuumConfigs(newConfigs)
+                              setHasUnsavedChanges(true)
+                            }}
+                            className="p-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center justify-center text-xs font-medium shadow-sm"
+                            title="הוסף מפה חדשה"
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {(() => {
+                            const mapIds = vacuum.mapEntityIds || (vacuum.mapEntityId ? [vacuum.mapEntityId] : [])
+                            if (mapIds.length === 0) {
+                              return (
+                                <p className="text-[10px] text-dark-textSecondary italic">
+                                  לחץ על + כדי להוסיף מפה
+                                </p>
                               )
-                              
-                              // Также показываем другие map/camera entities
-                              const isMapOrCamera = entityId.includes('map') || 
-                                (entityId.includes('camera') && (e.attributes.entity_picture || e.attributes.map_image))
-                              
-                              return isRelated || isMapOrCamera
-                            })
-                            .sort((a, b) => {
-                              // Связанные entities показываем первыми
-                              if (!vacuum.entityId) return 0
-                              const baseName = vacuum.entityId.split('.').slice(1).join('.').toLowerCase()
-                              const aBase = a.entity_id.split('.').slice(1).join('.').toLowerCase()
-                              const bBase = b.entity_id.split('.').slice(1).join('.').toLowerCase()
-                              const aRelated = aBase.includes(baseName)
-                              const bRelated = bBase.includes(baseName)
-                              if (aRelated && !bRelated) return -1
-                              if (!aRelated && bRelated) return 1
-                              return 0
-                            })
-                            .map(entity => ({
-                              value: entity.entity_id,
-                              label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})${vacuum.entityId && entity.entity_id.split('.').slice(1).join('.').toLowerCase().includes(vacuum.entityId.split('.').slice(1).join('.').toLowerCase()) ? ' ⭐' : ''}`
-                            }))
-                          ]}
-                          placeholder="-- בחר ישות מפה (אופציונלי) --"
-                          className="w-full"
-                        />
+                            }
+                            return mapIds.map((mapId, mapIndex) => (
+                              <div key={mapIndex} className="flex items-start gap-2">
+                                <div className="flex-1">
+                                  <SearchableSelect
+                                    value={mapId || ''}
+                                    onChange={(selectedEntityId) => {
+                                      const newConfigs = [...vacuumConfigs]
+                                      const currentMapIds = vacuum.mapEntityIds || (vacuum.mapEntityId ? [vacuum.mapEntityId] : [])
+                                      const updatedMapIds = [...currentMapIds]
+                                      updatedMapIds[mapIndex] = selectedEntityId || ''
+                                      newConfigs[index] = { 
+                                        ...vacuum, 
+                                        mapEntityIds: updatedMapIds.filter(id => id !== ''),
+                                        mapEntityId: updatedMapIds[0] || vacuum.mapEntityId // Первая карта для обратной совместимости
+                                      }
+                                      setVacuumConfigs(newConfigs)
+                                      setHasUnsavedChanges(true)
+                                    }}
+                                    options={[
+                                      { value: '', label: '-- בחר ישות מפה (אופציונלי) --' },
+                                      ...entities
+                                      .filter(e => {
+                                        if (!vacuum.entityId) return false
+                                        const entityId = e.entity_id.toLowerCase()
+                                        const baseName = vacuum.entityId.split('.').slice(1).join('.').toLowerCase()
+                                        const eBase = e.entity_id.split('.').slice(1).join('.').toLowerCase()
+                                        
+                                        // Исключаем явно не связанные entities
+                                        if (eBase.includes('google_') || 
+                                            eBase.includes('translate_') ||
+                                            eBase.includes('weather_') ||
+                                            eBase.includes('sun_') ||
+                                            eBase.includes('zone_') ||
+                                            eBase.includes('person_') ||
+                                            eBase.includes('device_tracker_') ||
+                                            eBase.includes('calendar_')) {
+                                          return false
+                                        }
+                                        
+                                        // Показываем ВСЕ связанные entities (начинаются с базового имени или содержат его части)
+                                        const baseParts = baseName.split('_').filter(p => p.length > 2)
+                                        const eParts = eBase.split('_').filter(p => p.length > 2)
+                                        
+                                        // Точное совпадение - entity начинается с базового имени
+                                        if (eBase.startsWith(baseName + '_') || eBase === baseName) {
+                                          return true
+                                        }
+                                        
+                                        // Обратное совпадение - базовое имя содержит части entity
+                                        const basePartsLower = baseName.split('_')
+                                        const ePartsLower = eBase.split('_')
+                                        
+                                        // Проверяем, есть ли общие значимые части
+                                        const commonPartsCount = basePartsLower.filter(bp => 
+                                          bp.length > 2 && ePartsLower.some(ep => 
+                                            ep.toLowerCase() === bp.toLowerCase() || 
+                                            ep.toLowerCase().includes(bp.toLowerCase()) || 
+                                            bp.toLowerCase().includes(ep.toLowerCase())
+                                          )
+                                        ).length
+                                        
+                                        // Для коротких имен (x50, ultra, complete) требуем минимум 2 общие части
+                                        if (baseParts.length <= 3) {
+                                          return commonPartsCount >= 2
+                                        }
+                                        
+                                        // Для длинных имен требуем минимум 2 общие части
+                                        return commonPartsCount >= 2
+                                      })
+                                      .sort((a, b) => {
+                                        // Связанные entities показываем первыми
+                                        if (!vacuum.entityId) return 0
+                                        const baseName = vacuum.entityId.split('.').slice(1).join('.').toLowerCase()
+                                        const aBase = a.entity_id.split('.').slice(1).join('.').toLowerCase()
+                                        const bBase = b.entity_id.split('.').slice(1).join('.').toLowerCase()
+                                        const aRelated = aBase.includes(baseName)
+                                        const bRelated = bBase.includes(baseName)
+                                        if (aRelated && !bRelated) return -1
+                                        if (!aRelated && bRelated) return 1
+                                        return 0
+                                      })
+                                      .map(entity => ({
+                                        value: entity.entity_id,
+                                        label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})${vacuum.entityId && entity.entity_id.split('.').slice(1).join('.').toLowerCase().includes(vacuum.entityId.split('.').slice(1).join('.').toLowerCase()) ? ' ⭐' : ''}`
+                                      }))
+                                    ]}
+                                    placeholder="-- בחר ישות מפה (אופציונלי) --"
+                                    className="w-full"
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newConfigs = [...vacuumConfigs]
+                                    const currentMapIds = vacuum.mapEntityIds || (vacuum.mapEntityId ? [vacuum.mapEntityId] : [])
+                                    const updatedMapIds = currentMapIds.filter((_, i) => i !== mapIndex)
+                                    newConfigs[index] = { 
+                                      ...vacuum, 
+                                      mapEntityIds: updatedMapIds,
+                                      mapEntityId: updatedMapIds[0] || null // Первая карта для обратной совместимости
+                                    }
+                                    setVacuumConfigs(newConfigs)
+                                    setHasUnsavedChanges(true)
+                                  }}
+                                  className="p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center text-xs font-medium flex-shrink-0"
+                                  title="הסר מפה"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))
+                          })()}
+                        </div>
                         <p className="text-[10px] text-dark-textSecondary mt-1">
-                          ⭐ = ישות קשורה אוטומטית. אם המפה לא מוצגת, נסה לבחור ישות נפרדת למפה
+                          ⭐ = ישות קשורה אוטומטית. לחץ על + כדי להוסיף מפות נוספות
                         </p>
                       </div>
                       
@@ -2042,14 +2144,16 @@ const Settings = () => {
                           <label className="block text-xs text-dark-textSecondary mb-1">
                             ישויות קשורות נוספות ({vacuum.relatedEntities.filter(re => {
                               const reEntityId = typeof re === 'string' ? re : re.entityId
-                              return reEntityId !== vacuum.mapEntityId
+                              const mapIds = vacuum.mapEntityIds || (vacuum.mapEntityId ? [vacuum.mapEntityId] : [])
+                              return !mapIds.includes(reEntityId)
                             }).length}):
                           </label>
                           <div className="space-y-2 max-h-60 overflow-y-auto">
                             {vacuum.relatedEntities
                               .filter(re => {
                                 const reEntityId = typeof re === 'string' ? re : re.entityId
-                                return reEntityId !== vacuum.mapEntityId // Исключаем map entity, т.к. у неё есть отдельное поле
+                                const mapIds = vacuum.mapEntityIds || (vacuum.mapEntityId ? [vacuum.mapEntityId] : [])
+                                return !mapIds.includes(reEntityId) // Исключаем map entities, т.к. у них есть отдельное поле
                               })
                               .map((relatedEntity, reIndex) => {
                                 const reEntityId = typeof relatedEntity === 'string' ? relatedEntity : relatedEntity.entityId
@@ -2141,6 +2245,7 @@ const Settings = () => {
                           name: 'שואב אבק 1',
                           entityId: null,
                           mapEntityId: null,
+                          mapEntityIds: [],
                           relatedEntities: []
                         }
                         setVacuumConfigs([newVacuum])

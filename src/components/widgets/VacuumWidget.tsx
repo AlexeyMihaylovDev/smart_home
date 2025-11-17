@@ -8,7 +8,8 @@ import {
   Clock, Settings, ChevronDown, ChevronUp, 
   RefreshCw, Navigation, Zap, Activity, 
   Gauge, Timer, Ruler, AlertCircle, CheckCircle2,
-  ZoomIn, ZoomOut, RotateCcw, Box
+  ZoomIn, ZoomOut, RotateCcw, Box, Droplet, Wind,
+  Info, Database, Calendar, Hash
 } from 'lucide-react'
 
 interface VacuumUnitProps {
@@ -218,6 +219,25 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
   const sideBrushLife = entity?.attributes.side_brush_life
   const filterLife = entity?.attributes.filter_life
   const sensorDirtyLife = entity?.attributes.sensor_dirty_life
+  
+  // Дополнительные важные атрибуты из Dreame vacuum
+  const waterBoxLife = entity?.attributes.water_box_life
+  const mopLife = entity?.attributes.mop_life
+  const mopPadLife = entity?.attributes.mop_pad_life
+  const dustCollectionLife = entity?.attributes.dust_collection_life
+  const cleaningCount = entity?.attributes.cleaning_count
+  const totalCleaningCount = entity?.attributes.total_cleaning_count
+  const lastCleaningTime = entity?.attributes.last_cleaning_time
+  const mapName = entity?.attributes.map_name
+  const doNotDisturb = entity?.attributes.do_not_disturb
+  const fanSpeedLevel = entity?.attributes.fan_speed_level
+  const waterLevel = entity?.attributes.water_level
+  const carpetMode = entity?.attributes.carpet_mode
+  const obstacleAvoidance = entity?.attributes.obstacle_avoidance
+  const voicePack = entity?.attributes.voice_pack
+  const firmwareVersion = entity?.attributes.firmware_version
+  const serialNumber = entity?.attributes.serial_number
+  const model = entity?.attributes.model
   
   // Получаем данные из связанных entities (ищем по паттернам)
   const getRelatedEntityValue = (pattern: string): string | undefined => {
@@ -804,22 +824,74 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
         </button>
         
         {showAdvanced && (
-          <div className="mt-2 space-y-2 pt-2 border-t border-dark-border">
-            {/* Статистика из связанных entities */}
-            {mappingTime && (
-              <div className="flex items-center justify-between text-[10px] text-dark-textSecondary">
-                <span className="flex items-center gap-1.5">
-                  <MapIcon size={10} />
-                  זמן מיפוי:
-                </span>
-                <span className="text-white">{formatTime(mappingTime)}</span>
+          <div className="mt-2 space-y-3 pt-2 border-t border-dark-border">
+            {/* Статистика уборки */}
+            <div className="space-y-1.5">
+              <div className="text-[10px] text-dark-textSecondary mb-1.5 flex items-center gap-1.5">
+                <Activity size={11} />
+                סטטיסטיקת ניקוי:
               </div>
-            )}
+              {mappingTime && (
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-dark-textSecondary flex items-center gap-1.5">
+                    <MapIcon size={10} />
+                    זמן מיפוי:
+                  </span>
+                  <span className="text-white font-medium">{formatTime(mappingTime)}</span>
+                </div>
+              )}
+              {cleaningCount !== undefined && (
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-dark-textSecondary flex items-center gap-1.5">
+                    <Hash size={10} />
+                    מספר ניקויים:
+                  </span>
+                  <span className="text-white font-medium">{cleaningCount}</span>
+                </div>
+              )}
+              {totalCleaningCount !== undefined && (
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-dark-textSecondary flex items-center gap-1.5">
+                    <Database size={10} />
+                    סה"כ ניקויים:
+                  </span>
+                  <span className="text-white font-medium">{totalCleaningCount}</span>
+                </div>
+              )}
+              {lastCleaningTime && (
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-dark-textSecondary flex items-center gap-1.5">
+                    <Calendar size={10} />
+                    ניקוי אחרון:
+                  </span>
+                  <span className="text-white font-medium">{new Date(lastCleaningTime).toLocaleString('he-IL', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}</span>
+                </div>
+              )}
+              {mapName && (
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-dark-textSecondary flex items-center gap-1.5">
+                    <MapIcon size={10} />
+                    שם מפה:
+                  </span>
+                  <span className="text-white font-medium truncate max-w-[60%]">{mapName}</span>
+                </div>
+              )}
+            </div>
             
             {/* Состояние компонентов */}
-            {(mainBrushLife !== undefined || sideBrushLife !== undefined || filterLife !== undefined) && (
+            {(mainBrushLife !== undefined || sideBrushLife !== undefined || filterLife !== undefined || 
+              waterBoxLife !== undefined || mopLife !== undefined || mopPadLife !== undefined || 
+              dustCollectionLife !== undefined || sensorDirtyLife !== undefined) && (
               <div className="space-y-1.5 pt-1 border-t border-dark-border/50">
-                <div className="text-[10px] text-dark-textSecondary mb-1">מצב רכיבים:</div>
+                <div className="text-[10px] text-dark-textSecondary mb-1.5 flex items-center gap-1.5">
+                  <Gauge size={11} />
+                  מצב רכיבים:
+                </div>
                 {mainBrushLife !== undefined && (
                   <div className="flex items-center justify-between text-[10px]">
                     <span className="text-dark-textSecondary">מברשת ראשית:</span>
@@ -868,18 +940,150 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                     </span>
                   </div>
                 )}
+                {waterBoxLife !== undefined && (
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-dark-textSecondary flex items-center gap-1">
+                      <Droplet size={10} />
+                      מיכל מים:
+                    </span>
+                    <span className={`font-medium ${
+                      waterBoxLife > 50 ? 'text-green-400' :
+                      waterBoxLife > 20 ? 'text-yellow-400' :
+                      'text-red-400'
+                    }`}>
+                      {waterBoxLife}%
+                    </span>
+                  </div>
+                )}
+                {mopLife !== undefined && (
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-dark-textSecondary">סמרטוט:</span>
+                    <span className={`font-medium ${
+                      mopLife > 50 ? 'text-green-400' :
+                      mopLife > 20 ? 'text-yellow-400' :
+                      'text-red-400'
+                    }`}>
+                      {mopLife}%
+                    </span>
+                  </div>
+                )}
+                {mopPadLife !== undefined && (
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-dark-textSecondary">כרית סמרטוט:</span>
+                    <span className={`font-medium ${
+                      mopPadLife > 50 ? 'text-green-400' :
+                      mopPadLife > 20 ? 'text-yellow-400' :
+                      'text-red-400'
+                    }`}>
+                      {mopPadLife}%
+                    </span>
+                  </div>
+                )}
+                {dustCollectionLife !== undefined && (
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-dark-textSecondary">מיכל אבק:</span>
+                    <span className={`font-medium ${
+                      dustCollectionLife > 50 ? 'text-green-400' :
+                      dustCollectionLife > 20 ? 'text-yellow-400' :
+                      'text-red-400'
+                    }`}>
+                      {dustCollectionLife}%
+                    </span>
+                  </div>
+                )}
               </div>
             )}
             
-            {/* Все атрибуты для отладки (опционально) */}
-            {process.env.NODE_ENV === 'development' && (
-              <details className="text-[10px] text-dark-textSecondary">
-                <summary className="cursor-pointer hover:text-white">כל האטריבוטים</summary>
-                <pre className="mt-1 p-2 bg-dark-card rounded text-[8px] overflow-auto max-h-32">
-                  {JSON.stringify(entity?.attributes, null, 2)}
-                </pre>
-              </details>
+            {/* Настройки и режимы */}
+            <div className="space-y-1.5 pt-1 border-t border-dark-border/50">
+              <div className="text-[10px] text-dark-textSecondary mb-1.5 flex items-center gap-1.5">
+                <Settings size={11} />
+                הגדרות:
+              </div>
+              {fanSpeedLevel !== undefined && (
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-dark-textSecondary flex items-center gap-1">
+                    <Wind size={10} />
+                    רמת מפוח:
+                  </span>
+                  <span className="text-white font-medium">{fanSpeedLevel}</span>
+                </div>
+              )}
+              {waterLevel !== undefined && (
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-dark-textSecondary flex items-center gap-1">
+                    <Droplet size={10} />
+                    רמת מים:
+                  </span>
+                  <span className="text-white font-medium">{waterLevel}</span>
+                </div>
+              )}
+              {carpetMode !== undefined && (
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-dark-textSecondary">מצב שטיח:</span>
+                  <span className="text-white font-medium">{carpetMode ? 'פעיל' : 'כבוי'}</span>
+                </div>
+              )}
+              {obstacleAvoidance !== undefined && (
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-dark-textSecondary">הימנעות ממכשולים:</span>
+                  <span className="text-white font-medium">{obstacleAvoidance ? 'פעיל' : 'כבוי'}</span>
+                </div>
+              )}
+              {doNotDisturb !== undefined && (
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-dark-textSecondary">אל תפריע:</span>
+                  <span className={`font-medium ${doNotDisturb ? 'text-yellow-400' : 'text-green-400'}`}>
+                    {doNotDisturb ? 'פעיל' : 'כבוי'}
+                  </span>
+                </div>
+              )}
+              {voicePack && (
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-dark-textSecondary">חבילת קול:</span>
+                  <span className="text-white font-medium truncate max-w-[60%]">{voicePack}</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Информация об устройстве */}
+            {(firmwareVersion || serialNumber || model) && (
+              <div className="space-y-1.5 pt-1 border-t border-dark-border/50">
+                <div className="text-[10px] text-dark-textSecondary mb-1.5 flex items-center gap-1.5">
+                  <Info size={11} />
+                  מידע על המכשיר:
+                </div>
+                {model && (
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-dark-textSecondary">מודל:</span>
+                    <span className="text-white font-medium">{model}</span>
+                  </div>
+                )}
+                {firmwareVersion && (
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-dark-textSecondary">גרסת תוכנה:</span>
+                    <span className="text-white font-medium">{firmwareVersion}</span>
+                  </div>
+                )}
+                {serialNumber && (
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-dark-textSecondary">מספר סידורי:</span>
+                    <span className="text-white font-medium text-[9px] truncate max-w-[60%]">{serialNumber}</span>
+                  </div>
+                )}
+              </div>
             )}
+            
+            {/* Все атрибуты для отладки */}
+            <details className="text-[10px] text-dark-textSecondary pt-1 border-t border-dark-border/50">
+              <summary className="cursor-pointer hover:text-white flex items-center gap-1.5">
+                <Database size={10} />
+                כל האטריבוטים
+              </summary>
+              <pre className="mt-2 p-2 bg-dark-card rounded text-[8px] overflow-auto max-h-40 border border-dark-border">
+                {JSON.stringify(entity?.attributes, null, 2)}
+              </pre>
+            </details>
           </div>
         )}
       </div>
@@ -935,8 +1139,14 @@ const VacuumWidget = () => {
         .filter((id): id is string => id !== null)
 
       const mapEntityIds = vacuumConfigs
-        .map(v => v.mapEntityId)
-        .filter((id): id is string => id !== null)
+        .flatMap(v => {
+          // Используем новый формат mapEntityIds, если есть, иначе старый mapEntityId для обратной совместимости
+          if (v.mapEntityIds && v.mapEntityIds.length > 0) {
+            return v.mapEntityIds
+          }
+          return v.mapEntityId ? [v.mapEntityId] : []
+        })
+        .filter((id): id is string => id !== null && id !== '')
 
       // Добавляем все связанные entities из конфигурации
       const relatedEntityIds = vacuumConfigs
@@ -1013,18 +1223,26 @@ const VacuumWidget = () => {
           ? 'grid-cols-1 md:grid-cols-2' 
           : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
       }`}>
-        {Array.isArray(vacuumConfigs) && vacuumConfigs.map((vacuumConfig, index) => (
-          <VacuumUnit
-            key={vacuumConfig.entityId || index}
-            vacuumConfig={vacuumConfig}
-            entity={vacuumConfig.entityId ? entities.get(vacuumConfig.entityId) || null : null}
-            mapEntity={vacuumConfig.mapEntityId ? mapEntities.get(vacuumConfig.mapEntityId) || null : null}
-            relatedEntities={relatedEntities}
-            api={api}
-            loading={loading}
-            onLoadingChange={setLoading}
-          />
-        ))}
+        {Array.isArray(vacuumConfigs) && vacuumConfigs.map((vacuumConfig, index) => {
+          // Используем первую карту из массива mapEntityIds, если есть, иначе mapEntityId для обратной совместимости
+          const primaryMapId = vacuumConfig.mapEntityIds && vacuumConfig.mapEntityIds.length > 0
+            ? vacuumConfig.mapEntityIds[0]
+            : vacuumConfig.mapEntityId
+          const primaryMapEntity = primaryMapId ? mapEntities.get(primaryMapId) || null : null
+          
+          return (
+            <VacuumUnit
+              key={vacuumConfig.entityId || index}
+              vacuumConfig={vacuumConfig}
+              entity={vacuumConfig.entityId ? entities.get(vacuumConfig.entityId) || null : null}
+              mapEntity={primaryMapEntity}
+              relatedEntities={relatedEntities}
+              api={api}
+              loading={loading}
+              onLoadingChange={setLoading}
+            />
+          )
+        })}
       </div>
     </div>
   )

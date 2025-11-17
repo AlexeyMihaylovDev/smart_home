@@ -38,7 +38,8 @@ export interface BoseConfig {
 export interface VacuumConfig {
   entityId: string | null
   name: string
-  mapEntityId?: string | null // Entity ID для карты (если отдельный)
+  mapEntityId?: string | null // Entity ID для карты (если отдельный) - для обратной совместимости
+  mapEntityIds?: string[] // Массив Entity ID для карт (новый формат)
   // Дополнительные связанные entities с их типами
   relatedEntities?: Array<{
     entityId: string
