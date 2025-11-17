@@ -1,9 +1,10 @@
 // Preview компоненты для виджетов
 import React from 'react'
 import { Tv, Music, Wind, Droplet, Gauge, Sparkles } from 'lucide-react'
-import { ACConfig, WaterHeaterConfig, SensorConfig, MotorConfig, BoseConfig, VacuumConfig, WaterHeaterStyle, SensorsStyle } from '../../services/widgetConfig'
+import { ACConfig, WaterHeaterConfig, SensorConfig, MotorConfig, BoseConfig, VacuumConfig, WaterHeaterStyle, SensorsStyle, MotorsStyle } from '../../services/widgetConfig'
 import { CompactNotConfigured, CardNotConfigured, MinimalNotConfigured, ModernNotConfigured } from '../widgets/WaterHeaterStyles'
 import { PreparedSensor, SensorsListStyle, SensorsCardStyle, SensorsCompactStyle, SensorsGridStyle, SensorsListNotConfigured, SensorsCardNotConfigured, SensorsCompactNotConfigured, SensorsGridNotConfigured } from '../widgets/SensorsStyles'
+import { PreparedMotor, MotorsListStyle, MotorsCardStyle, MotorsCompactStyle, MotorsListNotConfigured, MotorsCardNotConfigured, MotorsCompactNotConfigured } from '../widgets/MotorsStyles'
 
 export const TVTimePreview = () => (
   <div className="space-y-3">
@@ -305,29 +306,97 @@ export const SensorsPreview = ({ configs = [], demo = false, style = 'list' }: {
   return renderByStyle()
 }
 
-export const MotorsPreview = ({ configs }: { configs: MotorConfig[] }) => (
-  <div className="space-y-3">
-    {configs.length > 0 ? configs.map((motor, index) => (
-      <div key={index} className="p-3 bg-dark-card rounded-lg border border-dark-border">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-            <Gauge size={24} className="text-blue-400" />
-          </div>
-          <div className="flex-1">
-            <div className="text-sm font-medium text-white">{motor.name || 'Мотор'}</div>
-            <div className="text-xs text-dark-textSecondary">
-              {motor.entityId ? 'Настроен' : 'Не настроен'}
-            </div>
-          </div>
+export const MotorsPreview = ({ configs = [], style = 'list', demo = false }: { configs: MotorConfig[], style?: MotorsStyle, demo?: boolean }) => {
+  const buildPreparedMotors = (items: { id: string; name: string; isConnected: boolean; state: string; position: number | null }[]): PreparedMotor[] => {
+    const stateMap: Record<string, { label: string; color: string }> = {
+      open: { label: 'פתוח', color: 'text-green-400' },
+      closed: { label: 'סגור', color: 'text-gray-400' },
+      opening: { label: 'נפתח', color: 'text-yellow-400' },
+      closing: { label: 'נסגר', color: 'text-yellow-400' },
+      stopped: { label: 'עצר', color: 'text-blue-400' },
+      disconnected: { label: 'לא מחובר', color: 'text-red-400' }
+    }
+
+    return items.map(item => {
+      const stateInfo = stateMap[item.state] || { label: item.state, color: 'text-gray-400' }
+      return {
+        id: item.id,
+        name: item.name,
+        isConnected: item.isConnected,
+        stateLabel: stateInfo.label,
+        stateColor: stateInfo.color,
+        position: item.position,
+        controlsDisabled: true
+      }
+    })
+  }
+
+  if (demo) {
+    const demoItems = buildPreparedMotors([
+      { id: 'motor-1', name: 'תריס סלון', isConnected: true, state: 'open', position: 78 },
+      { id: 'motor-2', name: 'וילון שינה', isConnected: true, state: 'closing', position: 42 },
+      { id: 'motor-3', name: 'שער חניה', isConnected: false, state: 'disconnected', position: null }
+    ])
+
+    const renderDemo = () => {
+      const props = { motors: demoItems }
+      switch (style) {
+        case 'card':
+          return <MotorsCardStyle {...props} />
+        case 'compact':
+          return <MotorsCompactStyle {...props} />
+        case 'list':
+        default:
+          return <MotorsListStyle {...props} />
+      }
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="text-xs text-dark-textSecondary bg-white/5 border border-dark-border rounded-lg px-3 py-2 flex items-center gap-2">
+          <Sparkles size={14} className="text-purple-400" />
+          Показан демо-режим: пример отображения Motor Widget
         </div>
+        {renderDemo()}
       </div>
-    )) : (
-      <div className="p-3 bg-dark-card rounded-lg border border-dark-border">
-        <div className="text-sm text-dark-textSecondary">Нет настроенных моторов</div>
-      </div>
-    )}
-  </div>
-)
+    )
+  }
+
+  const prepared = buildPreparedMotors(
+    configs.length > 0
+      ? configs.map((motor, index) => ({
+          id: motor.entityId || `motor-${index}`,
+          name: motor.name || `מנוע ${index + 1}`,
+          isConnected: !!motor.entityId,
+          state: motor.entityId ? 'closed' : 'disconnected',
+          position: motor.entityId ? 50 : null
+        }))
+      : []
+  )
+
+  if (prepared.length === 0) {
+    switch (style) {
+      case 'card':
+        return <MotorsCardNotConfigured />
+      case 'compact':
+        return <MotorsCompactNotConfigured />
+      case 'list':
+      default:
+        return <MotorsListNotConfigured />
+    }
+  }
+
+  const props = { motors: prepared }
+  switch (style) {
+    case 'card':
+      return <MotorsCardStyle {...props} />
+    case 'compact':
+      return <MotorsCompactStyle {...props} />
+    case 'list':
+    default:
+      return <MotorsListStyle {...props} />
+  }
+}
 
 export const BosePreview = ({ configs }: { configs: BoseConfig[] }) => (
   <div className="space-y-3">

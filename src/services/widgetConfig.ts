@@ -28,6 +28,9 @@ export interface SensorConfig {
   batteryEntityId?: string | null
 }
 
+export type SensorsStyle = 'list' | 'card' | 'compact' | 'grid'
+export type MotorsStyle = 'list' | 'card' | 'compact'
+
 export interface MotorConfig {
   entityId: string | null
   name: string
@@ -77,6 +80,7 @@ export interface WidgetConfig {
   }
   motors: {
     motors: MotorConfig[]
+    style?: MotorsStyle
   }
   bose: {
     soundbars: BoseConfig[]
@@ -117,7 +121,8 @@ const DEFAULT_CONFIG: WidgetConfig = {
     style: 'list'
   },
   motors: {
-    motors: []
+    motors: [],
+    style: 'list'
   },
   bose: {
     soundbars: []
@@ -461,9 +466,24 @@ export const getMotorConfigsSync = (): MotorConfig[] => {
 export const updateMotorConfigs = async (motors: MotorConfig[]): Promise<void> => {
   const config = await getWidgetConfig()
   if (!config.motors) {
-    config.motors = { motors: [] }
+    config.motors = { motors: [], style: 'list' }
   }
   config.motors.motors = motors
+  await saveWidgetConfig(config)
+}
+
+export const getMotorsStyleSync = (): MotorsStyle => {
+  const config = getWidgetConfigSync()
+  return config.motors?.style || 'list'
+}
+
+export const updateMotorsStyle = async (style: MotorsStyle): Promise<void> => {
+  const config = await getWidgetConfig()
+  if (!config.motors) {
+    config.motors = { motors: [], style }
+  } else {
+    config.motors.style = style
+  }
   await saveWidgetConfig(config)
 }
 

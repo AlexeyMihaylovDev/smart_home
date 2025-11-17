@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
 import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock, Navigation, Plus, Sparkles, ChevronDown } from 'lucide-react'
-import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getWaterHeaterStyleSync, updateWaterHeaterStyle, WaterHeaterStyle, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getSensorsStyleSync, updateSensorsStyle, SensorsStyle, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
+import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getWaterHeaterStyleSync, updateWaterHeaterStyle, WaterHeaterStyle, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getSensorsStyleSync, updateSensorsStyle, SensorsStyle, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getMotorsStyleSync, updateMotorsStyle, MotorsStyle, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
 import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 import ToggleSwitch from './ui/ToggleSwitch'
 import Toast from './ui/Toast'
@@ -124,6 +124,14 @@ const Settings = () => {
       return []
     }
   })
+  const [motorsStyle, setMotorsStyle] = useState<MotorsStyle>(() => {
+    try {
+      return getMotorsStyleSync()
+    } catch {
+      return 'list'
+    }
+  })
+  const [showMotorsDemo, setShowMotorsDemo] = useState(false)
   const [boseConfigs, setBoseConfigs] = useState<BoseConfig[]>(() => {
     try {
       return getBoseConfigsSync()
@@ -320,6 +328,8 @@ const Settings = () => {
     setSensorsStyle(sensorsStyleValue)
     const motors = getMotorConfigsSync()
     setMotorConfigs(motors && Array.isArray(motors) ? motors : [])
+    const motorsStyleValue = getMotorsStyleSync()
+    setMotorsStyle(motorsStyleValue)
     const bose = getBoseConfigsSync()
     setBoseConfigs(bose && Array.isArray(bose) ? bose : [])
     const vacuum = getVacuumConfigsSync()
@@ -1311,6 +1321,39 @@ const Settings = () => {
                       <GaugeIcon size={16} />
                       הוסף מנוע
                     </button>
+                    <button
+                      onClick={() => setShowMotorsDemo(prev => !prev)}
+                      className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium border ${
+                        showMotorsDemo
+                          ? 'bg-purple-600/80 border-purple-500 text-white'
+                          : 'bg-dark-bg border-dark-border text-dark-textSecondary hover:text-white'
+                      }`}
+                      title="Показать демо-интерфейс Motors"
+                    >
+                      <Sparkles size={16} />
+                      {showMotorsDemo ? 'Demo ON' : 'Demo'}
+                    </button>
+                    <div className="flex items-center gap-2 bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-dark-textSecondary">
+                      <label htmlFor="motors-style-select" className="whitespace-nowrap">עיצוב וידג'ט:</label>
+                      <div className="relative">
+                        <select
+                          id="motors-style-select"
+                          value={motorsStyle}
+                          onChange={async (e) => {
+                            const newStyle = e.target.value as MotorsStyle
+                            setMotorsStyle(newStyle)
+                            await updateMotorsStyle(newStyle)
+                            window.dispatchEvent(new Event('widgets-changed'))
+                          }}
+                          className="appearance-none bg-dark-bg text-white border border-dark-border rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="list">רשימה</option>
+                          <option value="card">כרטיסים</option>
+                          <option value="compact">קומפקטי</option>
+                        </select>
+                        <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-dark-textSecondary pointer-events-none" />
+                      </div>
+                    </div>
                     {hasUnsavedChanges && (
                       <button
                         onClick={async () => {
@@ -1436,7 +1479,7 @@ const Settings = () => {
                       </div>
                       <div className="font-medium text-white">Motors</div>
                     </div>
-                    <MotorsPreview configs={motorConfigs} />
+                    <MotorsPreview configs={motorConfigs} style={motorsStyle} demo={showMotorsDemo} />
                   </div>
                 </div>
               </div>
