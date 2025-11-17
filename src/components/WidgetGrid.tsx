@@ -20,6 +20,7 @@ import SensorsWidget from './widgets/SensorsWidget'
 import MotorWidget from './widgets/MotorWidget'
 import BoseWidget from './widgets/BoseWidget'
 import VacuumWidget from './widgets/VacuumWidget'
+import CamerasWidget from './widgets/CamerasWidget'
 import { getDashboardLayout, getDashboardLayoutSync, updateWidgetLayout, saveDashboardLayout, WidgetLayout } from '../services/widgetLayout'
 import { GripVertical, Pencil, X } from 'lucide-react'
 
@@ -42,6 +43,7 @@ const widgetComponents: Record<string, React.ComponentType<any>> = {
   'motors': MotorWidget,
   'bose': BoseWidget,
   'vacuum': VacuumWidget,
+  'cameras': CamerasWidget,
 }
 
 const WidgetGrid = () => {

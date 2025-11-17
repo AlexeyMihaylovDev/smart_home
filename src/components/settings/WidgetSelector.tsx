@@ -37,18 +37,7 @@ const WidgetSelector = ({
           .map((widget) => {
             const widgetId = widget.id || ''
             const enabled = widgetEnabledStates[widgetId] ?? isWidgetEnabledSync(widgetId)
-            return { ...widget, enabled }
-          })
-          .sort((a, b) => {
-            // Сначала включенные виджеты
-            if (a.enabled && !b.enabled) return -1
-            if (!a.enabled && b.enabled) return 1
-            return 0
-          })
-          .map((widget) => {
             const Icon = widget.icon
-            const widgetId = widget.id || ''
-            const enabled = widget.enabled
             return (
               <div
                 key={widget.id}

@@ -54,10 +54,16 @@ export interface VacuumConfig {
   }>
 }
 
+export interface CameraConfig {
+  entityId: string | null
+  name: string
+}
+
 export type AmbientLightingStyle = 'list' | 'cards' | 'compact' | 'minimal'
 export type WaterHeaterStyle = 'compact' | 'card' | 'minimal' | 'modern'
 export type SensorsStyle = 'list' | 'card' | 'compact' | 'grid'
 export type MotorsStyle = 'list' | 'card' | 'compact'
+export type CamerasStyle = 'list' | 'card' | 'compact' | 'grid'
 
 export interface SpotifyConfig {
   accountName: string
@@ -100,6 +106,10 @@ export interface WidgetConfig {
   }
   vacuum: {
     vacuums: VacuumConfig[]
+  }
+  cameras: {
+    cameras: CameraConfig[]
+    style?: CamerasStyle
   }
   enabledWidgets: {
     [widgetId: string]: boolean
@@ -151,6 +161,10 @@ const DEFAULT_CONFIG: WidgetConfig = {
   },
   vacuum: {
     vacuums: []
+  },
+  cameras: {
+    cameras: [],
+    style: 'grid'
   },
   enabledWidgets: {},
   navigationIcons: {
@@ -579,5 +593,39 @@ export const updateNavigationIcons = async (icons: NavigationIcon[]): Promise<vo
     config.navigationIcons = { icons: [] }
   }
   config.navigationIcons.icons = icons
+  await saveWidgetConfig(config)
+}
+
+export const getCameraConfigs = async (): Promise<CameraConfig[]> => {
+  const config = await getWidgetConfig()
+  return config.cameras?.cameras || []
+}
+
+export const getCameraConfigsSync = (): CameraConfig[] => {
+  const config = getWidgetConfigSync()
+  return config.cameras?.cameras || []
+}
+
+export const updateCameraConfigs = async (cameras: CameraConfig[]): Promise<void> => {
+  const config = await getWidgetConfig()
+  if (!config.cameras) {
+    config.cameras = { cameras: [], style: 'grid' }
+  }
+  config.cameras.cameras = cameras
+  await saveWidgetConfig(config)
+}
+
+export const getCamerasStyleSync = (): CamerasStyle => {
+  const config = getWidgetConfigSync()
+  return config.cameras?.style || 'grid'
+}
+
+export const updateCamerasStyle = async (style: CamerasStyle): Promise<void> => {
+  const config = await getWidgetConfig()
+  if (!config.cameras) {
+    config.cameras = { cameras: [], style }
+  } else {
+    config.cameras.style = style
+  }
   await saveWidgetConfig(config)
 }

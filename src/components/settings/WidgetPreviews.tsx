@@ -1,10 +1,11 @@
 // Preview компоненты для виджетов
 import React from 'react'
 import { Tv, Music, Wind, Droplet, Gauge, Sparkles } from 'lucide-react'
-import { ACConfig, WaterHeaterConfig, SensorConfig, MotorConfig, BoseConfig, VacuumConfig, WaterHeaterStyle, SensorsStyle, MotorsStyle } from '../../services/widgetConfig'
+import { ACConfig, WaterHeaterConfig, SensorConfig, MotorConfig, BoseConfig, VacuumConfig, CameraConfig, WaterHeaterStyle, SensorsStyle, MotorsStyle, CamerasStyle } from '../../services/widgetConfig'
 import { CompactNotConfigured, CardNotConfigured, MinimalNotConfigured, ModernNotConfigured } from '../widgets/WaterHeaterStyles'
 import { PreparedSensor, SensorsListStyle, SensorsCardStyle, SensorsCompactStyle, SensorsGridStyle, SensorsListNotConfigured, SensorsCardNotConfigured, SensorsCompactNotConfigured, SensorsGridNotConfigured } from '../widgets/SensorsStyles'
 import { PreparedMotor, MotorsListStyle, MotorsCardStyle, MotorsCompactStyle, MotorsListNotConfigured, MotorsCardNotConfigured, MotorsCompactNotConfigured } from '../widgets/MotorsStyles'
+import { PreparedCamera, CamerasListStyle, CamerasCardStyle, CamerasCompactStyle, CamerasGridStyle, CamerasListNotConfigured, CamerasCardNotConfigured, CamerasCompactNotConfigured, CamerasGridNotConfigured } from '../widgets/CamerasStyles'
 
 export const TVTimePreview = () => (
   <div className="space-y-3">
@@ -459,4 +460,62 @@ export const VacuumPreview = ({ configs }: { configs: VacuumConfig[] }) => (
     )}
   </div>
 )
+
+export const CamerasPreview = ({ configs, style, demo }: { configs: CameraConfig[], style: CamerasStyle, demo?: boolean }) => {
+  if (demo) {
+    // Mock данные для демо
+    const mockCameras: PreparedCamera[] = [
+      { id: '1', name: 'Камера входа', imageUrl: null, hasEntity: true, isOnline: true },
+      { id: '2', name: 'Камера заднего двора', imageUrl: null, hasEntity: true, isOnline: true },
+      { id: '3', name: 'Камера гаража', imageUrl: null, hasEntity: true, isOnline: false },
+    ]
+    const props = { cameras: mockCameras }
+    switch (style) {
+      case 'card':
+        return <CamerasCardStyle {...props} />
+      case 'compact':
+        return <CamerasCompactStyle {...props} />
+      case 'grid':
+        return <CamerasGridStyle {...props} />
+      case 'list':
+      default:
+        return <CamerasListStyle {...props} />
+    }
+  }
+
+  if (configs.length === 0) {
+    switch (style) {
+      case 'card':
+        return <CamerasCardNotConfigured />
+      case 'compact':
+        return <CamerasCompactNotConfigured />
+      case 'grid':
+        return <CamerasGridNotConfigured />
+      case 'list':
+      default:
+        return <CamerasListNotConfigured />
+    }
+  }
+
+  const prepared: PreparedCamera[] = configs.map((camera, index) => ({
+    id: camera.entityId || `camera-${index}`,
+    name: camera.name || 'Камера',
+    imageUrl: null, // В превью не загружаем реальные изображения
+    hasEntity: camera.entityId !== null,
+    isOnline: camera.entityId !== null, // Предполагаем онлайн, если настроен
+  }))
+
+  const props = { cameras: prepared }
+  switch (style) {
+    case 'card':
+      return <CamerasCardStyle {...props} />
+    case 'compact':
+      return <CamerasCompactStyle {...props} />
+    case 'grid':
+      return <CamerasGridStyle {...props} />
+    case 'list':
+    default:
+      return <CamerasListStyle {...props} />
+  }
+}
 

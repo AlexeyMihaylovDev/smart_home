@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
 import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock, Navigation, Plus, Sparkles, ChevronDown } from 'lucide-react'
-import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getWaterHeaterStyleSync, updateWaterHeaterStyle, WaterHeaterStyle, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getSensorsStyleSync, updateSensorsStyle, SensorsStyle, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getMotorsStyleSync, updateMotorsStyle, MotorsStyle, getSpotifyConfigSync, updateSpotifyConfig, SpotifyConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
+import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getWaterHeaterStyleSync, updateWaterHeaterStyle, WaterHeaterStyle, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getSensorsStyleSync, updateSensorsStyle, SensorsStyle, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getMotorsStyleSync, updateMotorsStyle, MotorsStyle, getSpotifyConfigSync, updateSpotifyConfig, SpotifyConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, getCameraConfigsSync, updateCameraConfigs, CameraConfig, getCamerasStyleSync, updateCamerasStyle, CamerasStyle, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
 import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 import ToggleSwitch from './ui/ToggleSwitch'
 import Toast from './ui/Toast'
@@ -13,7 +13,7 @@ import WidgetSelector, { WidgetType, WidgetOption } from './settings/WidgetSelec
 import {
   TVTimePreview, MediaPlayerPreview, SpotifyPreview, MediaRoomPreview, CanvasPreview,
   TVPreviewWidget, PlexPreview, TVDurationPreview, WeatherCalendarPreview, LivingRoomPreview,
-  ACPreview, WaterHeaterPreview, SensorsPreview, MotorsPreview, BosePreview, VacuumPreview
+  ACPreview, WaterHeaterPreview, SensorsPreview, MotorsPreview, BosePreview, VacuumPreview, CamerasPreview
 } from './settings/WidgetPreviews'
 
 type Tab = 'devices' | 'widgets' | 'navigation' | 'home-assistant'
@@ -161,6 +161,21 @@ const Settings = () => {
       return []
     }
   })
+  const [cameraConfigs, setCameraConfigs] = useState<CameraConfig[]>(() => {
+    try {
+      return getCameraConfigsSync()
+    } catch {
+      return []
+    }
+  })
+  const [camerasStyle, setCamerasStyle] = useState<CamerasStyle>(() => {
+    try {
+      return getCamerasStyleSync()
+    } catch {
+      return 'grid'
+    }
+  })
+  const [showCamerasDemo, setShowCamerasDemo] = useState(false)
   const [haUrl, setHaUrl] = useState('http://192.168.3.12:8123')
   const [haToken, setHaToken] = useState('')
   const [haLoading, setHaLoading] = useState(false)
@@ -351,6 +366,10 @@ const Settings = () => {
     setBoseConfigs(bose && Array.isArray(bose) ? bose : [])
     const vacuum = getVacuumConfigsSync()
     setVacuumConfigs(vacuum && Array.isArray(vacuum) ? vacuum : [])
+    const cameras = getCameraConfigsSync()
+    setCameraConfigs(cameras && Array.isArray(cameras) ? cameras : [])
+    const camerasStyleValue = getCamerasStyleSync()
+    setCamerasStyle(camerasStyleValue)
   }
 
   useEffect(() => {
@@ -2578,24 +2597,202 @@ const Settings = () => {
             </div>
           )}
           {selectedWidget === 'cameras' && (
-            <div className="bg-dark-card rounded-lg border border-dark-border p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <button
-                  onClick={() => setSelectedWidget(null)}
-                  className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
-                  title="Вернуться к выбору виджета"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-                <div>
-                  <h2 className="font-medium text-lg">Cameras Widget</h2>
-                  <p className="text-sm text-dark-textSecondary mt-1">
-                    Настройка виджета камер
-                  </p>
+            <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
+              <div className="p-4 border-b border-dark-border">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setSelectedWidget(null)}
+                      className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
+                      title="Вернуться к выбору виджета"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                      <h2 className="font-medium text-lg">Cameras Widget</h2>
+                      <p className="text-sm text-dark-textSecondary mt-1">
+                        Настройка виджета камер
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const newCamera: CameraConfig = {
+                          name: `Камера ${cameraConfigs.length + 1}`,
+                          entityId: null
+                        }
+                        setCameraConfigs([...cameraConfigs, newCamera])
+                        setHasUnsavedChanges(true)
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                      title="Добавить камеру"
+                    >
+                      <Camera size={16} />
+                      Добавить камеру
+                    </button>
+                    {hasUnsavedChanges && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await updateCameraConfigs(cameraConfigs)
+                            setHasUnsavedChanges(false)
+                            window.dispatchEvent(new Event('widgets-changed'))
+                            setToast({ message: 'Настройки камер сохранены!', type: 'success' })
+                          } catch (error) {
+                            console.error('Ошибка сохранения:', error)
+                            setToast({ message: 'Ошибка сохранения настроек', type: 'error' })
+                          }
+                        }}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
+                        title="Сохранить изменения"
+                      >
+                        <Save size={16} />
+                        Сохранить
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="cameras-style-select" className="text-sm text-dark-textSecondary">
+                      Стиль отображения:
+                    </label>
+                    <select
+                      id="cameras-style-select"
+                      value={camerasStyle}
+                      onChange={(e) => {
+                        const newStyle = e.target.value as CamerasStyle
+                        setCamerasStyle(newStyle)
+                        updateCamerasStyle(newStyle)
+                        window.dispatchEvent(new Event('widgets-changed'))
+                      }}
+                      className="bg-dark-bg border border-dark-border rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="list">Список</option>
+                      <option value="card">Карточки</option>
+                      <option value="compact">Компактный</option>
+                      <option value="grid">Сетка</option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={() => setShowCamerasDemo(!showCamerasDemo)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                      showCamerasDemo
+                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                        : 'bg-dark-bg hover:bg-dark-cardHover text-dark-textSecondary border border-dark-border'
+                    }`}
+                  >
+                    <Sparkles size={16} />
+                    {showCamerasDemo ? 'Скрыть демо' : 'Показать демо'}
+                  </button>
                 </div>
               </div>
-              <div className="text-center text-dark-textSecondary py-8">
-                Настройки Cameras Widget (в разработке)
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
+                {cameraConfigs && cameraConfigs.length > 0 ? cameraConfigs.map((camera, index) => (
+                  <div key={index} className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <label className="block text-xs text-dark-textSecondary mb-1">
+                          Название камеры:
+                        </label>
+                        <input
+                          type="text"
+                          value={camera.name}
+                          onChange={(e) => {
+                            const newConfigs = [...cameraConfigs]
+                            newConfigs[index].name = e.target.value
+                            setCameraConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }}
+                          className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Название камеры"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (confirm('Удалить эту камеру?')) {
+                            const newConfigs = cameraConfigs.filter((_, i) => i !== index)
+                            setCameraConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }
+                        }}
+                        className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0 ml-2"
+                        title="Удалить эту камеру"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-dark-textSecondary mb-1">
+                        Entity ID камеры: {camera.entityId || 'Не выбрано'}
+                      </label>
+                      <SearchableSelect
+                        value={camera.entityId || ''}
+                        onChange={(selectedEntityId) => {
+                          const entityId = selectedEntityId || null
+                          let friendlyName = camera.name
+                          if (entityId) {
+                            const entity = entities.find(e => e.entity_id === entityId)
+                            if (entity && entity.attributes.friendly_name) {
+                              friendlyName = entity.attributes.friendly_name
+                            }
+                          }
+                          const newConfigs = [...cameraConfigs]
+                          newConfigs[index] = { entityId, name: friendlyName }
+                          setCameraConfigs(newConfigs)
+                          setHasUnsavedChanges(true)
+                        }}
+                        options={[
+                          { value: '', label: '-- Выберите камеру --' },
+                          ...entities
+                            .filter(e => {
+                              const domain = e.entity_id.split('.')[0]
+                              return domain === 'camera' || domain === 'image'
+                            })
+                            .map(entity => ({
+                              value: entity.entity_id,
+                              label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
+                            }))
+                        ]}
+                        placeholder="-- Выберите камеру --"
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                )) : (
+                  <div className="text-center text-dark-textSecondary py-8">
+                    <p className="mb-4">Нет камер в виджете</p>
+                    <button
+                      onClick={() => {
+                        const newCamera: CameraConfig = {
+                          name: 'Камера 1',
+                          entityId: null
+                        }
+                        setCameraConfigs([newCamera])
+                        setHasUnsavedChanges(true)
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    >
+                      Добавить первую камеру
+                    </button>
+                  </div>
+                )}
+                </div>
+                {/* Preview виджета */}
+                <div className="lg:border-l lg:border-dark-border lg:pl-4">
+                  <h3 className="text-sm font-medium text-dark-textSecondary mb-3">Превью виджета:</h3>
+                  <div className="bg-dark-bg rounded-lg border border-dark-border p-4 max-h-[60vh] overflow-y-auto">
+                    <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                      <div className="p-2 bg-blue-500/20 rounded-lg">
+                        <Camera size={18} className="text-blue-400" />
+                      </div>
+                      <div className="font-medium text-white">Cameras</div>
+                    </div>
+                    <CamerasPreview configs={cameraConfigs} style={camerasStyle} demo={showCamerasDemo} />
+                  </div>
+                </div>
               </div>
             </div>
           )}
