@@ -62,8 +62,13 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
   
   // Обработчик изменения таба с обновлением URL
   const handleTabChange = (tabId: string) => {
+    // Если мы в Settings, переключаемся на Dashboard
+    if (currentPage === 'settings') {
+      setCurrentPage('dashboard')
+    }
+    
     setCurrentTab(tabId)
-    const params = new URLSearchParams(location.search)
+    const params = new URLSearchParams()
     if (tabId === 'home') {
       params.delete('tab')
     } else {
@@ -71,9 +76,7 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
       params.set('tab', tabId)
     }
     const newSearch = params.toString()
-    const newPath = currentPage === 'dashboard' 
-      ? `/dashboard${newSearch ? `?${newSearch}` : ''}`
-      : location.pathname
+    const newPath = `/dashboard${newSearch ? `?${newSearch}` : ''}`
     navigate(newPath, { replace: true })
   }
 
@@ -119,10 +122,11 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
         onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
       />
       <div className="flex-1 flex flex-col min-w-0 lg:ml-0">
-        <TopBar 
+        <TopBar
           onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           onTabChange={handleTabChange}
-          currentTab={currentTab}
+          currentTab={currentPage === 'settings' ? undefined : currentTab}
+          currentPage={currentPage}
         />
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-dark-bg">
           {currentPage === 'dashboard' ? <WidgetGrid currentTab={currentTab} /> : <Settings />}

@@ -7,6 +7,7 @@ interface TopBarProps {
   onMenuClick?: () => void
   onTabChange?: (tabId: string) => void
   currentTab?: string
+  currentPage?: 'dashboard' | 'settings'
 }
 
 const iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -20,7 +21,7 @@ const iconMap: Record<string, React.ComponentType<{ size?: number; className?: s
   'spotify': Music,
 }
 
-const TopBar = ({ onMenuClick, onTabChange, currentTab }: TopBarProps) => {
+const TopBar = ({ onMenuClick, onTabChange, currentTab, currentPage }: TopBarProps) => {
   const [navigationIcons, setNavigationIcons] = useState<NavigationIcon[]>(() => {
     try {
       return getNavigationIconsSync()
@@ -99,7 +100,8 @@ const TopBar = ({ onMenuClick, onTabChange, currentTab }: TopBarProps) => {
           }
           
           const tabId = icon.dashboardId || icon.widgetId || icon.iconName
-          const isActive = currentTab === tabId
+          // Таб активен только если мы на dashboard и currentTab совпадает
+          const isActive = currentPage === 'dashboard' && currentTab === tabId
           
           return (
             <button
