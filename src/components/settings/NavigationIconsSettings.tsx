@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { GripVertical, Home, Globe, Camera, Sparkles, Plus, X, Settings } from 'lucide-react'
+import { GripVertical, Home, Globe, Camera, Sparkles, Plus, X, Settings, Save, Check } from 'lucide-react'
 import { NavigationIcon, getNavigationIconsSync, updateNavigationIcons, isWidgetEnabledSync } from '../../services/widgetConfig'
 import ToggleSwitch from '../ui/ToggleSwitch'
 import { WidgetOption } from './WidgetSelector'
@@ -20,11 +20,18 @@ const NavigationIconsSettings = ({ onIconsChange, widgetOptions = [] }: Navigati
   const [draggedIcon, setDraggedIcon] = useState<string | null>(null)
   const [showAddWidget, setShowAddWidget] = useState(false)
   const [expandedDashboard, setExpandedDashboard] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
+  const [hasChanges, setHasChanges] = useState(false)
 
   useEffect(() => {
     const handleIconsChange = () => {
       try {
-        setNavigationIcons(getNavigationIconsSync())
+        const newIcons = getNavigationIconsSync()
+        setNavigationIcons(newIcons)
+        // Если данные изменились извне, сбрасываем флаг изменений
+        setHasChanges(false)
+        setIsSaved(false)
       } catch (error) {
         console.error('Ошибка обновления навигационных иконок:', error)
       }
@@ -66,41 +73,77 @@ const NavigationIconsSettings = ({ onIconsChange, widgetOptions = [] }: Navigati
     }
     const updatedIcons = [...navigationIcons, newIcon]
     setNavigationIcons(updatedIcons)
-    updateNavigationIcons(updatedIcons)
-    window.dispatchEvent(new Event('navigation-icons-changed'))
+    setHasChanges(true)
+    setIsSaved(false)
     setShowAddWidget(false)
-    onIconsChange?.()
   }
   
   const handleUpdateDashboardWidgets = (iconId: string, widgets: string[]) => {
     const updatedIcons = navigationIcons.map(icon =>
       icon.id === iconId ? { ...icon, widgets } : icon
     )
-    // Сначала обновляем состояние синхронно
+    // Обновляем состояние локально, но не сохраняем автоматически
     setNavigationIcons(updatedIcons)
-    // Затем сохраняем асинхронно
-    updateNavigationIcons(updatedIcons).then(() => {
+    setHasChanges(true)
+    setIsSaved(false)
+  }
+  
+  const handleSave = async () => {
+    if (!hasChanges) return
+    
+    setIsSaving(true)
+    try {
+      await updateNavigationIcons(navigationIcons)
       window.dispatchEvent(new Event('navigation-icons-changed'))
+      setHasChanges(false)
+      setIsSaved(true)
       onIconsChange?.()
-    }).catch(() => {
-      // В случае ошибки все равно обновляем события
-      window.dispatchEvent(new Event('navigation-icons-changed'))
-      onIconsChange?.()
-    })
+      
+      // Скрываем сообщение об успешном сохранении через 2 секунды
+      setTimeout(() => {
+        setIsSaved(false)
+      }, 2000)
+    } catch (error) {
+      console.error('Ошибка сохранения навигационных иконок:', error)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleRemoveIcon = (iconId: string) => {
     const updatedIcons = navigationIcons.filter(icon => icon.id !== iconId)
       .map((icon, idx) => ({ ...icon, order: idx }))
     setNavigationIcons(updatedIcons)
-    updateNavigationIcons(updatedIcons)
-    window.dispatchEvent(new Event('navigation-icons-changed'))
-    onIconsChange?.()
+    setHasChanges(true)
+    setIsSaved(false)
   }
 
   return (
     <div className="bg-dark-card rounded-lg border border-dark-border p-6">
-      <h2 className="text-xl font-bold mb-4">Группировка навигационных иконок</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold">Группировка навигационных иконок</h2>
+        <div className="flex items-center gap-2">
+          {isSaved && (
+            <div className="flex items-center gap-1.5 text-green-400 text-sm">
+              <Check size={16} />
+              <span>נשמר</span>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving || !hasChanges}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              isSaving || !hasChanges
+                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
+          >
+            <Save size={16} />
+            <span>{isSaving ? 'שומר...' : 'שמור'}</span>
+          </button>
+        </div>
+      </div>
       <p className="text-sm text-dark-textSecondary mb-6">
         Перетащите иконки для изменения порядка. Включите/выключите иконки для отображения в навигации.
       </p>
@@ -137,11 +180,11 @@ const NavigationIconsSettings = ({ onIconsChange, widgetOptions = [] }: Navigati
                       const newIcons = [...navigationIcons]
                       const [removed] = newIcons.splice(draggedIndex, 1)
                       newIcons.splice(targetIndex, 0, removed)
-                      const updatedIcons = newIcons.map((ic, idx) => ({ ...ic, order: idx }))
-                      setNavigationIcons(updatedIcons)
-                      updateNavigationIcons(updatedIcons)
-                      setDraggedIcon(null)
-                      onIconsChange?.()
+                    const updatedIcons = newIcons.map((ic, idx) => ({ ...ic, order: idx }))
+                    setNavigationIcons(updatedIcons)
+                    setHasChanges(true)
+                    setIsSaved(false)
+                    setDraggedIcon(null)
                     }
                   }}
                   onDragEnd={() => setDraggedIcon(null)}
@@ -172,13 +215,12 @@ const NavigationIconsSettings = ({ onIconsChange, widgetOptions = [] }: Navigati
                     <ToggleSwitch
                       checked={icon.enabled}
                       onChange={async () => {
-                        const updatedIcons = navigationIcons.map(i =>
-                          i.id === icon.id ? { ...i, enabled: !i.enabled } : i
-                        )
-                        setNavigationIcons(updatedIcons)
-                        await updateNavigationIcons(updatedIcons)
-                        window.dispatchEvent(new Event('navigation-icons-changed'))
-                        onIconsChange?.()
+                      const updatedIcons = navigationIcons.map(i =>
+                        i.id === icon.id ? { ...i, enabled: !i.enabled } : i
+                      )
+                      setNavigationIcons(updatedIcons)
+                      setHasChanges(true)
+                      setIsSaved(false)
                       }}
                     />
                   </div>
