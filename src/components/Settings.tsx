@@ -1544,22 +1544,27 @@ const Settings = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <button
                       onClick={() => {
                         const newVacuum: VacuumConfig = {
                           name: `שואב אבק ${vacuumConfigs.length + 1}`,
                           entityId: null,
-                          mapEntityId: null
+                          mapEntityId: null,
+                          relatedEntities: []
                         }
                         setVacuumConfigs([...vacuumConfigs, newVacuum])
                         setHasUnsavedChanges(true)
+                        setToast({ 
+                          message: `נוסף שואב אבק ${vacuumConfigs.length + 1}. ניתן להוסיף עוד שואבי אבק ללא הגבלה.`, 
+                          type: 'success' 
+                        })
                       }}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
-                      title="הוסף שואב אבק חדש"
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg hover:shadow-xl"
+                      title="הוסף שואב אבק חדש (ללא הגבלה)"
                     >
                       <Navigation size={16} />
-                      הוסף שואב אבק
+                      הוסף שואב אבק ({vacuumConfigs.length} נוספו)
                     </button>
                     {hasUnsavedChanges && (
                       <button
@@ -2127,17 +2132,26 @@ const Settings = () => {
                 )) : (
                   <div className="text-center text-dark-textSecondary py-8">
                     <p className="mb-4">אין שואב אבק בווידג'ט</p>
+                    <p className="text-xs mb-4 text-dark-textSecondary">
+                      ניתן להוסיף מספר בלתי מוגבל של שואבי אבק
+                    </p>
                     <button
                       onClick={() => {
                         const newVacuum: VacuumConfig = {
                           name: 'שואב אבק 1',
                           entityId: null,
-                          mapEntityId: null
+                          mapEntityId: null,
+                          relatedEntities: []
                         }
                         setVacuumConfigs([newVacuum])
                         setHasUnsavedChanges(true)
+                        setToast({ 
+                          message: 'נוסף שואב אבק ראשון. ניתן להוסיף עוד שואבי אבק ללא הגבלה.', 
+                          type: 'success' 
+                        })
                       }}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 shadow-lg hover:shadow-xl mx-auto"
+                      title="הוסף שואב אבק ראשון"
                     >
                       <Navigation size={16} />
                       הוסף שואב אבק ראשון
