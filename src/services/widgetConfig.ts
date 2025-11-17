@@ -56,6 +56,18 @@ export interface VacuumConfig {
 
 export type AmbientLightingStyle = 'list' | 'cards' | 'compact' | 'minimal'
 export type WaterHeaterStyle = 'compact' | 'card' | 'minimal' | 'modern'
+export type SensorsStyle = 'list' | 'card' | 'compact' | 'grid'
+export type MotorsStyle = 'list' | 'card' | 'compact'
+
+export interface SpotifyConfig {
+  accountName: string
+  trackName: string
+  artistName: string
+  deviceName: string
+  coverEmoji: string
+  isPlaying: boolean
+  progress: number
+}
 
 export interface NavigationIcon {
   id: string
@@ -82,6 +94,7 @@ export interface WidgetConfig {
     motors: MotorConfig[]
     style?: MotorsStyle
   }
+  spotify: SpotifyConfig
   bose: {
     soundbars: BoseConfig[]
   }
@@ -123,6 +136,15 @@ const DEFAULT_CONFIG: WidgetConfig = {
   motors: {
     motors: [],
     style: 'list'
+  },
+  spotify: {
+    accountName: 'Spotify Heta Sanghvi',
+    trackName: 'Arms',
+    artistName: 'The Paper Kites',
+    deviceName: 'Office',
+    coverEmoji: '🎵',
+    isPlaying: true,
+    progress: 45
   },
   bose: {
     soundbars: []
@@ -484,6 +506,22 @@ export const updateMotorsStyle = async (style: MotorsStyle): Promise<void> => {
   } else {
     config.motors.style = style
   }
+  await saveWidgetConfig(config)
+}
+
+export const getSpotifyConfig = async (): Promise<SpotifyConfig> => {
+  const config = await getWidgetConfig()
+  return config.spotify || DEFAULT_CONFIG.spotify
+}
+
+export const getSpotifyConfigSync = (): SpotifyConfig => {
+  const config = getWidgetConfigSync()
+  return config.spotify || DEFAULT_CONFIG.spotify
+}
+
+export const updateSpotifyConfig = async (spotifyConfig: SpotifyConfig): Promise<void> => {
+  const config = await getWidgetConfig()
+  config.spotify = spotifyConfig
   await saveWidgetConfig(config)
 }
 

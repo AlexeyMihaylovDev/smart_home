@@ -39,17 +39,31 @@ export const MediaPlayerPreview = () => (
   </div>
 )
 
-export const SpotifyPreview = () => (
+export const SpotifyPreview = ({ config }: { config: SpotifyConfig }) => (
   <div className="space-y-3">
     <div className="p-3 bg-dark-card rounded-lg border border-dark-border">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
-          <Music size={24} className="text-green-400" />
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center text-2xl">
+            {config.coverEmoji || '🎵'}
+          </div>
+          <div>
+            <div className="text-sm font-medium text-white">{config.accountName}</div>
+            <div className="text-xs text-dark-textSecondary">
+              {config.trackName} — {config.artistName}
+            </div>
+          </div>
         </div>
-        <div className="flex-1">
-          <div className="text-sm font-medium text-white">Spotify</div>
-          <div className="text-xs text-dark-textSecondary">Не настроен</div>
-        </div>
+        <div className="text-xs text-dark-textSecondary">{config.deviceName}</div>
+      </div>
+      <div className="w-full bg-dark-bg/50 h-1.5 rounded-full overflow-hidden mb-1">
+        <div
+          className="h-full bg-gradient-to-r from-green-500 to-blue-500 rounded-full"
+          style={{ width: `${config.progress}%` }}
+        />
+      </div>
+      <div className="text-[10px] text-dark-textSecondary">
+        {config.isPlaying ? 'Воспроизведение' : 'На паузе'}
       </div>
     </div>
   </div>
