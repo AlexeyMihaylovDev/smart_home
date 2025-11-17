@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
-import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock, Navigation, Plus, Sparkles } from 'lucide-react'
+import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock, Navigation, Plus, Sparkles, ChevronDown } from 'lucide-react'
 import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getWaterHeaterStyleSync, updateWaterHeaterStyle, WaterHeaterStyle, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getSensorsStyleSync, updateSensorsStyle, SensorsStyle, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
 import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 import ToggleSwitch from './ui/ToggleSwitch'
@@ -1030,23 +1030,26 @@ const Settings = () => {
                       {showSensorsDemo ? 'Demo ON' : 'Demo'}
                     </button>
                     <div className="flex items-center gap-2 bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-dark-textSecondary">
-                      <label htmlFor="sensors-style-select">עיצוב וידג'ט:</label>
-                      <select
-                        id="sensors-style-select"
-                        value={sensorsStyle}
-                        onChange={async (e) => {
-                          const newStyle = e.target.value as SensorsStyle
-                          setSensorsStyle(newStyle)
-                          await updateSensorsStyle(newStyle)
-                          window.dispatchEvent(new Event('widgets-changed'))
-                        }}
-                        className="bg-transparent outline-none text-white"
-                      >
-                        <option value="list">רשימה</option>
-                        <option value="card">כרטיסים</option>
-                        <option value="compact">קומפקטי</option>
-                        <option value="grid">Grid</option>
-                      </select>
+                      <label htmlFor="sensors-style-select" className="whitespace-nowrap">עיצוב וידג'ט:</label>
+                      <div className="relative">
+                        <select
+                          id="sensors-style-select"
+                          value={sensorsStyle}
+                          onChange={async (e) => {
+                            const newStyle = e.target.value as SensorsStyle
+                            setSensorsStyle(newStyle)
+                            await updateSensorsStyle(newStyle)
+                            window.dispatchEvent(new Event('widgets-changed'))
+                          }}
+                          className="appearance-none bg-dark-bg text-white border border-dark-border rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="list">רשימה</option>
+                          <option value="card">כרטיסים</option>
+                          <option value="compact">קומפקטי</option>
+                          <option value="grid">Grid</option>
+                        </select>
+                        <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-dark-textSecondary pointer-events-none" />
+                      </div>
                     </div>
                     {hasUnsavedChanges && (
                       <button
