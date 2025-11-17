@@ -1,8 +1,9 @@
 // Preview компоненты для виджетов
 import React from 'react'
-import { Tv, Music, Wind, Droplet, Activity, User, Gauge, Sparkles, Radio, Waves, Battery, BatteryLow, BatteryMedium, BatteryFull } from 'lucide-react'
-import { ACConfig, WaterHeaterConfig, SensorConfig, MotorConfig, BoseConfig, VacuumConfig, WaterHeaterStyle } from '../../services/widgetConfig'
+import { Tv, Music, Wind, Droplet, Gauge, Sparkles } from 'lucide-react'
+import { ACConfig, WaterHeaterConfig, SensorConfig, MotorConfig, BoseConfig, VacuumConfig, WaterHeaterStyle, SensorsStyle } from '../../services/widgetConfig'
 import { CompactNotConfigured, CardNotConfigured, MinimalNotConfigured, ModernNotConfigured } from '../widgets/WaterHeaterStyles'
+import { PreparedSensor, SensorsListStyle, SensorsCardStyle, SensorsCompactStyle, SensorsGridStyle, SensorsListNotConfigured, SensorsCardNotConfigured, SensorsCompactNotConfigured, SensorsGridNotConfigured } from '../widgets/SensorsStyles'
 
 export const TVTimePreview = () => (
   <div className="space-y-3">
@@ -227,84 +228,28 @@ export const WaterHeaterPreview = ({ config, style }: { config: WaterHeaterConfi
   )
 }
 
-export const SensorsPreview = ({ configs = [], demo = false }: { configs: SensorConfig[], demo?: boolean }) => {
+export const SensorsPreview = ({ configs = [], demo = false, style = 'list' }: { configs: SensorConfig[], demo?: boolean, style?: SensorsStyle }) => {
   if (demo) {
-    type DemoSensor = SensorConfig & { status: 'active' | 'inactive', batteryLevel?: number | null }
-    const motionSensors: DemoSensor[] = [
-      { name: 'חיישן תנועה סלון', entityId: 'demo.motion.living', type: 'motion', powerType: 'electric', status: 'active' },
-      { name: 'חיישן תנועה מסדרון', entityId: 'demo.motion.hall', type: 'motion', powerType: 'battery', batteryEntityId: 'demo.motion.hall.battery', batteryLevel: 58, status: 'inactive' }
-    ]
-    const presenceSensors: DemoSensor[] = [
-      { name: 'חיישן נוכחות 1', entityId: 'demo.presence.office', type: 'presence', powerType: 'electric', status: 'active' },
-      { name: 'חיישן נוכחות 2', entityId: null, type: 'presence', powerType: 'battery', batteryEntityId: 'demo.presence.hall.battery', batteryLevel: 15, status: 'inactive' }
+    const demoSensors: PreparedSensor[] = [
+      { id: 'motion-1', name: 'חיישן תנועה סלון', type: 'motion', isActive: true, hasEntity: true, powerType: 'electric', batteryLevel: null },
+      { id: 'motion-2', name: 'חיישן תנועה מסדרון', type: 'motion', isActive: false, hasEntity: true, powerType: 'battery', batteryLevel: 58 },
+      { id: 'presence-1', name: 'חיישן נוכחות 1', type: 'presence', isActive: true, hasEntity: true, powerType: 'electric', batteryLevel: null },
+      { id: 'presence-2', name: 'חיישן נוכחות 2', type: 'presence', isActive: false, hasEntity: false, powerType: 'battery', batteryLevel: 15 },
     ]
 
-    const getBatteryIcon = (level: number | undefined | null) => {
-      if (level === undefined || level === null) return Battery
-      if (level <= 20) return BatteryLow
-      if (level <= 50) return BatteryMedium
-      if (level <= 80) return BatteryMedium
-      return BatteryFull
-    }
-
-    const getBatteryColor = (level: number | undefined | null) => {
-      if (level === undefined || level === null) return 'text-gray-500'
-      if (level <= 20) return 'text-red-400'
-      if (level <= 40) return 'text-yellow-400'
-      return 'text-green-400'
-    }
-
-    const renderSensorRow = (sensor: DemoSensor, domain: 'motion' | 'presence') => {
-      const isActive = sensor.status === 'active'
-      const batteryLevel = sensor.powerType === 'battery' ? (sensor.batteryLevel ?? null) : null
-      const BatteryIcon = getBatteryIcon(batteryLevel)
-      const batteryColor = getBatteryColor(batteryLevel)
-
-      return (
-        <div
-          key={sensor.name}
-          className="flex items-center justify-between p-2.5 rounded-lg border border-dark-border bg-dark-card/40 hover:bg-dark-card transition-colors"
-        >
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className={`p-1.5 rounded-lg flex-shrink-0 ${
-              isActive
-                ? domain === 'motion' ? 'bg-blue-500/20' : 'bg-green-500/20'
-                : 'bg-gray-500/20'
-            }`}>
-              {domain === 'motion' ? (
-                <Radio size={14} className={isActive ? 'text-blue-400' : 'text-gray-400'} />
-              ) : isActive ? (
-                <Activity size={14} className="text-green-400" />
-              ) : (
-                <User size={14} className="text-gray-400" />
-              )}
-            </div>
-            <div className="min-w-0">
-              <div className={`text-sm truncate ${isActive ? 'text-white font-medium' : 'text-dark-textSecondary'}`}>
-                {sensor.name}
-              </div>
-              <div className="text-xs text-dark-textSecondary">
-                {sensor.entityId ? 'מחובר ל-Home Assistant' : 'לא מוגדר'}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {sensor.powerType === 'battery' && (
-              <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full bg-dark-bg border border-dark-border text-xs ${batteryColor}`}>
-                <BatteryIcon size={12} />
-                <span>{batteryLevel !== null ? `${batteryLevel}%` : '--'}</span>
-              </div>
-            )}
-            <div className={`px-2 py-1 rounded text-xs font-medium ${
-              isActive
-                ? domain === 'motion' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'
-                : 'bg-gray-500/20 text-gray-400'
-            }`}>
-              {domain === 'motion' ? (isActive ? 'פעיל' : 'לא פעיל') : (isActive ? 'נוכח' : 'נעדר')}
-            </div>
-          </div>
-        </div>
-      )
+    const renderDemoByStyle = () => {
+      const props = { sensors: demoSensors }
+      switch (style) {
+        case 'card':
+          return <SensorsCardStyle {...props} />
+        case 'compact':
+          return <SensorsCompactStyle {...props} />
+        case 'grid':
+          return <SensorsGridStyle {...props} />
+        case 'list':
+        default:
+          return <SensorsListStyle {...props} />
+      }
     }
 
     return (
@@ -313,63 +258,51 @@ export const SensorsPreview = ({ configs = [], demo = false }: { configs: Sensor
           <Sparkles size={14} className="text-purple-400" />
           Показан демо-режим: пример того, как виджет Sensors выглядит на панели
         </div>
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-1.5 rounded-lg bg-blue-500/20">
-              <Radio size={16} className="text-blue-400" />
-            </div>
-            <div className="font-medium text-white text-sm">Датчики движения</div>
-            <span className="text-xs text-dark-textSecondary">2 חיישנים</span>
-          </div>
-          <div className="space-y-2">
-            {motionSensors.map(sensor => renderSensorRow(sensor, 'motion'))}
-          </div>
-        </div>
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-1.5 rounded-lg bg-green-500/20">
-              <Waves size={16} className="text-green-400" />
-            </div>
-            <div className="font-medium text-white text-sm">חיישני נוכחות</div>
-            <span className="text-xs text-dark-textSecondary">2 חיישנים</span>
-          </div>
-          <div className="space-y-2">
-            {presenceSensors.map(sensor => renderSensorRow(sensor, 'presence'))}
-          </div>
-        </div>
+        {renderDemoByStyle()}
       </div>
     )
   }
 
-  return (
-    <div className="space-y-3">
-      {configs.length > 0 ? configs.map((sensor, index) => (
-        <div key={index} className="p-3 bg-dark-card rounded-lg border border-dark-border">
-          <div className="flex items-center gap-3 mb-2">
-            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-              sensor.type === 'motion' ? 'bg-blue-500/20' : 'bg-green-500/20'
-            }`}>
-              {sensor.type === 'motion' ? (
-                <Activity size={24} className="text-blue-400" />
-              ) : (
-                <User size={24} className="text-green-400" />
-              )}
-            </div>
-            <div className="flex-1">
-              <div className="text-sm font-medium text-white">{sensor.name || 'Датчик'}</div>
-              <div className="text-xs text-dark-textSecondary">
-                {sensor.entityId ? 'Настроен' : 'Не настроен'}
-              </div>
-            </div>
-          </div>
-        </div>
-      )) : (
-        <div className="p-3 bg-dark-card rounded-lg border border-dark-border">
-          <div className="text-sm text-dark-textSecondary">Нет настроенных датчиков</div>
-        </div>
-      )}
-    </div>
-  )
+  const preparedSensors: PreparedSensor[] = configs.map((sensor, index) => ({
+    id: sensor.entityId || `sensor-preview-${index}`,
+    name: sensor.name || `חיישן ${index + 1}`,
+    type: sensor.type,
+    isActive: !!sensor.entityId,
+    hasEntity: sensor.entityId !== null,
+    powerType: sensor.powerType || 'electric',
+    batteryLevel: sensor.powerType === 'battery' ? 75 : null,
+  }))
+
+  const renderByStyle = () => {
+    if (preparedSensors.length === 0) {
+      switch (style) {
+        case 'card':
+          return <SensorsCardNotConfigured />
+        case 'compact':
+          return <SensorsCompactNotConfigured />
+        case 'grid':
+          return <SensorsGridNotConfigured />
+        case 'list':
+        default:
+          return <SensorsListNotConfigured />
+      }
+    }
+
+    const props = { sensors: preparedSensors }
+    switch (style) {
+      case 'card':
+        return <SensorsCardStyle {...props} />
+      case 'compact':
+        return <SensorsCompactStyle {...props} />
+      case 'grid':
+        return <SensorsGridStyle {...props} />
+      case 'list':
+      default:
+        return <SensorsListStyle {...props} />
+    }
+  }
+
+  return renderByStyle()
 }
 
 export const MotorsPreview = ({ configs }: { configs: MotorConfig[] }) => (

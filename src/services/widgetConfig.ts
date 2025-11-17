@@ -18,6 +18,8 @@ export interface WaterHeaterConfig {
   style?: WaterHeaterStyle
 }
 
+export type SensorsStyle = 'list' | 'card' | 'compact' | 'grid'
+
 export interface SensorConfig {
   name: string
   entityId: string | null
@@ -71,6 +73,7 @@ export interface WidgetConfig {
   waterHeater: WaterHeaterConfig
   sensors: {
     sensors: SensorConfig[]
+    style?: SensorsStyle
   }
   motors: {
     motors: MotorConfig[]
@@ -110,7 +113,8 @@ const DEFAULT_CONFIG: WidgetConfig = {
     style: 'compact'
   },
   sensors: {
-    sensors: []
+    sensors: [],
+    style: 'list'
   },
   motors: {
     motors: []
@@ -407,9 +411,24 @@ export const getSensorsConfigSync = (): SensorConfig[] => {
 export const updateSensorsConfig = async (sensors: SensorConfig[]): Promise<void> => {
   const config = await getWidgetConfig()
   if (!config.sensors) {
-    config.sensors = { sensors: [] }
+    config.sensors = { sensors: [], style: 'list' }
   }
   config.sensors.sensors = sensors
+  await saveWidgetConfig(config)
+}
+
+export const getSensorsStyleSync = (): SensorsStyle => {
+  const config = getWidgetConfigSync()
+  return config.sensors?.style || 'list'
+}
+
+export const updateSensorsStyle = async (style: SensorsStyle): Promise<void> => {
+  const config = await getWidgetConfig()
+  if (!config.sensors) {
+    config.sensors = { sensors: [], style }
+  } else {
+    config.sensors.style = style
+  }
   await saveWidgetConfig(config)
 }
 

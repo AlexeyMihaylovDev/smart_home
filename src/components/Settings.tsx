@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
 import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock, Navigation, Plus, Sparkles } from 'lucide-react'
-import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getWaterHeaterStyleSync, updateWaterHeaterStyle, WaterHeaterStyle, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
+import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getWaterHeaterStyleSync, updateWaterHeaterStyle, WaterHeaterStyle, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getSensorsStyleSync, updateSensorsStyle, SensorsStyle, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
 import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 import ToggleSwitch from './ui/ToggleSwitch'
 import Toast from './ui/Toast'
@@ -107,6 +107,13 @@ const Settings = () => {
       return getSensorsConfigSync()
     } catch {
       return []
+    }
+  })
+  const [sensorsStyle, setSensorsStyle] = useState<SensorsStyle>(() => {
+    try {
+      return getSensorsStyleSync()
+    } catch {
+      return 'list'
     }
   })
   const [showSensorsDemo, setShowSensorsDemo] = useState(false)
@@ -309,6 +316,8 @@ const Settings = () => {
     setWaterHeaterStyle(whStyle)
     const sensors = getSensorsConfigSync()
     setSensorConfigs(sensors && Array.isArray(sensors) ? sensors : [])
+    const sensorsStyleValue = getSensorsStyleSync()
+    setSensorsStyle(sensorsStyleValue)
     const motors = getMotorConfigsSync()
     setMotorConfigs(motors && Array.isArray(motors) ? motors : [])
     const bose = getBoseConfigsSync()
@@ -1020,6 +1029,25 @@ const Settings = () => {
                       <Sparkles size={16} />
                       {showSensorsDemo ? 'Demo ON' : 'Demo'}
                     </button>
+                    <div className="flex items-center gap-2 bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-dark-textSecondary">
+                      <label htmlFor="sensors-style-select">עיצוב וידג'ט:</label>
+                      <select
+                        id="sensors-style-select"
+                        value={sensorsStyle}
+                        onChange={async (e) => {
+                          const newStyle = e.target.value as SensorsStyle
+                          setSensorsStyle(newStyle)
+                          await updateSensorsStyle(newStyle)
+                          window.dispatchEvent(new Event('widgets-changed'))
+                        }}
+                        className="bg-transparent outline-none text-white"
+                      >
+                        <option value="list">רשימה</option>
+                        <option value="card">כרטיסים</option>
+                        <option value="compact">קומפקטי</option>
+                        <option value="grid">Grid</option>
+                      </select>
+                    </div>
                     {hasUnsavedChanges && (
                       <button
                         onClick={async () => {
@@ -1239,7 +1267,7 @@ const Settings = () => {
                     </div>
                     <div className="font-medium text-white">Sensors</div>
                   </div>
-                  <SensorsPreview configs={sensorConfigs} demo={showSensorsDemo} />
+                    <SensorsPreview configs={sensorConfigs} demo={showSensorsDemo} style={sensorsStyle} />
                 </div>
               </div>
               </div>
