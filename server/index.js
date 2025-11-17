@@ -28,6 +28,7 @@ function hashPassword(password) {
 // Инициализация пользователей при первом запуске
 async function initializeUsers() {
   try {
+    const isDev = process.env.NODE_ENV !== 'production'
     let users
     try {
       users = await readDataFile('users.json')
@@ -48,8 +49,26 @@ async function initializeUsers() {
       ]
       await writeDataFile('users.json', defaultUsers)
       console.log('✓ Создан дефолтный пользователь: mihuliki / 1q1q1q')
+      users = defaultUsers
     } else {
       console.log(`✓ Загружено пользователей: ${users.length}`)
+    }
+    
+    // В dev режиме добавляем тестового пользователя, если его еще нет
+    if (isDev) {
+      const testUserExists = users.some(u => u.username === 'test')
+      if (!testUserExists) {
+        users.push({
+          id: String(users.length + 1),
+          username: 'test',
+          passwordHash: hashPassword('test'),
+          createdAt: new Date().toISOString()
+        })
+        await writeDataFile('users.json', users)
+        console.log('✓ Создан тестовый пользователь для dev режима: test / test')
+      } else {
+        console.log('✓ Тестовый пользователь уже существует: test / test')
+      }
     }
   } catch (error) {
     console.error('✗ Ошибка инициализации пользователей:', error)
@@ -95,6 +114,39 @@ app.post('/api/auth/login', async (req, res) => {
     const { username, password } = req.body
     if (!username || !password) {
       return res.status(400).json({ error: 'Имя пользователя и пароль обязательны' })
+    }
+
+    const isDev = process.env.NODE_ENV !== 'production'
+    
+    // В dev режиме разрешаем вход с test/test
+    if (isDev && username === 'test' && password === 'test') {
+      // Проверяем, существует ли пользователь в файле, если нет - создаем
+      let users
+      try {
+        users = await readDataFile('users.json')
+      } catch (error) {
+        users = []
+      }
+      
+      let testUser = users.find(u => u.username === 'test')
+      if (!testUser) {
+        testUser = {
+          id: String((users.length || 0) + 1),
+          username: 'test',
+          passwordHash: hashPassword('test'),
+          createdAt: new Date().toISOString()
+        }
+        users.push(testUser)
+        await writeDataFile('users.json', users)
+      }
+      
+      return res.json({
+        success: true,
+        user: {
+          id: testUser.id,
+          username: testUser.username
+        }
+      })
     }
 
     const users = await readDataFile('users.json')
