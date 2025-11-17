@@ -25,6 +25,28 @@ import { getDashboardLayout, getDashboardLayoutSync, updateWidgetLayout, saveDas
 import { isWidgetEnabledSync, getNavigationIconsSync } from '../services/widgetConfig'
 import { GripVertical, Pencil, X } from 'lucide-react'
 
+// Дефолтные layout для виджетов (копия из widgetLayout.ts для использования в компоненте)
+const DEFAULT_LAYOUTS: Record<string, Omit<WidgetLayout, 'i'>> = {
+  'tv-time': { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 },
+  'media-player': { x: 4, y: 0, w: 4, h: 3, minW: 3, minH: 2 },
+  'spotify': { x: 8, y: 0, w: 4, h: 4, minW: 3, minH: 3 },
+  'media-room': { x: 0, y: 2, w: 4, h: 2, minW: 2, minH: 2 },
+  'canvas': { x: 4, y: 3, w: 4, h: 3, minW: 3, minH: 2 },
+  'tv-preview': { x: 8, y: 4, w: 4, h: 2, minW: 3, minH: 2 },
+  'plex': { x: 0, y: 4, w: 4, h: 2, minW: 2, minH: 2 },
+  'tv-duration': { x: 4, y: 6, w: 4, h: 2, minW: 2, minH: 2 },
+  'weather-calendar': { x: 8, y: 6, w: 4, h: 6, minW: 1, minH: 1 },
+  'ambient-lighting': { x: 0, y: 6, w: 4, h: 4, minW: 2, minH: 3 },
+  'living-room': { x: 0, y: 10, w: 4, h: 3, minW: 2, minH: 2 },
+  'ac': { x: 4, y: 10, w: 4, h: 5, minW: 3, minH: 4 },
+  'water-heater': { x: 8, y: 10, w: 4, h: 5, minW: 1, minH: 1 },
+  'sensors': { x: 0, y: 13, w: 4, h: 4, minW: 2, minH: 3 },
+  'motors': { x: 4, y: 13, w: 4, h: 4, minW: 1, minH: 1 },
+  'bose': { x: 8, y: 13, w: 4, h: 5, minW: 2, minH: 3 },
+  'vacuum': { x: 0, y: 18, w: 6, h: 8, minW: 3, minH: 5 },
+  'cameras': { x: 0, y: 18, w: 6, h: 8, minW: 3, minH: 5 },
+}
+
 // Маппинг виджетов
 const widgetComponents: Record<string, React.ComponentType<any>> = {
   'tv-time': TVTimeWidget,
@@ -51,7 +73,7 @@ interface WidgetGridProps {
   currentTab?: string
 }
 
-const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps = {}) => {
+const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
   // Определяем количество колонок и высоту строки в зависимости от размера экрана
   const getCols = (): number => {
     if (typeof window === 'undefined') return 12
@@ -69,91 +91,6 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps = {}) => {
     return 70  // Телевизоры - больше для лучшей видимости
   }
 
-  // Загружаем layout синхронно до первого рендера (используем sync версию для начальной загрузки)
-  const getInitialLayout = async (): Promise<Layout[]> => {
-    // Если выбран конкретный dashboard, загружаем его layout
-    if (currentTab && currentTab !== 'home') {
-      const navigationIcons = getNavigationIconsSync()
-      const dashboardIcon = navigationIcons.find(icon => {
-        const dashboardId = icon.dashboardId || icon.id
-        return dashboardId === currentTab || icon.widgetId === currentTab || icon.iconName === currentTab
-      })
-      
-      if (dashboardIcon && dashboardIcon.dashboardId) {
-        const savedLayout = await getDashboardLayoutByDashboardId(dashboardIcon.dashboardId)
-        const currentCols = getCols()
-        const savedCols = savedLayout.cols || 12
-        
-        // Фильтруем только виджеты, которые добавлены в этот dashboard
-        const dashboardWidgets = dashboardIcon.widgets || []
-        const filteredLayouts = savedLayout.layouts.filter(l => dashboardWidgets.includes(l.i))
-        
-        return filteredLayouts.map(l => {
-          const scale = currentCols / savedCols
-          let newW = Math.max(1, Math.round(l.w * scale))
-          let newH = l.h
-          
-          if (typeof window !== 'undefined' && window.innerWidth < 640) {
-            newW = currentCols
-            newH = Math.max(2, Math.round(l.h * 0.7))
-          } else if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-            newH = Math.max(1, Math.round(l.h * 0.9))
-          } else if (typeof window !== 'undefined' && window.innerWidth >= 1920) {
-            newH = Math.max(1, Math.round(l.h * 1.1))
-          }
-          
-          return {
-            i: l.i,
-            x: (typeof window !== 'undefined' && window.innerWidth < 640) ? 0 : Math.round(l.x * scale),
-            y: l.y,
-            w: newW,
-            h: newH,
-            minW: (typeof window !== 'undefined' && window.innerWidth < 640) ? currentCols : l.minW,
-            minH: l.minH,
-            maxW: (typeof window !== 'undefined' && window.innerWidth < 640) ? currentCols : l.maxW,
-            maxH: l.maxH,
-          }
-        })
-      }
-    }
-    
-    // Для home или если dashboard не найден, используем старый способ
-    const savedLayout = getDashboardLayoutSync()
-    const currentCols = getCols()
-    const savedCols = savedLayout.cols || 12
-    
-    // Масштабируем layout для разных размеров экранов
-    return savedLayout.layouts.map(l => {
-      const scale = currentCols / savedCols
-      
-      // Адаптируем размеры виджетов в зависимости от экрана
-      let newW = Math.max(1, Math.round(l.w * scale))
-      let newH = l.h
-      
-      // Для мобильных устройств делаем виджеты на всю ширину для лучшей читаемости
-      if (typeof window !== 'undefined' && window.innerWidth < 640) {
-        newW = currentCols // На всю ширину на мобильных
-        newH = Math.max(2, Math.round(l.h * 0.7)) // Уменьшаем высоту на 30% для компактности
-      } else if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-        newH = Math.max(1, Math.round(l.h * 0.9)) // Уменьшаем на 10%
-      } else if (typeof window !== 'undefined' && window.innerWidth >= 1920) {
-        newH = Math.max(1, Math.round(l.h * 1.1)) // Увеличиваем на 10% для больших экранов
-      }
-      
-      return {
-        i: l.i,
-        x: (typeof window !== 'undefined' && window.innerWidth < 640) ? 0 : Math.round(l.x * scale), // На мобильных всегда x=0
-        y: l.y,
-        w: newW,
-        h: newH,
-        minW: (typeof window !== 'undefined' && window.innerWidth < 640) ? currentCols : l.minW, // На мобильных minW = cols
-        minH: l.minH,
-        maxW: (typeof window !== 'undefined' && window.innerWidth < 640) ? currentCols : l.maxW, // На мобильных maxW = cols
-        maxH: l.maxH,
-      }
-    })
-  }
-  
   const [layout, setLayout] = useState<Layout[]>([])
   const [isLayoutLoading, setIsLayoutLoading] = useState(true)
   
@@ -161,9 +98,131 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps = {}) => {
   useEffect(() => {
     const loadLayout = async () => {
       setIsLayoutLoading(true)
-      const loadedLayout = await getInitialLayout()
-      setLayout(loadedLayout)
-      setIsLayoutLoading(false)
+      try {
+        // Переопределяем getInitialLayout внутри useEffect, чтобы использовать актуальный currentTab
+        const getLayout = async (): Promise<Layout[]> => {
+          // Если выбран конкретный dashboard, загружаем его layout
+          if (currentTab && currentTab !== 'home') {
+            const navigationIcons = getNavigationIconsSync()
+            
+            const dashboardIcon = navigationIcons.find(icon => {
+              const dashboardId = icon.dashboardId || icon.id
+              return dashboardId === currentTab || 
+                     icon.id === currentTab ||
+                     icon.widgetId === currentTab || 
+                     icon.iconName === currentTab
+            })
+            
+            if (dashboardIcon) {
+              const dashboardId = dashboardIcon.dashboardId || dashboardIcon.id
+              
+              const savedLayout = await getDashboardLayoutByDashboardId(dashboardId)
+              const currentCols = getCols()
+              const savedCols = savedLayout.cols || 12
+              
+              // Получаем виджеты, которые добавлены в этот dashboard
+              const dashboardWidgets = dashboardIcon.widgets || []
+              
+              if (dashboardWidgets.length === 0) {
+                return []
+              }
+              
+              // Получаем layout для существующих виджетов
+              const existingLayouts = savedLayout.layouts.filter(l => dashboardWidgets.includes(l.i))
+              const existingWidgetIds = new Set(existingLayouts.map(l => l.i))
+              
+              // Создаем layout для новых виджетов, которых нет в сохраненном layout
+              const newWidgets = dashboardWidgets.filter(widgetId => !existingWidgetIds.has(widgetId))
+              
+              const maxY = existingLayouts.length > 0 
+                ? Math.max(...existingLayouts.map(l => l.y + l.h))
+                : -1
+              
+              const newLayouts = newWidgets.map((widgetId, index) => {
+                const defaultLayout = DEFAULT_LAYOUTS[widgetId] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 }
+                return {
+                  i: widgetId,
+                  ...defaultLayout,
+                  y: maxY + 1 + index,
+                  x: (index % 3) * 4
+                }
+              })
+              
+              // Объединяем существующие и новые layouts
+              const allLayouts = [...existingLayouts, ...newLayouts]
+              
+              return allLayouts.map(l => {
+                const scale = currentCols / savedCols
+                let newW = Math.max(1, Math.round(l.w * scale))
+                let newH = l.h
+                
+                if (typeof window !== 'undefined' && window.innerWidth < 640) {
+                  newW = currentCols
+                  newH = Math.max(2, Math.round(l.h * 0.7))
+                } else if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                  newH = Math.max(1, Math.round(l.h * 0.9))
+                } else if (typeof window !== 'undefined' && window.innerWidth >= 1920) {
+                  newH = Math.max(1, Math.round(l.h * 1.1))
+                }
+                
+                return {
+                  i: l.i,
+                  x: (typeof window !== 'undefined' && window.innerWidth < 640) ? 0 : Math.round(l.x * scale),
+                  y: l.y,
+                  w: newW,
+                  h: newH,
+                  minW: (typeof window !== 'undefined' && window.innerWidth < 640) ? currentCols : l.minW,
+                  minH: l.minH,
+                  maxW: (typeof window !== 'undefined' && window.innerWidth < 640) ? currentCols : l.maxW,
+                  maxH: l.maxH,
+                }
+              })
+            } else {
+              return []
+            }
+          }
+          
+          // Для home используем старый способ
+          const savedLayout = getDashboardLayoutSync()
+          const currentCols = getCols()
+          const savedCols = savedLayout.cols || 12
+          
+          return savedLayout.layouts.map(l => {
+            const scale = currentCols / savedCols
+            let newW = Math.max(1, Math.round(l.w * scale))
+            let newH = l.h
+            
+            if (typeof window !== 'undefined' && window.innerWidth < 640) {
+              newW = currentCols
+              newH = Math.max(2, Math.round(l.h * 0.7))
+            } else if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+              newH = Math.max(1, Math.round(l.h * 0.9))
+            } else if (typeof window !== 'undefined' && window.innerWidth >= 1920) {
+              newH = Math.max(1, Math.round(l.h * 1.1))
+            }
+            
+            return {
+              i: l.i,
+              x: (typeof window !== 'undefined' && window.innerWidth < 640) ? 0 : Math.round(l.x * scale),
+              y: l.y,
+              w: newW,
+              h: newH,
+              minW: (typeof window !== 'undefined' && window.innerWidth < 640) ? currentCols : l.minW,
+              minH: l.minH,
+              maxW: (typeof window !== 'undefined' && window.innerWidth < 640) ? currentCols : l.maxW,
+              maxH: l.maxH,
+            }
+          })
+        }
+        
+        const loadedLayout = await getLayout()
+        setLayout(loadedLayout)
+      } catch (error) {
+        console.error('Ошибка загрузки layout:', error)
+        setLayout([])
+      } finally {
+        setIsLayoutLoading(false)
+      }
     }
     loadLayout()
   }, [currentTab])
@@ -228,9 +287,64 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps = {}) => {
     // Слушаем кастомное событие для обновления при изменении виджетов
     const handleWidgetsChanged = async () => {
       setIsLayoutLoading(true)
-      const loadedLayout = await getInitialLayout()
-      setLayout(loadedLayout)
-      setIsLayoutLoading(false)
+      try {
+        // Используем ту же логику, что и в основном useEffect
+        const getLayout = async (): Promise<Layout[]> => {
+          if (currentTab && currentTab !== 'home') {
+            const navigationIcons = getNavigationIconsSync()
+            const dashboardIcon = navigationIcons.find(icon => {
+              const dashboardId = icon.dashboardId || icon.id
+              return dashboardId === currentTab || 
+                     icon.id === currentTab ||
+                     icon.widgetId === currentTab || 
+                     icon.iconName === currentTab
+            })
+            
+            if (dashboardIcon) {
+              const dashboardId = dashboardIcon.dashboardId || dashboardIcon.id
+              const savedLayout = await getDashboardLayoutByDashboardId(dashboardId)
+              const dashboardWidgets = dashboardIcon.widgets || []
+              
+              if (dashboardWidgets.length === 0) return []
+              
+              const existingLayouts = savedLayout.layouts.filter(l => dashboardWidgets.includes(l.i))
+              const existingWidgetIds = new Set(existingLayouts.map(l => l.i))
+              const newWidgets = dashboardWidgets.filter(widgetId => !existingWidgetIds.has(widgetId))
+              const maxY = existingLayouts.length > 0 ? Math.max(...existingLayouts.map(l => l.y + l.h)) : -1
+              
+              const newLayouts = newWidgets.map((widgetId, index) => {
+                const defaultLayout = DEFAULT_LAYOUTS[widgetId] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 }
+                return {
+                  i: widgetId,
+                  ...defaultLayout,
+                  y: maxY + 1 + index,
+                  x: (index % 3) * 4
+                }
+              })
+              
+              return [...existingLayouts, ...newLayouts].map(l => ({
+                ...l,
+                minW: l.minW,
+                minH: l.minH,
+                maxW: l.maxW,
+                maxH: l.maxH,
+              }))
+            }
+            return []
+          }
+          
+          const savedLayout = getDashboardLayoutSync()
+          return savedLayout.layouts
+        }
+        
+        const loadedLayout = await getLayout()
+        setLayout(loadedLayout)
+      } catch (error) {
+        console.error('Ошибка загрузки layout:', error)
+        setLayout([])
+      } finally {
+        setIsLayoutLoading(false)
+      }
     }
     
     window.addEventListener('widgets-changed', handleWidgetsChanged)
@@ -520,15 +634,6 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps = {}) => {
         useCSSTransforms={true}
       >
         {layout
-          .filter((item) => {
-            // Фильтруем виджеты по текущему табу
-            if (currentTab === 'home') {
-              // На главной странице показываем все виджеты
-              return true
-            }
-            // Если выбран конкретный таб, показываем только соответствующий виджет
-            return item.i === currentTab
-          })
           .map((item) => {
             const WidgetComponent = widgetComponents[item.i]
             if (!WidgetComponent) return null

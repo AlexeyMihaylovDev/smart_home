@@ -29,7 +29,15 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
   }
   
   const [currentPage, setCurrentPage] = useState<Page>(initialPage || getCurrentPage())
-  const [currentTab, setCurrentTab] = useState<string>('home')
+  
+  // Получаем текущий таб из URL параметров
+  const getCurrentTabFromURL = (): string => {
+    const params = new URLSearchParams(location.search)
+    const tab = params.get('tab')
+    return tab || 'home'
+  }
+  
+  const [currentTab, setCurrentTab] = useState<string>(() => getCurrentTabFromURL())
 
   useEffect(() => {
     setShowLoginModal(!isAuthenticated)
@@ -40,6 +48,34 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
     const page = getCurrentPage()
     setCurrentPage(page)
   }, [location.pathname])
+  
+  // Синхронизируем currentTab с URL параметрами
+  useEffect(() => {
+    const tabFromURL = getCurrentTabFromURL()
+    setCurrentTab(prevTab => {
+      if (prevTab !== tabFromURL) {
+        return tabFromURL
+      }
+      return prevTab
+    })
+  }, [location.search])
+  
+  // Обработчик изменения таба с обновлением URL
+  const handleTabChange = (tabId: string) => {
+    setCurrentTab(tabId)
+    const params = new URLSearchParams(location.search)
+    if (tabId === 'home') {
+      params.delete('tab')
+    } else {
+      // Используем tabId (dashboardId) для URL
+      params.set('tab', tabId)
+    }
+    const newSearch = params.toString()
+    const newPath = currentPage === 'dashboard' 
+      ? `/dashboard${newSearch ? `?${newSearch}` : ''}`
+      : location.pathname
+    navigate(newPath, { replace: true })
+  }
 
   // Закрываем мобильное меню при изменении размера окна (если стало больше lg)
   useEffect(() => {
@@ -85,7 +121,7 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
       <div className="flex-1 flex flex-col min-w-0 lg:ml-0">
         <TopBar 
           onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          onTabChange={setCurrentTab}
+          onTabChange={handleTabChange}
           currentTab={currentTab}
         />
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-dark-bg">

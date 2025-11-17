@@ -184,6 +184,18 @@ const DEFAULT_CONFIG: WidgetConfig = {
 // Кэш для синхронного доступа (используется как fallback)
 let configCache: WidgetConfig | null = null
 
+// Очистка кэша при смене пользователя
+export const clearWidgetConfigCache = () => {
+  configCache = null
+}
+
+// Слушаем событие смены пользователя
+if (typeof window !== 'undefined') {
+  window.addEventListener('user-changed', () => {
+    clearWidgetConfigCache()
+  })
+}
+
 export const getWidgetConfig = async (): Promise<WidgetConfig> => {
   try {
     const config = await getWidgetConfigFromAPI()
@@ -265,16 +277,25 @@ export const getWidgetConfigSync = (): WidgetConfig => {
 
 export const saveWidgetConfig = async (config: WidgetConfig): Promise<void> => {
   try {
+    // Всегда сохраняем на сервер в первую очередь
     await saveWidgetConfigToAPI(config as APIWidgetConfig)
     configCache = config
+    // Также сохраняем в localStorage как backup
+    try {
+      localStorage.setItem('widget_config', JSON.stringify(config))
+    } catch (localError) {
+      console.warn('Не удалось сохранить в localStorage (backup):', localError)
+    }
   } catch (error) {
     console.error('Ошибка сохранения конфигурации на сервер:', error)
-    // Fallback на localStorage
+    // Fallback на localStorage только если сервер недоступен
     try {
       localStorage.setItem('widget_config', JSON.stringify(config))
       configCache = config
+      console.warn('Конфигурация сохранена в localStorage как fallback')
     } catch (localError) {
       console.error('Ошибка сохранения в localStorage:', localError)
+      throw error // Пробрасываем ошибку дальше
     }
   }
 }

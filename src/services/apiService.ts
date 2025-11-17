@@ -131,6 +131,11 @@ export interface DashboardLayout {
   }>
   cols: number
   rowHeight: number
+  dashboardId?: string
+}
+
+export interface DashboardLayouts {
+  [dashboardId: string]: DashboardLayout
 }
 
 export interface ConnectionConfig {
@@ -192,6 +197,35 @@ export const saveDashboardLayout = async (layout: DashboardLayout): Promise<void
     console.error('Ошибка сохранения layout на сервер, используем localStorage:', error)
     // Fallback на localStorage
     localStorage.setItem('dashboard_layout', JSON.stringify(layout))
+    throw error
+  }
+}
+
+// Dashboard Layouts API (для всех дашбордов пользователя)
+export const getAllDashboardLayouts = async (): Promise<DashboardLayouts> => {
+  try {
+    const response = await apiClient.get('/api/config/dashboard-layouts')
+    return response.data || {}
+  } catch (error) {
+    console.error('Ошибка загрузки dashboard layouts с сервера, используем localStorage:', error)
+    // Fallback на localStorage
+    const stored = localStorage.getItem('dashboard_layouts')
+    if (stored) {
+      return JSON.parse(stored)
+    }
+    return {}
+  }
+}
+
+export const saveAllDashboardLayouts = async (layouts: DashboardLayouts): Promise<void> => {
+  try {
+    await apiClient.post('/api/config/dashboard-layouts', layouts)
+    // Также сохраняем в localStorage как backup
+    localStorage.setItem('dashboard_layouts', JSON.stringify(layouts))
+  } catch (error) {
+    console.error('Ошибка сохранения dashboard layouts на сервер, используем localStorage:', error)
+    // Fallback на localStorage
+    localStorage.setItem('dashboard_layouts', JSON.stringify(layouts))
     throw error
   }
 }

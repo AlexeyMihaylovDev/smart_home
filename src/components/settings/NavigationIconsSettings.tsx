@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { GripVertical, Home, Globe, Camera, Sparkles, Plus, X, Settings, Save, Check } from 'lucide-react'
+import { GripVertical, Home, Globe, Camera, Sparkles, Plus, X, Settings, Save, Check, Pencil, Check as CheckIcon, X as XIcon } from 'lucide-react'
 import { NavigationIcon, getNavigationIconsSync, updateNavigationIcons, isWidgetEnabledSync } from '../../services/widgetConfig'
 import ToggleSwitch from '../ui/ToggleSwitch'
 import { WidgetOption } from './WidgetSelector'
@@ -23,6 +23,8 @@ const NavigationIconsSettings = ({ onIconsChange, widgetOptions = [] }: Navigati
   const [isSaving, setIsSaving] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
+  const [editingIconId, setEditingIconId] = useState<string | null>(null)
+  const [editingLabel, setEditingLabel] = useState<string>('')
 
   useEffect(() => {
     const handleIconsChange = () => {
@@ -194,8 +196,73 @@ const NavigationIconsSettings = ({ onIconsChange, widgetOptions = [] }: Navigati
                 >
                   <GripVertical size={20} className="text-dark-textSecondary cursor-move" />
                   <IconComponent size={20} className="text-dark-textSecondary" />
-                  <span className="flex-1 text-sm font-medium">{icon.label}</span>
+                  {editingIconId === icon.id ? (
+                    <div className="flex-1 flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={editingLabel}
+                        onChange={(e) => setEditingLabel(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const updatedIcons = navigationIcons.map(i =>
+                              i.id === icon.id ? { ...i, label: editingLabel } : i
+                            )
+                            setNavigationIcons(updatedIcons)
+                            setHasChanges(true)
+                            setIsSaved(false)
+                            setEditingIconId(null)
+                            setEditingLabel('')
+                          } else if (e.key === 'Escape') {
+                            setEditingIconId(null)
+                            setEditingLabel('')
+                          }
+                        }}
+                        className="flex-1 px-2 py-1 bg-dark-bg border border-blue-500 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => {
+                          const updatedIcons = navigationIcons.map(i =>
+                            i.id === icon.id ? { ...i, label: editingLabel } : i
+                          )
+                          setNavigationIcons(updatedIcons)
+                          setHasChanges(true)
+                          setIsSaved(false)
+                          setEditingIconId(null)
+                          setEditingLabel('')
+                        }}
+                        className="p-1 rounded hover:bg-green-600 text-green-400 hover:text-white transition-colors"
+                        title="שמור"
+                      >
+                        <CheckIcon size={16} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingIconId(null)
+                          setEditingLabel('')
+                        }}
+                        className="p-1 rounded hover:bg-red-600 text-red-400 hover:text-white transition-colors"
+                        title="בטל"
+                      >
+                        <XIcon size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="flex-1 text-sm font-medium">{icon.label}</span>
+                  )}
                   <div className="flex items-center gap-2">
+                    {!editingIconId && (
+                      <button
+                        onClick={() => {
+                          setEditingIconId(icon.id)
+                          setEditingLabel(icon.label)
+                        }}
+                        className="p-1 rounded hover:bg-dark-cardHover text-dark-textSecondary hover:text-white transition-colors"
+                        title="ערוך שם"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                    )}
                     <button
                       onClick={() => setExpandedDashboard(expandedDashboard === icon.id ? null : icon.id)}
                       className="p-1 rounded hover:bg-dark-cardHover text-dark-textSecondary hover:text-white transition-colors"

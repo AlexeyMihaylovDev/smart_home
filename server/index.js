@@ -311,6 +311,34 @@ app.post('/api/config/connection', requireAuth, async (req, res) => {
   }
 })
 
+// API для dashboard layouts (для всех дашбордов пользователя) (требует аутентификации)
+app.get('/api/config/dashboard-layouts', requireAuth, async (req, res) => {
+  try {
+    const userId = req.userId
+    const layouts = await readDataFile(`dashboard_layouts_${userId}.json`)
+    if (layouts) {
+      res.json(layouts)
+    } else {
+      // Возвращаем пустой объект
+      res.json({})
+    }
+  } catch (error) {
+    console.error('Ошибка чтения dashboard layouts:', error)
+    res.status(500).json({ error: 'Ошибка чтения dashboard layouts' })
+  }
+})
+
+app.post('/api/config/dashboard-layouts', requireAuth, async (req, res) => {
+  try {
+    const userId = req.userId
+    await writeDataFile(`dashboard_layouts_${userId}.json`, req.body)
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Ошибка сохранения dashboard layouts:', error)
+    res.status(500).json({ error: 'Ошибка сохранения dashboard layouts' })
+  }
+})
+
 // Проверка здоровья сервера
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' })
