@@ -9,7 +9,8 @@ import {
   RefreshCw, Navigation, Zap, Activity, 
   Gauge, Timer, Ruler, AlertCircle, CheckCircle2,
   ZoomIn, ZoomOut, RotateCcw, Box, Droplet, Wind,
-  Info, Database, Calendar, Hash
+  Info, Database, Calendar, Hash, Menu, X, MapPin,
+  Target, Layers, Wrench, Power, RotateCw
 } from 'lucide-react'
 
 interface VacuumUnitProps {
@@ -25,6 +26,7 @@ interface VacuumUnitProps {
 const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loading, onLoadingChange }: VacuumUnitProps) => {
   const [localLoading, setLocalLoading] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [showServicesMenu, setShowServicesMenu] = useState(false)
   const [mapImage, setMapImage] = useState<string | null>(null)
   const [mapError, setMapError] = useState(false)
   const [mapRefreshKey, setMapRefreshKey] = useState(0)
@@ -412,6 +414,55 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
     }
   }
 
+  // Универсальная функция для вызова сервисов Dreame
+  const callDreameService = async (service: string, serviceData?: any) => {
+    if (!api || !vacuumConfig.entityId) return
+
+    setLocalLoading(true)
+    onLoadingChange(true)
+    try {
+      // Пробуем сначала через domain dreame_vacuum
+      try {
+        await api.callService({
+          domain: 'dreame_vacuum',
+          service: service,
+          target: { entity_id: vacuumConfig.entityId },
+          service_data: serviceData || {}
+        })
+      } catch (error) {
+        // Если не работает, пробуем через vacuum domain
+        await api.callService({
+          domain: 'vacuum',
+          service: service,
+          target: { entity_id: vacuumConfig.entityId },
+          service_data: serviceData || {}
+        })
+      }
+    } catch (error) {
+      console.error(`Ошибка вызова сервиса ${service}:`, error)
+    } finally {
+      setLocalLoading(false)
+      onLoadingChange(false)
+      setShowServicesMenu(false)
+    }
+  }
+
+  // Список сервисов Dreame vacuum
+  const dreameServices = [
+    { id: 'locate', label: 'מצא שואב אבק', icon: MapPin, description: 'מפעיל צליל כדי למצוא את השואב אבק' },
+    { id: 'clean_spot', label: 'ניקוי נקודה', icon: Target, description: 'ניקוי נקודה ספציפית' },
+    { id: 'app_goto_target', label: 'לך לנקודה', icon: Navigation, description: 'לך לנקודה ספציפית על המפה' },
+    { id: 'app_zoned_clean', label: 'ניקוי אזור', icon: Layers, description: 'ניקוי אזור מסוים' },
+    { id: 'app_segment_clean', label: 'ניקוי חדר', icon: Box, description: 'ניקוי חדר ספציפי' },
+    { id: 'reset_main_brush_life', label: 'איפוס מברשת ראשית', icon: RotateCw, description: 'איפוס מונה חיי מברשת ראשית' },
+    { id: 'reset_side_brush_life', label: 'איפוס מברשת צד', icon: RotateCw, description: 'איפוס מונה חיי מברשת צד' },
+    { id: 'reset_filter_life', label: 'איפוס מסנן', icon: RotateCw, description: 'איפוס מונה חיי מסנן' },
+    { id: 'reset_sensor_dirty_life', label: 'איפוס חיישן לכלוך', icon: RotateCw, description: 'איפוס מונה חיי חיישן לכלוך' },
+    { id: 'reset_water_box_life', label: 'איפוס מיכל מים', icon: RotateCw, description: 'איפוס מונה חיי מיכל מים' },
+    { id: 'reset_mop_life', label: 'איפוס סמרטוט', icon: RotateCw, description: 'איפוס מונה חיי סמרטוט' },
+    { id: 'reset_dust_collection_life', label: 'איפוס מיכל אבק', icon: RotateCw, description: 'איפוס מונה חיי מיכל אבק' },
+  ]
+
   const getRooms = (): Array<{ id: string | number, name: string }> => {
     if (!entity) return []
     const rooms = entity.attributes.rooms || entity.attributes.room_list || []
@@ -694,6 +745,66 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
             <Home size={16} className="sm:w-5 sm:h-5" />
           </button>
         )}
+        {/* Кнопка меню сервисов */}
+        <div className="relative">
+          <button
+            onClick={() => setShowServicesMenu(!showServicesMenu)}
+            disabled={localLoading || loading}
+            className="px-3 sm:px-4 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+            title="תפריט שירותים"
+          >
+            <Menu size={16} className="sm:w-5 sm:h-5" />
+          </button>
+          
+          {/* Выпадающее меню сервисов */}
+          {showServicesMenu && (
+            <>
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setShowServicesMenu(false)}
+              />
+              <div className="absolute right-0 top-full mt-2 w-64 sm:w-80 bg-dark-card border border-dark-border rounded-lg shadow-xl z-50 max-h-[70vh] overflow-y-auto">
+                <div className="p-3 border-b border-dark-border flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-white">שירותי Dreame</h3>
+                  <button
+                    onClick={() => setShowServicesMenu(false)}
+                    className="p-1 hover:bg-dark-cardHover rounded transition-colors"
+                  >
+                    <X size={16} className="text-dark-textSecondary" />
+                  </button>
+                </div>
+                <div className="p-2 space-y-1">
+                  {dreameServices.map((service) => {
+                    const Icon = service.icon
+                    return (
+                      <button
+                        key={service.id}
+                        onClick={() => callDreameService(service.id)}
+                        disabled={localLoading || loading}
+                        className="w-full text-right p-3 rounded-lg hover:bg-dark-cardHover transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
+                        title={service.description}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Icon size={16} className="text-purple-400 flex-shrink-0" />
+                              <span className="text-xs sm:text-sm font-medium text-white group-hover:text-purple-300">
+                                {service.label}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-dark-textSecondary line-clamp-1">
+                              {service.description}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Скорость вентилятора */}
@@ -795,7 +906,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
       </div>
       
       {/* Ошибки */}
-      {error && (
+      {error && error !== 'No error' && errorMessage !== 'No error' && (
         <div className="mb-2 sm:mb-3 p-2 bg-red-900/20 border border-red-500/30 rounded-lg">
           <div className="flex items-center gap-2">
             <AlertCircle size={14} className="text-red-400 flex-shrink-0" />
