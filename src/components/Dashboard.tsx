@@ -29,6 +29,7 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
   }
   
   const [currentPage, setCurrentPage] = useState<Page>(initialPage || getCurrentPage())
+  const [currentTab, setCurrentTab] = useState<string>('home')
 
   useEffect(() => {
     setShowLoginModal(!isAuthenticated)
@@ -82,9 +83,13 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
         onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
       />
       <div className="flex-1 flex flex-col min-w-0 lg:ml-0">
-        <TopBar onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
+        <TopBar 
+          onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          onTabChange={setCurrentTab}
+          currentTab={currentTab}
+        />
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-dark-bg">
-          {currentPage === 'dashboard' ? <WidgetGrid /> : <Settings />}
+          {currentPage === 'dashboard' ? <WidgetGrid currentTab={currentTab} /> : <Settings />}
         </div>
       </div>
     </div>

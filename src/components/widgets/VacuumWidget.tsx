@@ -486,7 +486,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
   }
 
   // Обработчик клика на комнату на карте
-  const handleRoomClick = (roomId: string | number) => {
+  const handleRoomClick = (roomId: string | number, roomEntityId?: string) => {
     if (!roomSelectionMode) return
     
     const newSelected = new Set(selectedRooms)
@@ -509,7 +509,57 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
     setSelectedRooms(new Set())
     
     try {
-      // Пробуем через dreame_vacuum
+      // Проверяем, есть ли Customized room cleaning entities (firmware 1156+)
+      const roomEntities = Array.from(relatedEntities.values()).filter(e => {
+        const eId = e.entity_id.toLowerCase()
+        return eId.includes('_room_')
+      })
+      
+      // Если есть room entities, используем их для уборки
+      if (roomEntities.length > 0) {
+        const selectedRoomEntities = roomEntities.filter(e => {
+          const roomIdMatch = e.entity_id.match(/_room_(\d+)/i)
+          if (!roomIdMatch) return false
+          const roomId = parseInt(roomIdMatch[1])
+          return roomsArray.includes(roomId) || roomsArray.includes(String(roomId))
+        })
+        
+        // Вызываем сервис для каждой выбранной комнаты через её entity
+        for (const roomEntity of selectedRoomEntities) {
+          try {
+            // Пробуем вызвать сервис через room entity (если это button или switch)
+            if (roomEntity.entity_id.startsWith('button.')) {
+              await api.callService({
+                domain: 'button',
+                service: 'press',
+                target: { entity_id: roomEntity.entity_id }
+              })
+            } else if (roomEntity.entity_id.startsWith('switch.')) {
+              await api.callService({
+                domain: 'switch',
+                service: 'turn_on',
+                target: { entity_id: roomEntity.entity_id }
+              })
+            } else if (roomEntity.entity_id.startsWith('vacuum.')) {
+              // Если это vacuum entity для комнаты, используем стандартный способ
+              await api.callService({
+                domain: 'vacuum',
+                service: 'start',
+                target: { entity_id: roomEntity.entity_id }
+              })
+            }
+          } catch (error) {
+            console.error(`Ошибка вызова сервиса для комнаты ${roomEntity.entity_id}:`, error)
+          }
+        }
+        
+        // Если вызвали через room entities, выходим
+        if (selectedRoomEntities.length > 0) {
+          return
+        }
+      }
+      
+      // Иначе используем стандартный способ через segments
       try {
         await api.callService({
           domain: 'dreame_vacuum',
@@ -519,15 +569,29 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
         })
       } catch (error) {
         // Пробуем альтернативный способ
-        await api.callService({
-          domain: 'vacuum',
-          service: 'send_command',
-          target: { entity_id: vacuumConfig.entityId },
-          service_data: { 
-            command: 'app_segment_clean',
-            params: roomsArray
+        try {
+          await api.callService({
+            domain: 'vacuum',
+            service: 'send_command',
+            target: { entity_id: vacuumConfig.entityId },
+            service_data: { 
+              command: 'app_segment_clean',
+              params: roomsArray
+            }
+          })
+        } catch (error2) {
+          // Последняя попытка - через clean_spot с параметром room
+          if (roomsArray.length === 1) {
+            await api.callService({
+              domain: 'vacuum',
+              service: 'clean_spot',
+              target: { entity_id: vacuumConfig.entityId },
+              service_data: { room: roomsArray[0] }
+            })
+          } else {
+            throw error2
           }
-        })
+        }
       }
     } catch (error) {
       console.error('Ошибка уборки комнат:', error)
@@ -609,18 +673,32 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
       }).filter(room => room.id !== undefined && room.id !== null)
     }
     
-    // Если комнаты не найдены, пробуем получить из related entities
-    if (relatedEntities) {
-      const roomEntities = Array.from(relatedEntities.values()).filter(e => 
-        e.entity_id.includes('room') || e.entity_id.includes('segment')
-      )
+    // Если комнаты не найдены, пробуем получить из related entities (Customized room cleaning entities)
+    if (relatedEntities && relatedEntities.size > 0) {
+      const roomEntities = Array.from(relatedEntities.values()).filter(e => {
+        const eId = e.entity_id.toLowerCase()
+        // Ищем room entities: vacuum.{name}_room_{id}, button.{name}_room_{id}, switch.{name}_room_{id}
+        return eId.includes('_room_') || 
+               eId.includes('room') || 
+               eId.includes('segment') ||
+               (e.entity_id.startsWith('button.') && e.attributes.friendly_name?.toLowerCase().includes('room'))
+      })
       
-      return roomEntities.map((e: Entity) => ({
-        id: e.entity_id,
-        name: e.attributes.friendly_name || e.entity_id.split('.').slice(1).join('.'),
-        x: e.attributes.x || e.attributes.center_x,
-        y: e.attributes.y || e.attributes.center_y
-      }))
+      return roomEntities.map((e: Entity) => {
+        // Извлекаем ID комнаты из entity_id (например, из vacuum.x50_ultra_complete_room_1 получаем 1)
+        const roomIdMatch = e.entity_id.match(/_room_(\d+)/i)
+        const roomId = roomIdMatch ? parseInt(roomIdMatch[1]) : e.entity_id
+        
+        return {
+          id: roomId,
+          name: e.attributes.friendly_name || 
+                e.attributes.name || 
+                e.entity_id.split('.').slice(1).join('.').replace(/_room_\d+/i, ''),
+          x: e.attributes.x || e.attributes.center_x || e.attributes.position_x,
+          y: e.attributes.y || e.attributes.center_y || e.attributes.position_y,
+          entityId: e.entity_id // Сохраняем entity_id для вызова сервиса
+        }
+      })
     }
     
     return []
@@ -893,7 +971,8 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                           }}
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleRoomClick(room.id)
+                            const roomEntityId = (room as any).entityId
+                            handleRoomClick(room.id, roomEntityId)
                           }}
                           title={room.name}
                         >
@@ -938,6 +1017,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                     
                     // Если есть только координаты центра, показываем маркер
                     if (room.x !== undefined && room.y !== undefined) {
+                      const roomEntityId = (room as any).entityId
                       return (
                         <div
                           key={room.id}
@@ -951,7 +1031,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                           }}
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleRoomClick(room.id)
+                            handleRoomClick(room.id, roomEntityId)
                           }}
                           title={room.name}
                         >

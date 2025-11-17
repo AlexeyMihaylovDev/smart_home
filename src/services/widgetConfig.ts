@@ -78,9 +78,13 @@ export interface SpotifyConfig {
 export interface NavigationIcon {
   id: string
   label: string
-  iconName: 'camera' | 'home' | 'network' | 'vacuum'
+  iconName: 'camera' | 'home' | 'network' | 'vacuum' | 'widget'
   enabled: boolean
   order: number
+  widgetId?: string // ID виджета, если это виджет
+  widgetType?: string // Тип виджета (ambient-lighting, tv-time, etc.)
+  dashboardId?: string // ID dashboard (используется для идентификации dashboard)
+  widgets?: string[] // Список ID виджетов, которые отображаются в этом dashboard
 }
 
 export interface WidgetConfig {
@@ -169,10 +173,10 @@ const DEFAULT_CONFIG: WidgetConfig = {
   enabledWidgets: {},
   navigationIcons: {
     icons: [
-      { id: 'cameras', label: 'Cameras', iconName: 'camera', enabled: true, order: 0 },
-      { id: 'home', label: 'Home', iconName: 'home', enabled: true, order: 1 },
-      { id: 'network', label: 'Network', iconName: 'network', enabled: true, order: 2 },
-      { id: 'vacuum', label: 'Vacuum', iconName: 'vacuum', enabled: true, order: 3 },
+      { id: 'cameras', label: 'Cameras', iconName: 'camera', enabled: true, order: 0, dashboardId: 'cameras', widgets: [] },
+      { id: 'home', label: 'Home', iconName: 'home', enabled: true, order: 1, dashboardId: 'home', widgets: [] },
+      { id: 'network', label: 'Network', iconName: 'network', enabled: true, order: 2, dashboardId: 'network', widgets: [] },
+      { id: 'vacuum', label: 'Vacuum', iconName: 'vacuum', enabled: true, order: 3, dashboardId: 'vacuum', widgets: [] },
     ]
   }
 }

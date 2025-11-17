@@ -18,14 +18,22 @@ export interface DashboardLayout {
   layouts: WidgetLayout[]
   cols: number
   rowHeight: number
+  dashboardId?: string // ID dashboard для которого этот layout
+}
+
+// Храним layouts для всех dashboard
+export interface DashboardLayouts {
+  [dashboardId: string]: DashboardLayout
 }
 
 const STORAGE_KEY = 'dashboard_layout'
+const STORAGE_KEY_DASHBOARDS = 'dashboard_layouts' // Для хранения layouts всех dashboard
 const DEFAULT_COLS = 12
 const DEFAULT_ROW_HEIGHT = 60
 
 // Кэш для синхронного доступа
 let layoutCache: DashboardLayout | null = null
+let dashboardLayoutsCache: DashboardLayouts | null = null
 
 // Дефолтные layout для всех виджетов (используются только для новых виджетов)
 const DEFAULT_LAYOUTS: Record<string, Omit<WidgetLayout, 'i'>> = {
@@ -356,17 +364,93 @@ export const saveDashboardLayout = async (layout: DashboardLayout): Promise<void
   }
 }
 
-export const updateWidgetLayout = async (layouts: WidgetLayout[], cols?: number, rowHeight?: number): Promise<void> => {
-  const current = await getDashboardLayout()
-  // Используем переданные cols или текущие из сохраненного layout
-  const targetCols = cols || current.cols || DEFAULT_COLS
-  const targetRowHeight = rowHeight || current.rowHeight || DEFAULT_ROW_HEIGHT
-  // Компактируем layout перед сохранением, чтобы убрать пустые места
-  const compactedLayouts = compactLayoutVertical(layouts, targetCols)
-  await saveDashboardLayout({
-    layouts: compactedLayouts,
-    cols: targetCols,
-    rowHeight: targetRowHeight
-  })
+export const updateWidgetLayout = async (layouts: WidgetLayout[], cols?: number, rowHeight?: number, dashboardId?: string): Promise<void> => {
+  if (dashboardId) {
+    // Сохраняем layout для конкретного dashboard
+    const current = await getDashboardLayoutByDashboardId(dashboardId)
+    const targetCols = cols || current.cols || DEFAULT_COLS
+    const targetRowHeight = rowHeight || current.rowHeight || DEFAULT_ROW_HEIGHT
+    const compactedLayouts = compactLayoutVertical(layouts, targetCols)
+    await saveDashboardLayoutByDashboardId(dashboardId, {
+      layouts: compactedLayouts,
+      cols: targetCols,
+      rowHeight: targetRowHeight,
+      dashboardId
+    })
+  } else {
+    // Старый способ для обратной совместимости
+    const current = await getDashboardLayout()
+    const targetCols = cols || current.cols || DEFAULT_COLS
+    const targetRowHeight = rowHeight || current.rowHeight || DEFAULT_ROW_HEIGHT
+    const compactedLayouts = compactLayoutVertical(layouts, targetCols)
+    await saveDashboardLayout({
+      layouts: compactedLayouts,
+      cols: targetCols,
+      rowHeight: targetRowHeight
+    })
+  }
+}
+
+// Функции для работы с layouts конкретного dashboard
+export const getDashboardLayoutByDashboardId = async (dashboardId: string): Promise<DashboardLayout> => {
+  try {
+    // Загружаем все dashboard layouts
+    const allLayouts = await getAllDashboardLayouts()
+    if (allLayouts[dashboardId]) {
+      return allLayouts[dashboardId]
+    }
+  } catch (error) {
+    console.error('Ошибка загрузки layout для dashboard:', error)
+  }
+  
+  // Возвращаем пустой layout по умолчанию
+  return {
+    layouts: [],
+    cols: DEFAULT_COLS,
+    rowHeight: DEFAULT_ROW_HEIGHT,
+    dashboardId
+  }
+}
+
+export const saveDashboardLayoutByDashboardId = async (dashboardId: string, layout: DashboardLayout): Promise<void> => {
+  try {
+    const allLayouts = await getAllDashboardLayouts()
+    allLayouts[dashboardId] = { ...layout, dashboardId }
+    await saveAllDashboardLayouts(allLayouts)
+    if (dashboardLayoutsCache) {
+      dashboardLayoutsCache[dashboardId] = layout
+    }
+  } catch (error) {
+    console.error('Ошибка сохранения layout для dashboard:', error)
+  }
+}
+
+export const getAllDashboardLayouts = async (): Promise<DashboardLayouts> => {
+  if (dashboardLayoutsCache) {
+    return dashboardLayoutsCache
+  }
+  
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_DASHBOARDS)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      dashboardLayoutsCache = parsed
+      return parsed
+    }
+  } catch (error) {
+    console.error('Ошибка загрузки dashboard layouts:', error)
+  }
+  
+  dashboardLayoutsCache = {}
+  return {}
+}
+
+export const saveAllDashboardLayouts = async (layouts: DashboardLayouts): Promise<void> => {
+  try {
+    localStorage.setItem(STORAGE_KEY_DASHBOARDS, JSON.stringify(layouts))
+    dashboardLayoutsCache = layouts
+  } catch (error) {
+    console.error('Ошибка сохранения dashboard layouts:', error)
+  }
 }
 

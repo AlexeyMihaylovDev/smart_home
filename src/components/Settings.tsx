@@ -736,7 +736,7 @@ const Settings = () => {
         </div>
       ) : activeTab === 'navigation' ? (
         /* Настройка навигации */
-        <NavigationIconsSettings />
+        <NavigationIconsSettings widgetOptions={widgetOptions} />
       ) : activeTab === 'widgets' ? (
         /* Настройка виджетов */
         <div className="space-y-6">
