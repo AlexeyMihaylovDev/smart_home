@@ -28,9 +28,9 @@ const WidgetSelector = ({
 }: WidgetSelectorProps) => {
   return (
     <div className="bg-dark-card rounded-lg border border-dark-border p-6">
-      <h2 className="text-xl font-bold mb-2">Выберите виджет для настройки</h2>
+      <h2 className="text-xl font-bold mb-2">בחר וידג'ט להגדרה</h2>
       <p className="text-sm text-dark-textSecondary mb-6">
-        Выберите виджет, который вы хотите настроить
+        בחר וידג'ט שברצונך להגדיר
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {widgetOptions
@@ -67,7 +67,7 @@ const WidgetSelector = ({
                       onClick={() => onWidgetSelect(widget.id)}
                       className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
                     >
-                      Настроить →
+                      הגדר →
                     </button>
                   </div>
                 </div>

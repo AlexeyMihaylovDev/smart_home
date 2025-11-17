@@ -189,126 +189,126 @@ const Settings = () => {
     {
       id: 'ambient-lighting',
       name: 'Ambient Lighting Widget',
-      description: 'Управление переключателями освещения',
+      description: 'ניהול מתגי תאורה',
       icon: Lightbulb,
       color: 'bg-yellow-500'
     },
     {
       id: 'tv-time',
       name: 'TV Time Widget',
-      description: 'Настройка времени работы телевизора',
+      description: 'הגדרת זמן פעולת טלוויזיה',
       icon: Tv,
       color: 'bg-blue-500'
     },
     {
       id: 'media-player',
       name: 'Media Player Widget',
-      description: 'Управление медиаплеерами',
+      description: 'ניהול נגני מדיה',
       icon: Tv,
       color: 'bg-purple-500'
     },
     {
       id: 'spotify',
       name: 'Spotify Widget',
-      description: 'Управление Spotify',
+      description: 'ניהול Spotify',
       icon: Music,
       color: 'bg-green-500'
     },
     {
       id: 'media-room',
       name: 'Media Room Widget',
-      description: 'Управление медиа комнатой',
+      description: 'ניהול חדר מדיה',
       icon: Tv,
       color: 'bg-blue-500'
     },
     {
       id: 'canvas',
       name: 'Canvas Widget',
-      description: 'Управление Canvas',
+      description: 'ניהול Canvas',
       icon: Tv,
       color: 'bg-purple-500'
     },
     {
       id: 'tv-preview',
       name: 'TV Preview Widget',
-      description: 'Превью телевизора',
+      description: 'תצוגה מקדימה של טלוויזיה',
       icon: Tv,
       color: 'bg-orange-500'
     },
     {
       id: 'plex',
       name: 'Plex Widget',
-      description: 'Управление Plex',
+      description: 'ניהול Plex',
       icon: Tv,
       color: 'bg-orange-500'
     },
     {
       id: 'tv-duration',
       name: 'TV Duration Widget',
-      description: 'Статистика времени просмотра',
+      description: 'סטטיסטיקת זמן צפייה',
       icon: Tv,
       color: 'bg-blue-500'
     },
     {
       id: 'weather-calendar',
       name: 'Weather Calendar Widget',
-      description: 'Погода и календарь',
+      description: 'מזג אוויר ולוח שנה',
       icon: Gauge,
       color: 'bg-cyan-500'
     },
     {
       id: 'living-room',
       name: 'Living Room Widget',
-      description: 'Управление гостиной',
+      description: 'ניהול סלון',
       icon: Tv,
       color: 'bg-blue-500'
     },
     {
       id: 'ac',
       name: 'AC Widget',
-      description: 'Управление кондиционером',
+      description: 'ניהול מזגן',
       icon: Wind,
       color: 'bg-cyan-500'
     },
     {
       id: 'water-heater',
       name: 'Water Heater Widget',
-      description: 'Управление газовым водонагревателем',
+      description: 'ניהול דוד מים גז',
       icon: Droplet,
       color: 'bg-orange-500'
     },
     {
       id: 'sensors',
       name: 'Sensors Widget',
-      description: 'Управление датчиками',
+      description: 'ניהול חיישנים',
       icon: Gauge,
       color: 'bg-green-500'
     },
     {
       id: 'motors',
       name: 'Motor Widget',
-      description: 'Управление моторными устройствами (шторы, жалюзи, ворота)',
+      description: 'ניהול מכשירים מוטוריים (תריסים, וילונות, שערים)',
       icon: GaugeIcon,
       color: 'bg-blue-500'
     },
     {
       id: 'bose',
       name: 'Bose Widget',
-      description: 'Управление Bose Soundbar',
+      description: 'ניהול Bose Soundbar',
       icon: Music,
       color: 'bg-purple-500'
     },
     {
       id: 'vacuum',
       name: 'Vacuum Widget',
-      description: 'Управление пылесосом Dreame',
+      description: 'ניהול שואב אבק Dreame',
       icon: Navigation,
       color: 'bg-green-500'
     },
     {
       id: 'cameras',
       name: 'Cameras Widget',
-      description: 'Управление камерами',
+      description: 'ניהול מצלמות',
       icon: Camera,
       color: 'bg-purple-500'
     }
@@ -493,10 +493,10 @@ const Settings = () => {
       await updateAmbientLightingConfig(lightConfigs)
       setHasUnsavedChanges(false)
       window.dispatchEvent(new Event('widgets-changed'))
-      setToast({ message: 'Настройки сохранены!', type: 'success' })
+      setToast({ message: 'ההגדרות נשמרו!', type: 'success' })
     } catch (error) {
       console.error('Ошибка сохранения:', error)
-      setToast({ message: 'Ошибка сохранения настроек', type: 'error' })
+      setToast({ message: 'שגיאה בשמירת ההגדרות', type: 'error' })
     }
   }
 
@@ -615,9 +615,9 @@ const Settings = () => {
   return (
     <div className="max-w-6xl mx-auto w-full px-2 sm:px-4 md:px-6">
       <div className="mb-4 sm:mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Настройки Dashboard</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">הגדרות לוח בקרה</h1>
         <p className="text-sm sm:text-base text-dark-textSecondary">
-          Управление привязкой виджетов к устройствам Home Assistant
+          ניהול קישור וידג'טים למכשירי Home Assistant
         </p>
       </div>
 
@@ -646,7 +646,7 @@ const Settings = () => {
         >
           <div className="flex items-center gap-2">
             <SettingsIcon size={18} />
-            Настройка виджетов
+            הגדרת וידג'טים
           </div>
         </button>
         <button
@@ -659,7 +659,7 @@ const Settings = () => {
         >
           <div className="flex items-center gap-2">
             <Navigation size={18} />
-            Навигация
+            ניווט
           </div>
         </button>
         <button
@@ -712,17 +712,17 @@ const Settings = () => {
             <button
               onClick={async () => {
                 if (!haUrl || !haToken) {
-                  setToast({ message: 'Заполните все поля', type: 'error' })
+                  setToast({ message: 'אנא מלא את כל השדות', type: 'error' })
                   return
                 }
                 setHaLoading(true)
                 try {
                   await saveConnectionConfig({ url: haUrl, token: haToken })
                   await connect(haUrl, haToken)
-                  setToast({ message: 'Настройки Home Assistant сохранены и подключение установлено!', type: 'success' })
+                  setToast({ message: 'הגדרות Home Assistant נשמרו והחיבור הוקם!', type: 'success' })
                 } catch (error: any) {
                   console.error('Ошибка сохранения настроек Home Assistant:', error)
-                  setToast({ message: error?.message || 'Ошибка сохранения настроек', type: 'error' })
+                  setToast({ message: error?.message || 'שגיאה בשמירת ההגדרות', type: 'error' })
                 } finally {
                   setHaLoading(false)
                 }
@@ -973,14 +973,14 @@ const Settings = () => {
                   <button
                     onClick={() => setSelectedWidget(null)}
                     className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
-                    title="Вернуться к выбору виджета"
+                    title="חזור לבחירת וידג'ט"
                   >
                     <ArrowLeft size={20} />
                   </button>
                   <div>
                     <h2 className="font-medium text-lg">TV Time Widget</h2>
                     <p className="text-sm text-dark-textSecondary mt-1">
-                      Настройка виджета времени работы телевизора
+                      הגדרת וידג'ט זמן פעולת טלוויזיה
                     </p>
                   </div>
                 </div>
@@ -988,7 +988,7 @@ const Settings = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
                 <div className="space-y-4">
                   <div className="text-center text-dark-textSecondary py-8">
-                    Настройки TV Time Widget (в разработке)
+                    הגדרות TV Time Widget (בפיתוח)
                   </div>
                 </div>
                 {/* Preview виджета */}
@@ -1104,10 +1104,10 @@ const Settings = () => {
                             await updateSensorsConfig(sensorConfigs)
                             setHasUnsavedChanges(false)
                             window.dispatchEvent(new Event('widgets-changed'))
-                            setToast({ message: 'Настройки датчиков сохранены!', type: 'success' })
+                            setToast({ message: 'הגדרות חיישנים נשמרו!', type: 'success' })
                           } catch (error) {
                             console.error('Ошибка сохранения:', error)
-                            setToast({ message: 'Ошибка сохранения настроек', type: 'error' })
+                            setToast({ message: 'שגיאה בשמירת ההגדרות', type: 'error' })
                           }
                         }}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
@@ -1349,10 +1349,10 @@ const Settings = () => {
                           await updateSpotifyConfig(spotifyConfig)
                           setHasUnsavedChanges(false)
                           window.dispatchEvent(new Event('widgets-changed'))
-                          setToast({ message: 'Настройки Spotify сохранены!', type: 'success' })
+                          setToast({ message: 'הגדרות Spotify נשמרו!', type: 'success' })
                         } catch (error) {
                           console.error('Ошибка сохранения Spotify:', error)
-                          setToast({ message: 'Ошибка сохранения настроек', type: 'error' })
+                          setToast({ message: 'שגיאה בשמירת ההגדרות', type: 'error' })
                         }
                       }}
                       className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
@@ -1556,10 +1556,10 @@ const Settings = () => {
                             await updateMotorConfigs(motorConfigs)
                             setHasUnsavedChanges(false)
                             window.dispatchEvent(new Event('widgets-changed'))
-                            setToast({ message: 'Настройки моторных устройств сохранены!', type: 'success' })
+                            setToast({ message: 'הגדרות מכשירים מוטוריים נשמרו!', type: 'success' })
                           } catch (error) {
                             console.error('Ошибка сохранения:', error)
-                            setToast({ message: 'Ошибка сохранения настроек', type: 'error' })
+                            setToast({ message: 'שגיאה בשמירת ההגדרות', type: 'error' })
                           }
                         }}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
@@ -1722,10 +1722,10 @@ const Settings = () => {
                             await updateBoseConfigs(boseConfigs)
                             setHasUnsavedChanges(false)
                             window.dispatchEvent(new Event('widgets-changed'))
-                            setToast({ message: 'Настройки Bose сохранены!', type: 'success' })
+                            setToast({ message: 'הגדרות Bose נשמרו!', type: 'success' })
                           } catch (error) {
                             console.error('Ошибка сохранения:', error)
-                            setToast({ message: 'Ошибка сохранения настроек', type: 'error' })
+                            setToast({ message: 'שגיאה בשמירת ההגדרות', type: 'error' })
                           }
                         }}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
@@ -1889,10 +1889,10 @@ const Settings = () => {
                             await updateVacuumConfigs(vacuumConfigs)
                             setHasUnsavedChanges(false)
                             window.dispatchEvent(new Event('widgets-changed'))
-                            setToast({ message: 'Настройки пылесоса сохранены!', type: 'success' })
+                            setToast({ message: 'הגדרות שואב אבק נשמרו!', type: 'success' })
                           } catch (error) {
                             console.error('Ошибка сохранения:', error)
-                            setToast({ message: 'Ошибка сохранения настроек', type: 'error' })
+                            setToast({ message: 'שגיאה בשמירת ההגדרות', type: 'error' })
                           }
                         }}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
@@ -2604,14 +2604,14 @@ const Settings = () => {
                     <button
                       onClick={() => setSelectedWidget(null)}
                       className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
-                      title="Вернуться к выбору виджета"
+                      title="חזור לבחירת וידג'ט"
                     >
                       <ArrowLeft size={20} />
                     </button>
                     <div>
                       <h2 className="font-medium text-lg">Cameras Widget</h2>
                       <p className="text-sm text-dark-textSecondary mt-1">
-                        Настройка виджета камер
+                        הגדרת וידג'ט מצלמות
                       </p>
                     </div>
                   </div>
@@ -2619,7 +2619,7 @@ const Settings = () => {
                     <button
                       onClick={() => {
                         const newCamera: CameraConfig = {
-                          name: `Камера ${cameraConfigs.length + 1}`,
+                          name: `מצלמה ${cameraConfigs.length + 1}`,
                           entityId: null
                         }
                         setCameraConfigs([...cameraConfigs, newCamera])
@@ -2638,10 +2638,10 @@ const Settings = () => {
                             await updateCameraConfigs(cameraConfigs)
                             setHasUnsavedChanges(false)
                             window.dispatchEvent(new Event('widgets-changed'))
-                            setToast({ message: 'Настройки камер сохранены!', type: 'success' })
+                            setToast({ message: 'הגדרות מצלמות נשמרו!', type: 'success' })
                           } catch (error) {
                             console.error('Ошибка сохранения:', error)
-                            setToast({ message: 'Ошибка сохранения настроек', type: 'error' })
+                            setToast({ message: 'שגיאה בשמירת ההגדרות', type: 'error' })
                           }
                         }}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
@@ -2745,7 +2745,7 @@ const Settings = () => {
                           setHasUnsavedChanges(true)
                         }}
                         options={[
-                          { value: '', label: '-- Выберите камеру --' },
+                          { value: '', label: '-- בחר מצלמה --' },
                           ...entities
                             .filter(e => {
                               const domain = e.entity_id.split('.')[0]
@@ -2756,18 +2756,18 @@ const Settings = () => {
                               label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
                             }))
                         ]}
-                        placeholder="-- Выберите камеру --"
+                        placeholder="-- בחר מצלמה --"
                         className="w-full"
                       />
                     </div>
                   </div>
                 )) : (
                   <div className="text-center text-dark-textSecondary py-8">
-                    <p className="mb-4">Нет камер в виджете</p>
+                    <p className="mb-4">אין מצלמות בווידג'ט</p>
                     <button
                       onClick={() => {
                         const newCamera: CameraConfig = {
-                          name: 'Камера 1',
+                          name: 'מצלמה 1',
                           entityId: null
                         }
                         setCameraConfigs([newCamera])
@@ -2782,7 +2782,7 @@ const Settings = () => {
                 </div>
                 {/* Preview виджета */}
                 <div className="lg:border-l lg:border-dark-border lg:pl-4">
-                  <h3 className="text-sm font-medium text-dark-textSecondary mb-3">Превью виджета:</h3>
+                  <h3 className="text-sm font-medium text-dark-textSecondary mb-3">תצוגה מקדימה של וידג'ט:</h3>
                   <div className="bg-dark-bg rounded-lg border border-dark-border p-4 max-h-[60vh] overflow-y-auto">
                     <div className="flex items-center gap-2 mb-4 flex-shrink-0">
                       <div className="p-2 bg-blue-500/20 rounded-lg">
@@ -2811,7 +2811,7 @@ const Settings = () => {
                     <div>
                       <h2 className="font-medium text-lg">AC Widget</h2>
                       <p className="text-sm text-dark-textSecondary mt-1">
-                        Настройка виджета кондиционера
+                        הגדרת וידג'ט מזגן
                       </p>
                     </div>
                   </div>
@@ -2837,10 +2837,10 @@ const Settings = () => {
                             await updateACConfigs(acConfigs)
                             setHasUnsavedChanges(false)
                             window.dispatchEvent(new Event('widgets-changed'))
-                            setToast({ message: 'Настройки кондиционеров сохранены!', type: 'success' })
+                            setToast({ message: 'הגדרות מזגנים נשמרו!', type: 'success' })
                           } catch (error) {
                             console.error('Ошибка сохранения:', error)
-                            setToast({ message: 'Ошибка сохранения настроек', type: 'error' })
+                            setToast({ message: 'שגיאה בשמירת ההגדרות', type: 'error' })
                           }
                         }}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
@@ -2976,7 +2976,7 @@ const Settings = () => {
                     <div>
                       <h2 className="font-medium text-lg">Water Heater Widget</h2>
                       <p className="text-sm text-dark-textSecondary mt-1">
-                        Настройка виджета газового водонагревателя
+                        הגדרת וידג'ט דוד מים גז
                       </p>
                     </div>
                   </div>
@@ -2987,10 +2987,10 @@ const Settings = () => {
                           await updateWaterHeaterConfig(waterHeaterConfig)
                           setHasUnsavedChanges(false)
                           window.dispatchEvent(new Event('widgets-changed'))
-                          setToast({ message: 'Настройки водонагревателя сохранены!', type: 'success' })
+                          setToast({ message: 'הגדרות דוד מים נשמרו!', type: 'success' })
                         } catch (error) {
                           console.error('Ошибка сохранения:', error)
-                          setToast({ message: 'Ошибка сохранения настроек', type: 'error' })
+                          setToast({ message: 'שגיאה בשמירת ההגדרות', type: 'error' })
                         }
                       }}
                       className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
