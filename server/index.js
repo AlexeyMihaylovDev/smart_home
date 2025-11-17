@@ -213,7 +213,15 @@ app.get('/api/config/widget', requireAuth, async (req, res) => {
         vacuum: {
           vacuums: []
         },
-        enabledWidgets: {}
+        enabledWidgets: {},
+        navigationIcons: {
+          icons: [
+            { id: 'cameras', label: 'Cameras', iconName: 'camera', enabled: true, order: 0 },
+            { id: 'home', label: 'Home', iconName: 'home', enabled: true, order: 1 },
+            { id: 'network', label: 'Network', iconName: 'network', enabled: true, order: 2 },
+            { id: 'vacuum', label: 'Vacuum', iconName: 'vacuum', enabled: true, order: 3 },
+          ]
+        }
       }
       res.json(defaultConfig)
     }

@@ -15,6 +15,7 @@ export interface ACConfig {
 export interface WaterHeaterConfig {
   entityId: string | null
   name: string
+  style?: WaterHeaterStyle
 }
 
 export interface SensorConfig {
@@ -49,6 +50,15 @@ export interface VacuumConfig {
 }
 
 export type AmbientLightingStyle = 'list' | 'cards' | 'compact' | 'minimal'
+export type WaterHeaterStyle = 'compact' | 'card' | 'minimal' | 'modern'
+
+export interface NavigationIcon {
+  id: string
+  label: string
+  iconName: 'camera' | 'home' | 'network' | 'vacuum'
+  enabled: boolean
+  order: number
+}
 
 export interface WidgetConfig {
   ambientLighting: {
@@ -74,6 +84,9 @@ export interface WidgetConfig {
   enabledWidgets: {
     [widgetId: string]: boolean
   }
+  navigationIcons: {
+    icons: NavigationIcon[]
+  }
 }
 
 const DEFAULT_CONFIG: WidgetConfig = {
@@ -93,7 +106,8 @@ const DEFAULT_CONFIG: WidgetConfig = {
   },
   waterHeater: {
     entityId: null,
-    name: 'Водонагреватель'
+    name: 'Водонагреватель',
+    style: 'compact'
   },
   sensors: {
     sensors: []
@@ -107,7 +121,15 @@ const DEFAULT_CONFIG: WidgetConfig = {
   vacuum: {
     vacuums: []
   },
-  enabledWidgets: {}
+  enabledWidgets: {},
+  navigationIcons: {
+    icons: [
+      { id: 'cameras', label: 'Cameras', iconName: 'camera', enabled: true, order: 0 },
+      { id: 'home', label: 'Home', iconName: 'home', enabled: true, order: 1 },
+      { id: 'network', label: 'Network', iconName: 'network', enabled: true, order: 2 },
+      { id: 'vacuum', label: 'Vacuum', iconName: 'vacuum', enabled: true, order: 3 },
+    ]
+  }
 }
 
 // Кэш для синхронного доступа (используется как fallback)
@@ -125,6 +147,10 @@ export const getWidgetConfig = async (): Promise<WidgetConfig> => {
       }
       config.ac = { airConditioners: [] }
     }
+    // Инициализируем navigationIcons, если отсутствует
+    if (!config.navigationIcons || !config.navigationIcons.icons) {
+      config.navigationIcons = DEFAULT_CONFIG.navigationIcons
+    }
     configCache = config as WidgetConfig
     return config as WidgetConfig
   } catch (error) {
@@ -141,6 +167,10 @@ export const getWidgetConfig = async (): Promise<WidgetConfig> => {
           }
           parsed.ac = { airConditioners: [] }
         }
+        // Инициализируем navigationIcons, если отсутствует
+        if (!parsed.navigationIcons || !parsed.navigationIcons.icons) {
+          parsed.navigationIcons = DEFAULT_CONFIG.navigationIcons
+        }
         configCache = parsed
         return parsed
       }
@@ -154,6 +184,10 @@ export const getWidgetConfig = async (): Promise<WidgetConfig> => {
 // Синхронная версия для обратной совместимости (использует кэш)
 export const getWidgetConfigSync = (): WidgetConfig => {
   if (configCache) {
+    // Убеждаемся, что navigationIcons инициализирован
+    if (!configCache.navigationIcons || !configCache.navigationIcons.icons) {
+      configCache.navigationIcons = DEFAULT_CONFIG.navigationIcons
+    }
     return configCache
   }
   // Fallback на localStorage
@@ -166,6 +200,10 @@ export const getWidgetConfigSync = (): WidgetConfig => {
           return parsed
         }
         parsed.ac = { airConditioners: [] }
+      }
+      // Инициализируем navigationIcons, если отсутствует
+      if (!parsed.navigationIcons || !parsed.navigationIcons.icons) {
+        parsed.navigationIcons = DEFAULT_CONFIG.navigationIcons
       }
       configCache = parsed
       return parsed
@@ -331,18 +369,29 @@ export const setWidgetEnabled = async (widgetId: string, enabled: boolean): Prom
 
 export const getWaterHeaterConfig = async (): Promise<WaterHeaterConfig> => {
   const config = await getWidgetConfig()
-  return config.waterHeater || { entityId: null, name: 'Водонагреватель' }
+  return config.waterHeater || { entityId: null, name: 'Водонагреватель', style: 'compact' }
 }
 
 export const getWaterHeaterConfigSync = (): WaterHeaterConfig => {
   const config = getWidgetConfigSync()
-  return config.waterHeater || { entityId: null, name: 'Водонагреватель' }
+  return config.waterHeater || { entityId: null, name: 'Водонагреватель', style: 'compact' }
 }
 
 export const updateWaterHeaterConfig = async (waterHeaterConfig: WaterHeaterConfig): Promise<void> => {
   const config = await getWidgetConfig()
   config.waterHeater = waterHeaterConfig
   await saveWidgetConfig(config)
+}
+
+export const getWaterHeaterStyleSync = (): WaterHeaterStyle => {
+  const config = getWaterHeaterConfigSync()
+  return config.style || 'compact'
+}
+
+export const updateWaterHeaterStyle = async (style: WaterHeaterStyle): Promise<void> => {
+  const config = await getWaterHeaterConfig()
+  config.style = style
+  await updateWaterHeaterConfig(config)
 }
 
 export const getSensorsConfig = async (): Promise<SensorConfig[]> => {
@@ -434,5 +483,24 @@ export const updateVacuumConfigs = async (vacuums: VacuumConfig[]): Promise<void
     config.vacuum = { vacuums: [] }
   }
   config.vacuum.vacuums = vacuums
+  await saveWidgetConfig(config)
+}
+
+export const getNavigationIcons = async (): Promise<NavigationIcon[]> => {
+  const config = await getWidgetConfig()
+  return config.navigationIcons?.icons || []
+}
+
+export const getNavigationIconsSync = (): NavigationIcon[] => {
+  const config = getWidgetConfigSync()
+  return config.navigationIcons?.icons || []
+}
+
+export const updateNavigationIcons = async (icons: NavigationIcon[]): Promise<void> => {
+  const config = await getWidgetConfig()
+  if (!config.navigationIcons) {
+    config.navigationIcons = { icons: [] }
+  }
+  config.navigationIcons.icons = icons
   await saveWidgetConfig(config)
 }

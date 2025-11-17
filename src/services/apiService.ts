@@ -106,6 +106,15 @@ export interface WidgetConfig {
   enabledWidgets: {
     [widgetId: string]: boolean
   }
+  navigationIcons?: {
+    icons: Array<{
+      id: string
+      label: string
+      iconName: 'camera' | 'home' | 'network' | 'vacuum'
+      enabled: boolean
+      order: number
+    }>
+  }
 }
 
 export interface DashboardLayout {

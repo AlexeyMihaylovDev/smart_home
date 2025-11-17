@@ -1,24 +1,22 @@
 import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
-import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock, Navigation, Plus } from 'lucide-react'
-import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
+import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock, Navigation, Plus, Sparkles } from 'lucide-react'
+import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getWaterHeaterStyleSync, updateWaterHeaterStyle, WaterHeaterStyle, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, isWidgetEnabledSync, setWidgetEnabled } from '../services/widgetConfig'
 import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 import ToggleSwitch from './ui/ToggleSwitch'
 import Toast from './ui/Toast'
 import SearchableSelect from './ui/SearchableSelect'
 import { ListStyle, CardsStyle, CompactStyle, MinimalStyle } from './widgets/AmbientLightingStyles'
+import NavigationIconsSettings from './settings/NavigationIconsSettings'
+import WidgetSelector, { WidgetType, WidgetOption } from './settings/WidgetSelector'
+import {
+  TVTimePreview, MediaPlayerPreview, SpotifyPreview, MediaRoomPreview, CanvasPreview,
+  TVPreviewWidget, PlexPreview, TVDurationPreview, WeatherCalendarPreview, LivingRoomPreview,
+  ACPreview, WaterHeaterPreview, SensorsPreview, MotorsPreview, BosePreview, VacuumPreview
+} from './settings/WidgetPreviews'
 
-type Tab = 'devices' | 'widgets' | 'home-assistant'
-type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | 'water-heater' | 'motors' | 'bose' | 'vacuum' | null
-
-interface WidgetOption {
-  id: WidgetType
-  name: string
-  description: string
-  icon: React.ComponentType<{ size?: number; className?: string }>
-  color: string
-}
+type Tab = 'devices' | 'widgets' | 'navigation' | 'home-assistant'
 
 // Preview компонент для настроек
 const PreviewContent = ({ lights, entities, style }: { lights: LightConfig[], entities: Map<string, Entity>, style: AmbientLightingStyle }) => {
@@ -59,6 +57,7 @@ const PreviewContent = ({ lights, entities, style }: { lights: LightConfig[], en
   }
 }
 
+
 const Settings = () => {
   const { api, connect } = useHomeAssistant()
   const [activeTab, setActiveTab] = useState<Tab>('devices')
@@ -93,7 +92,14 @@ const Settings = () => {
     try {
       return getWaterHeaterConfigSync()
     } catch {
-      return { entityId: null, name: 'דוד מים' }
+      return { entityId: null, name: 'דוד מים', style: 'compact' }
+    }
+  })
+  const [waterHeaterStyle, setWaterHeaterStyle] = useState<WaterHeaterStyle>(() => {
+    try {
+      return getWaterHeaterStyleSync()
+    } catch {
+      return 'compact'
     }
   })
   const [sensorConfigs, setSensorConfigs] = useState<SensorConfig[]>(() => {
@@ -103,6 +109,7 @@ const Settings = () => {
       return []
     }
   })
+  const [showSensorsDemo, setShowSensorsDemo] = useState(false)
   const [motorConfigs, setMotorConfigs] = useState<MotorConfig[]>(() => {
     try {
       return getMotorConfigsSync()
@@ -298,6 +305,8 @@ const Settings = () => {
     setACConfigs(acs && Array.isArray(acs) ? acs : [])
     const wh = getWaterHeaterConfigSync()
     setWaterHeaterConfig(wh)
+    const whStyle = getWaterHeaterStyleSync()
+    setWaterHeaterStyle(whStyle)
     const sensors = getSensorsConfigSync()
     setSensorConfigs(sensors && Array.isArray(sensors) ? sensors : [])
     const motors = getMotorConfigsSync()
@@ -586,6 +595,19 @@ const Settings = () => {
           </div>
         </button>
         <button
+          onClick={() => setActiveTab('navigation')}
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${
+            activeTab === 'navigation'
+              ? 'border-blue-500 text-white'
+              : 'border-transparent text-dark-textSecondary hover:text-white'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Navigation size={18} />
+            Навигация
+          </div>
+        </button>
+        <button
           onClick={() => setActiveTab('home-assistant')}
           className={`px-4 py-2 font-medium transition-colors border-b-2 ${
             activeTab === 'home-assistant'
@@ -657,77 +679,25 @@ const Settings = () => {
             </button>
           </div>
         </div>
+      ) : activeTab === 'navigation' ? (
+        /* Настройка навигации */
+        <NavigationIconsSettings />
       ) : activeTab === 'widgets' ? (
         /* Настройка виджетов */
         <div className="space-y-6">
           {!selectedWidget ? (
             /* Выбор виджета */
-            <div className="bg-dark-card rounded-lg border border-dark-border p-6">
-              <h2 className="text-xl font-bold mb-2">Выберите виджет для настройки</h2>
-              <p className="text-sm text-dark-textSecondary mb-6">
-                Выберите виджет, который вы хотите настроить
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {widgetOptions
-                  .map((widget) => {
-                    const widgetId = widget.id || ''
-                    const enabled = widgetEnabledStates[widgetId] ?? isWidgetEnabledSync(widgetId)
-                    return { ...widget, enabled }
-                  })
-                  .sort((a, b) => {
-                    // Сначала включенные виджеты
-                    if (a.enabled && !b.enabled) return -1
-                    if (!a.enabled && b.enabled) return 1
-                    return 0
-                  })
-                  .map((widget) => {
-                    const Icon = widget.icon
-                    const widgetId = widget.id || ''
-                    const enabled = widget.enabled
-                  return (
-                    <div
-                      key={widget.id}
-                      className="p-6 bg-dark-bg border border-dark-border rounded-lg transition-all hover:border-blue-500 hover:shadow-lg group"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className={`${widget.color} p-3 rounded-lg group-hover:scale-110 transition-transform`}>
-                          <Icon size={24} className="text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <h3 className="font-semibold text-lg">{widget.name}</h3>
-                            <div onClick={(e) => e.stopPropagation()}>
-                              <ToggleSwitch
-                                checked={enabled}
-                                onChange={() => {
-                                  const newState = !enabled
-                                  // Обновляем локальное состояние немедленно
-                                  setWidgetEnabledStates(prev => ({
-                                    ...prev,
-                                    [widgetId]: newState
-                                  }))
-                                  // Сохраняем в конфигурацию
-                                  setWidgetEnabled(widgetId, newState)
-                                  // Отправляем событие для обновления dashboard
-                                  window.dispatchEvent(new Event('widgets-changed'))
-                                }}
-                              />
-                            </div>
-                          </div>
-                          <p className="text-sm text-dark-textSecondary mb-3">{widget.description}</p>
-                          <button
-                            onClick={() => setSelectedWidget(widget.id)}
-                            className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                          >
-                            Настроить →
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
+            <WidgetSelector
+              widgetOptions={widgetOptions}
+              widgetEnabledStates={widgetEnabledStates}
+              onWidgetSelect={setSelectedWidget}
+              onWidgetEnabledChange={(widgetId, enabled) => {
+                setWidgetEnabledStates(prev => ({
+                  ...prev,
+                  [widgetId]: enabled
+                }))
+              }}
+            />
           ) : (
             /* Настройки выбранного виджета */
             <>
@@ -942,24 +912,43 @@ const Settings = () => {
           </div>
           )}
           {selectedWidget === 'tv-time' && (
-            <div className="bg-dark-card rounded-lg border border-dark-border p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <button
-                  onClick={() => setSelectedWidget(null)}
-                  className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
-                  title="Вернуться к выбору виджета"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-                <div>
-                  <h2 className="font-medium text-lg">TV Time Widget</h2>
-                  <p className="text-sm text-dark-textSecondary mt-1">
-                    Настройка виджета времени работы телевизора
-                  </p>
+            <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
+              <div className="p-4 border-b border-dark-border">
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setSelectedWidget(null)}
+                    className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
+                    title="Вернуться к выбору виджета"
+                  >
+                    <ArrowLeft size={20} />
+                  </button>
+                  <div>
+                    <h2 className="font-medium text-lg">TV Time Widget</h2>
+                    <p className="text-sm text-dark-textSecondary mt-1">
+                      Настройка виджета времени работы телевизора
+                    </p>
+                  </div>
                 </div>
               </div>
-              <div className="text-center text-dark-textSecondary py-8">
-                Настройки TV Time Widget (в разработке)
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+                <div className="space-y-4">
+                  <div className="text-center text-dark-textSecondary py-8">
+                    Настройки TV Time Widget (в разработке)
+                  </div>
+                </div>
+                {/* Preview виджета */}
+                <div className="lg:border-l lg:border-dark-border lg:pl-4">
+                  <h3 className="text-sm font-medium text-dark-textSecondary mb-3">תצוגה מקדימה של הווידג'ט:</h3>
+                  <div className="bg-dark-bg rounded-lg border border-dark-border p-4 max-h-[60vh] overflow-y-auto">
+                    <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                      <div className="p-2 bg-blue-500/20 rounded-lg">
+                        <Tv size={18} className="text-blue-400" />
+                      </div>
+                      <div className="font-medium text-white">TV Time</div>
+                    </div>
+                    <TVTimePreview />
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1019,6 +1008,18 @@ const Settings = () => {
                       <User size={16} />
                       הוסף נוכחות
                     </button>
+                    <button
+                      onClick={() => setShowSensorsDemo(prev => !prev)}
+                      className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium border ${
+                        showSensorsDemo
+                          ? 'bg-purple-600/80 border-purple-500 text-white'
+                          : 'bg-dark-bg border-dark-border text-dark-textSecondary hover:text-white'
+                      }`}
+                      title="Показать демо-интерфейс Sensors"
+                    >
+                      <Sparkles size={16} />
+                      {showSensorsDemo ? 'Demo ON' : 'Demo'}
+                    </button>
                     {hasUnsavedChanges && (
                       <button
                         onClick={async () => {
@@ -1042,7 +1043,8 @@ const Settings = () => {
                   </div>
                 </div>
               </div>
-              <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
                 {sensorConfigs && sensorConfigs.length > 0 ? sensorConfigs.map((sensor, index) => (
                   <div key={index} className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
                     <div className="flex items-center justify-between">
@@ -1227,6 +1229,20 @@ const Settings = () => {
                   </div>
                 )}
               </div>
+              {/* Preview виджета */}
+              <div className="lg:border-l lg:border-dark-border lg:pl-4 p-4">
+                <h3 className="text-sm font-medium text-dark-textSecondary mb-3">תצוגה מקדימה של הווידג'ט:</h3>
+                <div className="bg-dark-bg rounded-lg border border-dark-border p-4 max-h-[60vh] overflow-y-auto">
+                  <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                    <div className="p-2 bg-green-500/20 rounded-lg">
+                      <Gauge size={18} className="text-green-400" />
+                    </div>
+                    <div className="font-medium text-white">Sensors</div>
+                  </div>
+                  <SensorsPreview configs={sensorConfigs} demo={showSensorsDemo} />
+                </div>
+              </div>
+              </div>
             </div>
           )}
           {selectedWidget === 'motors' && (
@@ -1287,7 +1303,8 @@ const Settings = () => {
                   </div>
                 </div>
               </div>
-              <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
                 {motorConfigs && motorConfigs.length > 0 ? motorConfigs.map((motor, index) => (
                   <div key={index} className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
                     <div className="flex items-center justify-between">
@@ -1377,6 +1394,20 @@ const Settings = () => {
                     </button>
                   </div>
                 )}
+                </div>
+                {/* Preview виджета */}
+                <div className="lg:border-l lg:border-dark-border lg:pl-4">
+                  <h3 className="text-sm font-medium text-dark-textSecondary mb-3">תצוגה מקדימה של הווידג'ט:</h3>
+                  <div className="bg-dark-bg rounded-lg border border-dark-border p-4 max-h-[60vh] overflow-y-auto">
+                    <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                      <div className="p-2 bg-blue-500/20 rounded-lg">
+                        <GaugeIcon size={18} className="text-blue-400" />
+                      </div>
+                      <div className="font-medium text-white">Motors</div>
+                    </div>
+                    <MotorsPreview configs={motorConfigs} />
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1438,7 +1469,8 @@ const Settings = () => {
                   </div>
                 </div>
               </div>
-              <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
                 {boseConfigs && boseConfigs.length > 0 ? boseConfigs.map((bose, index) => (
                   <div key={index} className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
                     <div className="flex items-center justify-between">
@@ -1522,6 +1554,20 @@ const Settings = () => {
                     </button>
                   </div>
                 )}
+                </div>
+                {/* Preview виджета */}
+                <div className="lg:border-l lg:border-dark-border lg:pl-4">
+                  <h3 className="text-sm font-medium text-dark-textSecondary mb-3">תצוגה מקדימה של הווידג'ט:</h3>
+                  <div className="bg-dark-bg rounded-lg border border-dark-border p-4 max-h-[60vh] overflow-y-auto">
+                    <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                      <div className="p-2 bg-purple-500/20 rounded-lg">
+                        <Music size={18} className="text-purple-400" />
+                      </div>
+                      <div className="font-medium text-white">Bose</div>
+                    </div>
+                    <BosePreview configs={boseConfigs} />
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1590,7 +1636,8 @@ const Settings = () => {
                   </div>
                 </div>
               </div>
-              <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
                 {vacuumConfigs && vacuumConfigs.length > 0 ? vacuumConfigs.map((vacuum, index) => (
                   <div key={index} className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
                     <div className="flex items-center justify-between">
@@ -2263,6 +2310,20 @@ const Settings = () => {
                     </button>
                   </div>
                 )}
+                </div>
+                {/* Preview виджета */}
+                <div className="lg:border-l lg:border-dark-border lg:pl-4">
+                  <h3 className="text-sm font-medium text-dark-textSecondary mb-3">תצוגה מקדימה של הווידג'ט:</h3>
+                  <div className="bg-dark-bg rounded-lg border border-dark-border p-4 max-h-[60vh] overflow-y-auto">
+                    <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                      <div className="p-2 bg-green-500/20 rounded-lg">
+                        <Sparkles size={18} className="text-green-400" />
+                      </div>
+                      <div className="font-medium text-white">Vacuum</div>
+                    </div>
+                    <VacuumPreview configs={vacuumConfigs} />
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -2345,7 +2406,8 @@ const Settings = () => {
                   </div>
                 </div>
               </div>
-              <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
                 {acConfigs && acConfigs.length > 0 ? acConfigs.map((ac, index) => (
                   <div key={index} className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
                     <div className="flex items-center justify-between">
@@ -2435,6 +2497,20 @@ const Settings = () => {
                     </button>
                   </div>
                 )}
+                </div>
+                {/* Preview виджета */}
+                <div className="lg:border-l lg:border-dark-border lg:pl-4">
+                  <h3 className="text-sm font-medium text-dark-textSecondary mb-3">תצוגה מקדימה של הווידג'ט:</h3>
+                  <div className="bg-dark-bg rounded-lg border border-dark-border p-4 max-h-[60vh] overflow-y-auto">
+                    <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                      <div className="p-2 bg-cyan-500/20 rounded-lg">
+                        <Wind size={18} className="text-cyan-400" />
+                      </div>
+                      <div className="font-medium text-white">AC</div>
+                    </div>
+                    <ACPreview configs={acConfigs} />
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -2479,7 +2555,8 @@ const Settings = () => {
                   )}
                 </div>
               </div>
-              <div className="p-4 space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+                <div className="space-y-4">
                 <div className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
                   <div className="flex-1">
                     <label className="block text-xs text-dark-textSecondary mb-1">
@@ -2529,6 +2606,42 @@ const Settings = () => {
                       placeholder="-- בחר דוד מים --"
                       className="w-full"
                     />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs text-dark-textSecondary mb-1">
+                      סגנון וידג'ט:
+                    </label>
+                    <select
+                      value={waterHeaterStyle}
+                      onChange={async (e) => {
+                        const newStyle = e.target.value as WaterHeaterStyle
+                        setWaterHeaterStyle(newStyle)
+                        await updateWaterHeaterStyle(newStyle)
+                        setWaterHeaterConfig({ ...waterHeaterConfig, style: newStyle })
+                        setHasUnsavedChanges(true)
+                        window.dispatchEvent(new Event('widgets-changed'))
+                      }}
+                      className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="compact">קומפקטי</option>
+                      <option value="card">כרטיס</option>
+                      <option value="minimal">מינימליסטי</option>
+                      <option value="modern">מודרני</option>
+                    </select>
+                  </div>
+                </div>
+                </div>
+                {/* Preview виджета */}
+                <div className="lg:border-l lg:border-dark-border lg:pl-4">
+                  <h3 className="text-sm font-medium text-dark-textSecondary mb-3">תצוגה מקדימה של הווידג'ט:</h3>
+                  <div className="bg-dark-bg rounded-lg border border-dark-border p-4 max-h-[60vh] overflow-y-auto">
+                    <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                      <div className="p-2 bg-orange-500/20 rounded-lg">
+                        <Droplet size={18} className="text-orange-400" />
+                      </div>
+                      <div className="font-medium text-white">Water Heater</div>
+                    </div>
+                    <WaterHeaterPreview config={waterHeaterConfig} style={waterHeaterStyle} />
                   </div>
                 </div>
               </div>
