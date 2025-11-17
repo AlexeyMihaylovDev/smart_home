@@ -27,6 +27,12 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
   const [localLoading, setLocalLoading] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [showServicesMenu, setShowServicesMenu] = useState(false)
+  const [showStartOptions, setShowStartOptions] = useState(false)
+  const [selectedCleaningType, setSelectedCleaningType] = useState<string>('auto')
+  const [cleaningRepeats, setCleaningRepeats] = useState<number>(1)
+  const [roomSelectionMode, setRoomSelectionMode] = useState(false)
+  const [selectedRooms, setSelectedRooms] = useState<Set<string | number>>(new Set())
+  const [currentMode, setCurrentMode] = useState<string>('') // Текущий активный режим
   const [mapImage, setMapImage] = useState<string | null>(null)
   const [mapError, setMapError] = useState(false)
   const [mapRefreshKey, setMapRefreshKey] = useState(0)
@@ -87,6 +93,8 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
 
   // Обработка перетаскивания карты
   const handleMouseDown = (e: React.MouseEvent) => {
+    // В режиме выбора комнат не перетаскиваем карту
+    if (roomSelectionMode) return
     if (mapZoom > 1) {
       setIsDragging(true)
       setDragStart({ x: e.clientX - mapPosition.x, y: e.clientY - mapPosition.y })
@@ -109,6 +117,8 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
 
   // Обработка touch-жестов для мобильных устройств
   const handleTouchStart = (e: React.TouchEvent) => {
+    // В режиме выбора комнат не перетаскиваем карту
+    if (roomSelectionMode) return
     if (mapZoom > 1 && e.touches.length === 1) {
       setIsDragging(true)
       const touch = e.touches[0]
@@ -285,22 +295,34 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
     }
   }, [isCleaning, mapImage, mapError])
 
-  const handleStart = async () => {
+  const handleStart = async (cleaningType?: string, repeats?: number) => {
     if (!api || !vacuumConfig.entityId) return
 
     setLocalLoading(true)
     onLoadingChange(true)
     try {
+      const serviceData: any = {}
+      
+      // Добавляем параметры типа уборки и количества повторений
+      if (cleaningType) {
+        serviceData.cleaning_mode = cleaningType
+      }
+      if (repeats && repeats > 1) {
+        serviceData.repeats = repeats
+      }
+
       await api.callService({
         domain: 'vacuum',
         service: 'start',
         target: { entity_id: vacuumConfig.entityId },
+        service_data: Object.keys(serviceData).length > 0 ? serviceData : undefined
       })
     } catch (error) {
       console.error('Ошибка запуска пылесоса:', error)
     } finally {
       setLocalLoading(false)
       onLoadingChange(false)
+      setShowStartOptions(false)
     }
   }
 
@@ -415,9 +437,20 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
   }
 
   // Универсальная функция для вызова сервисов Dreame
-  const callDreameService = async (service: string, serviceData?: any) => {
+  const callDreameService = async (service: string, serviceData?: any, serviceLabel?: string) => {
     if (!api || !vacuumConfig.entityId) return
 
+    // Специальная обработка для app_segment_clean - включаем режим выбора комнат на карте
+    if (service === 'app_segment_clean') {
+      setRoomSelectionMode(true)
+      setSelectedRooms(new Set())
+      setCurrentMode(serviceLabel || 'בחירת חדרים')
+      setShowServicesMenu(false)
+      return
+    }
+
+    // Устанавливаем текущий режим
+    setCurrentMode(serviceLabel || service)
     setLocalLoading(true)
     onLoadingChange(true)
     try {
@@ -440,10 +473,67 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
       }
     } catch (error) {
       console.error(`Ошибка вызова сервиса ${service}:`, error)
+      setCurrentMode('') // Сбрасываем режим при ошибке
     } finally {
       setLocalLoading(false)
       onLoadingChange(false)
       setShowServicesMenu(false)
+      // Сбрасываем режим через 3 секунды после успешного выполнения
+      setTimeout(() => {
+        setCurrentMode('')
+      }, 3000)
+    }
+  }
+
+  // Обработчик клика на комнату на карте
+  const handleRoomClick = (roomId: string | number) => {
+    if (!roomSelectionMode) return
+    
+    const newSelected = new Set(selectedRooms)
+    if (newSelected.has(roomId)) {
+      newSelected.delete(roomId)
+    } else {
+      newSelected.add(roomId)
+    }
+    setSelectedRooms(newSelected)
+  }
+
+  // Функция для запуска уборки выбранных комнат
+  const handleCleanSelectedRooms = async () => {
+    if (!api || !vacuumConfig.entityId || selectedRooms.size === 0) return
+
+    setLocalLoading(true)
+    onLoadingChange(true)
+    const roomsArray = Array.from(selectedRooms)
+    setRoomSelectionMode(false)
+    setSelectedRooms(new Set())
+    
+    try {
+      // Пробуем через dreame_vacuum
+      try {
+        await api.callService({
+          domain: 'dreame_vacuum',
+          service: 'app_segment_clean',
+          target: { entity_id: vacuumConfig.entityId },
+          service_data: { segments: roomsArray }
+        })
+      } catch (error) {
+        // Пробуем альтернативный способ
+        await api.callService({
+          domain: 'vacuum',
+          service: 'send_command',
+          target: { entity_id: vacuumConfig.entityId },
+          service_data: { 
+            command: 'app_segment_clean',
+            params: roomsArray
+          }
+        })
+      }
+    } catch (error) {
+      console.error('Ошибка уборки комнат:', error)
+    } finally {
+      setLocalLoading(false)
+      onLoadingChange(false)
     }
   }
 
@@ -462,16 +552,77 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
     { id: 'reset_mop_life', label: 'איפוס סמרטוט', icon: RotateCw, description: 'איפוס מונה חיי סמרטוט' },
     { id: 'reset_dust_collection_life', label: 'איפוס מיכל אבק', icon: RotateCw, description: 'איפוס מונה חיי מיכל אבק' },
   ]
+  
+  // Функция для вызова сервиса с меткой
+  const handleServiceClick = (service: typeof dreameServices[0]) => {
+    callDreameService(service.id, undefined, service.label)
+  }
 
-  const getRooms = (): Array<{ id: string | number, name: string }> => {
+  const getRooms = (): Array<{ 
+    id: string | number, 
+    name: string, 
+    x?: number, 
+    y?: number, 
+    icon?: string,
+    polygon?: Array<{x: number, y: number}>,
+    bounds?: {minX: number, minY: number, maxX: number, maxY: number}
+  }> => {
     if (!entity) return []
-    const rooms = entity.attributes.rooms || entity.attributes.room_list || []
+    
+    // Пробуем разные источники данных о комнатах
+    const rooms = entity.attributes.rooms || 
+                  entity.attributes.room_list || 
+                  entity.attributes.segments ||
+                  entity.attributes.map_segments || []
+    
     if (Array.isArray(rooms)) {
-      return rooms.map((room: any) => ({
-        id: room.id || room.segment_id || room,
-        name: room.name || room.label || `Room ${room.id || room}`
+      return rooms.map((room: any) => {
+        // Получаем координаты из разных возможных полей
+        const x = room.x || room.center_x || room.position_x || room.center?.x
+        const y = room.y || room.center_y || room.position_y || room.center?.y
+        
+        // Получаем полигон комнаты (если есть)
+        const polygon = room.polygon || room.outline || room.boundary
+        
+        // Вычисляем границы комнаты
+        let bounds = undefined
+        if (polygon && Array.isArray(polygon) && polygon.length > 0) {
+          const xs = polygon.map((p: any) => p.x || p[0] || 0)
+          const ys = polygon.map((p: any) => p.y || p[1] || 0)
+          bounds = {
+            minX: Math.min(...xs),
+            minY: Math.min(...ys),
+            maxX: Math.max(...xs),
+            maxY: Math.max(...ys)
+          }
+        }
+        
+        return {
+          id: room.id || room.segment_id || room.segment || room,
+          name: room.name || room.label || room.friendly_name || `Room ${room.id || room.segment_id || room}`,
+          x,
+          y,
+          icon: room.icon,
+          polygon,
+          bounds
+        }
+      }).filter(room => room.id !== undefined && room.id !== null)
+    }
+    
+    // Если комнаты не найдены, пробуем получить из related entities
+    if (relatedEntities) {
+      const roomEntities = Array.from(relatedEntities.values()).filter(e => 
+        e.entity_id.includes('room') || e.entity_id.includes('segment')
+      )
+      
+      return roomEntities.map((e: Entity) => ({
+        id: e.entity_id,
+        name: e.attributes.friendly_name || e.entity_id.split('.').slice(1).join('.'),
+        x: e.attributes.x || e.attributes.center_x,
+        y: e.attributes.y || e.attributes.center_y
       }))
     }
+    
     return []
   }
 
@@ -590,22 +741,101 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
               </div>
             )}
           </div>
+          
+          {/* Индикатор режима выбора комнат */}
+          {roomSelectionMode && (
+            <div className="absolute top-2 left-2 z-30 px-3 py-2 bg-green-600/90 backdrop-blur-md rounded-lg shadow-lg flex items-center gap-2 pointer-events-auto">
+              <Target size={14} className="text-white" />
+              <span className="text-xs font-medium text-white">בחר חדרים על המפה</span>
+              <button
+                onClick={() => {
+                  setRoomSelectionMode(false)
+                  setSelectedRooms(new Set())
+                  setCurrentMode('')
+                }}
+                className="ml-2 p-1 hover:bg-green-700 rounded transition-colors"
+              >
+                <X size={14} className="text-white" />
+              </button>
+            </div>
+          )}
+          
+          {/* Индикатор текущего режима работы */}
+          {currentMode && !roomSelectionMode && (
+            <div className="absolute top-2 left-2 z-30 px-3 py-2 bg-blue-600/90 backdrop-blur-md rounded-lg shadow-lg flex items-center gap-2 pointer-events-auto">
+              <Activity size={14} className="text-white" />
+              <span className="text-xs font-medium text-white">{currentMode}</span>
+            </div>
+          )}
+          
+          {/* Список выбранных комнат */}
+          {roomSelectionMode && selectedRooms.size > 0 && (
+            <div className="absolute bottom-2 left-2 right-2 z-20 bg-dark-card/95 backdrop-blur-md rounded-lg shadow-lg p-2 max-h-32 overflow-y-auto">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-white">
+                  נבחרו {selectedRooms.size} חדרים
+                </span>
+                <button
+                  onClick={handleCleanSelectedRooms}
+                  disabled={localLoading || loading}
+                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                >
+                  <Play size={12} />
+                  התחל ניקוי
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {Array.from(selectedRooms).map((roomId) => {
+                  const room = rooms.find(r => r.id === roomId)
+                  return room ? (
+                    <div
+                      key={roomId}
+                      className="px-2 py-1 bg-green-600/30 border border-green-500/50 rounded text-xs text-white flex items-center gap-1.5"
+                    >
+                      <Box size={12} />
+                      {room.name}
+                      <button
+                        onClick={() => handleRoomClick(roomId)}
+                        className="ml-1 hover:bg-green-600/50 rounded p-0.5"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ) : null
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Контейнер карты с возможностью зума и перетаскивания */}
           <div 
-            className="relative w-full bg-gradient-to-br from-blue-900/20 to-purple-900/20 overflow-hidden"
+            className="relative w-full bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-pink-900/20 overflow-hidden"
             style={{ 
               aspectRatio: '1', 
               minHeight: '200px', 
               maxHeight: '400px',
-              cursor: mapZoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default'
+              cursor: roomSelectionMode ? 'crosshair' : (mapZoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default')
             }}
-            onWheel={handleWheel}
-            onMouseDown={handleMouseDown}
+            onWheel={!roomSelectionMode ? handleWheel : undefined}
+            onMouseDown={(e) => {
+              if (roomSelectionMode) {
+                // В режиме выбора комнат не перетаскиваем карту
+                e.stopPropagation()
+                return
+              }
+              handleMouseDown(e)
+            }}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-            onTouchStart={handleTouchStart}
+            onTouchStart={(e) => {
+              if (roomSelectionMode) {
+                // В режиме выбора комнат не перетаскиваем карту
+                e.stopPropagation()
+                return
+              }
+              handleTouchStart(e)
+            }}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
@@ -623,7 +853,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                 key={`map-${mapRefreshKey}-${map3D ? '3d' : '2d'}`}
                 src={addTimestampToUrl(getMapUrl() || mapImage)}
                 alt="Map"
-                className="w-full h-full object-contain select-none"
+                className="w-full h-full object-contain select-none pointer-events-none"
                 style={{
                   filter: map3D ? 'brightness(1.1) contrast(1.1)' : 'none',
                   transition: 'filter 0.3s ease-out',
@@ -634,20 +864,133 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                 }}
                 onLoad={() => setMapError(false)}
               />
+              
+              {/* Интерактивные кликабельные области для комнат на карте */}
+              {roomSelectionMode && rooms.length > 0 && (
+                <>
+                  {rooms.map((room) => {
+                    const isSelected = selectedRooms.has(room.id)
+                    
+                    // Если есть границы комнаты, создаем кликабельную область
+                    if (room.bounds) {
+                      const width = room.bounds.maxX - room.bounds.minX
+                      const height = room.bounds.maxY - room.bounds.minY
+                      const left = room.bounds.minX
+                      const top = room.bounds.minY
+                      
+                      return (
+                        <div
+                          key={room.id}
+                          className="absolute z-30 cursor-pointer transition-all"
+                          style={{
+                            left: `${left}%`,
+                            top: `${top}%`,
+                            width: `${width}%`,
+                            height: `${height}%`,
+                            border: isSelected ? '3px solid #10b981' : '2px dashed rgba(59, 130, 246, 0.5)',
+                            backgroundColor: isSelected ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.1)',
+                            borderRadius: '4px',
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRoomClick(room.id)
+                          }}
+                          title={room.name}
+                        >
+                          {/* Центральный маркер комнаты */}
+                          {room.x !== undefined && room.y !== undefined && (
+                            <div
+                              className="absolute"
+                              style={{
+                                left: `${((room.x - left) / width) * 100}%`,
+                                top: `${((room.y - top) / height) * 100}%`,
+                                transform: 'translate(-50%, -50%)'
+                              }}
+                            >
+                              <div className="relative">
+                                {isSelected && (
+                                  <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-75" />
+                                )}
+                                <div className={`relative rounded-full p-1.5 shadow-lg ${
+                                  isSelected 
+                                    ? 'bg-green-600 border-2 border-white' 
+                                    : 'bg-blue-500/70 border border-blue-300'
+                                }`}>
+                                  {isSelected ? (
+                                    <CheckCircle2 size={16} className="text-white" />
+                                  ) : (
+                                    <Box size={16} className="text-white" />
+                                  )}
+                                </div>
+                                <div className={`absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-2 py-0.5 rounded text-[10px] font-medium whitespace-nowrap ${
+                                  isSelected
+                                    ? 'bg-green-600/90 text-white'
+                                    : 'bg-blue-600/90 text-white'
+                                }`}>
+                                  {room.name}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    }
+                    
+                    // Если есть только координаты центра, показываем маркер
+                    if (room.x !== undefined && room.y !== undefined) {
+                      return (
+                        <div
+                          key={room.id}
+                          className={`absolute z-30 cursor-pointer transition-all ${
+                            isSelected ? 'pointer-events-auto' : 'pointer-events-auto'
+                          }`}
+                          style={{
+                            left: `${room.x}%`,
+                            top: `${room.y}%`,
+                            transform: 'translate(-50%, -50%)'
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRoomClick(room.id)
+                          }}
+                          title={room.name}
+                        >
+                          <div className="relative">
+                            {isSelected && (
+                              <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-75" />
+                            )}
+                            <div className={`relative rounded-full p-2 shadow-lg transition-all ${
+                              isSelected 
+                                ? 'bg-green-600 border-2 border-white' 
+                                : 'bg-blue-500/70 border border-blue-300 hover:bg-blue-600'
+                            }`}>
+                              {isSelected ? (
+                                <CheckCircle2 size={20} className="text-white" />
+                              ) : (
+                                <Box size={20} className="text-white" />
+                              )}
+                            </div>
+                            <div className={`absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                              isSelected
+                                ? 'bg-green-600/90 backdrop-blur-md text-white'
+                                : 'bg-blue-600/90 backdrop-blur-md text-white'
+                            }`}>
+                              {room.name}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    }
+                    
+                    return null
+                  })}
+                </>
+              )}
             </div>
-            {/* Overlay с информацией */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-            
-            {/* Текущая комната */}
-            {currentRoom && (
-              <div className="absolute bottom-2 left-2 px-2.5 py-1.5 bg-blue-600/90 backdrop-blur-md rounded-lg text-xs font-medium text-white shadow-lg flex items-center gap-1.5 pointer-events-auto">
-                <MapIcon size={12} />
-                {currentRoom}
-              </div>
-            )}
-            
-            {/* Overlay с информацией */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none z-10" />
+            {/* Overlay с информацией - не блокируем клики в режиме выбора комнат */}
+            <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 ${
+              roomSelectionMode ? 'pointer-events-none' : 'pointer-events-none'
+            }`} />
             
             {/* Текущая комната */}
             {currentRoom && (
@@ -690,13 +1033,13 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
         </div>
       )}
 
-      {/* Основные кнопки управления */}
+      {/* Основные кнопки управления - все одного размера */}
       <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-3">
         {!isCleaning && !isPaused && (
           <button
-            onClick={handleStart}
+            onClick={() => setShowStartOptions(true)}
             disabled={localLoading || loading || isReturning}
-            className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+            className="flex-1 min-w-[80px] px-3 sm:px-4 py-2.5 sm:py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
             title="התחל ניקוי"
           >
             <Play size={16} className="sm:w-5 sm:h-5" />
@@ -707,7 +1050,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
           <button
             onClick={handlePause}
             disabled={localLoading || loading}
-            className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+            className="flex-1 min-w-[80px] px-3 sm:px-4 py-2.5 sm:py-2.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
             title="השהה"
           >
             <Pause size={16} className="sm:w-5 sm:h-5" />
@@ -718,7 +1061,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
           <button
             onClick={handleStart}
             disabled={localLoading || loading}
-            className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+            className="flex-1 min-w-[80px] px-3 sm:px-4 py-2.5 sm:py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
             title="המשך"
           >
             <Play size={16} className="sm:w-5 sm:h-5" />
@@ -729,20 +1072,22 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
           <button
             onClick={handleStop}
             disabled={localLoading || loading}
-            className="px-3 sm:px-4 py-2 sm:py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+            className="min-w-[80px] px-3 sm:px-4 py-2.5 sm:py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
             title="עצור"
           >
             <Square size={16} className="sm:w-5 sm:h-5" />
+            <span className="text-xs sm:text-sm font-medium hidden sm:inline">עצור</span>
           </button>
         )}
         {!isDocked && (
           <button
             onClick={handleReturnToBase}
             disabled={localLoading || loading || isReturning}
-            className="px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+            className="min-w-[80px] px-3 sm:px-4 py-2.5 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
             title="חזור לבסיס"
           >
             <Home size={16} className="sm:w-5 sm:h-5" />
+            <span className="text-xs sm:text-sm font-medium hidden sm:inline">בסיס</span>
           </button>
         )}
         {/* Кнопка меню сервисов */}
@@ -750,10 +1095,11 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
           <button
             onClick={() => setShowServicesMenu(!showServicesMenu)}
             disabled={localLoading || loading}
-            className="px-3 sm:px-4 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+            className="min-w-[80px] px-3 sm:px-4 py-2.5 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
             title="תפריט שירותים"
           >
             <Menu size={16} className="sm:w-5 sm:h-5" />
+            <span className="text-xs sm:text-sm font-medium hidden sm:inline">שירותים</span>
           </button>
           
           {/* Выпадающее меню сервисов */}
@@ -773,24 +1119,38 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                     <X size={16} className="text-dark-textSecondary" />
                   </button>
                 </div>
-                <div className="p-2 space-y-1">
+                <div className="p-2 space-y-1 max-h-[60vh] overflow-y-auto">
                   {dreameServices.map((service) => {
                     const Icon = service.icon
+                    const isActive = currentMode === service.label
                     return (
                       <button
                         key={service.id}
-                        onClick={() => callDreameService(service.id)}
+                        onClick={() => handleServiceClick(service)}
                         disabled={localLoading || loading}
-                        className="w-full text-right p-3 rounded-lg hover:bg-dark-cardHover transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
+                        className={`w-full text-right p-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed group ${
+                          isActive
+                            ? 'bg-blue-600/30 border-2 border-blue-500'
+                            : 'hover:bg-dark-cardHover border border-transparent'
+                        }`}
                         title={service.description}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <Icon size={16} className="text-purple-400 flex-shrink-0" />
-                              <span className="text-xs sm:text-sm font-medium text-white group-hover:text-purple-300">
+                              <Icon size={16} className={`flex-shrink-0 ${
+                                isActive ? 'text-blue-400' : 'text-purple-400 group-hover:text-purple-300'
+                              }`} />
+                              <span className={`text-xs sm:text-sm font-medium ${
+                                isActive ? 'text-blue-400' : 'text-white group-hover:text-purple-300'
+                              }`}>
                                 {service.label}
                               </span>
+                              {isActive && (
+                                <span className="px-1.5 py-0.5 bg-blue-500/50 rounded text-[10px] animate-pulse">
+                                  פעיל
+                                </span>
+                              )}
                             </div>
                             <p className="text-[10px] text-dark-textSecondary line-clamp-1">
                               {service.description}
@@ -830,8 +1190,8 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
         </div>
       )}
 
-      {/* Комнаты */}
-      {rooms.length > 0 && (
+      {/* Комнаты - кнопки для быстрого выбора (обычный режим) */}
+      {rooms.length > 0 && !roomSelectionMode && (
         <div className="mb-2 sm:mb-3">
           <div className="text-[10px] sm:text-xs text-dark-textSecondary mb-1.5">ניקוי חדרים</div>
           <div className="flex flex-wrap gap-1.5 max-h-24 sm:max-h-32 overflow-y-auto">
@@ -847,6 +1207,75 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
               </button>
             ))}
           </div>
+        </div>
+      )}
+      
+      {/* Интерактивный список комнат для выбора на карте */}
+      {roomSelectionMode && rooms.length > 0 && (
+        <div className="mb-2 sm:mb-3 p-3 bg-gradient-to-r from-green-600/10 to-blue-600/10 rounded-xl border border-green-500/30 shadow-lg">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-green-600/20 rounded-lg">
+                <Target size={16} className="text-green-400" />
+              </div>
+              <span className="text-sm font-semibold text-green-400">בחר חדרים לניקוי</span>
+            </div>
+            <button
+              onClick={() => {
+                setRoomSelectionMode(false)
+                setSelectedRooms(new Set())
+                setCurrentMode('')
+              }}
+              className="px-3 py-1.5 text-xs bg-dark-bg hover:bg-dark-cardHover text-dark-textSecondary hover:text-white rounded-lg transition-colors border border-dark-border"
+            >
+              ביטול
+            </button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 bg-dark-card/30 rounded-lg border border-green-500/20">
+            {rooms.map((room) => {
+              const isSelected = selectedRooms.has(room.id)
+              return (
+                <button
+                  key={room.id}
+                  onClick={() => handleRoomClick(room.id)}
+                  disabled={localLoading || loading}
+                  className={`p-3 rounded-lg border transition-all disabled:opacity-50 disabled:cursor-not-allowed text-right ${
+                    isSelected
+                      ? 'bg-green-600/30 border-green-500 text-white'
+                      : 'bg-dark-bg border-dark-border text-dark-textSecondary hover:border-green-500/50 hover:bg-dark-cardHover'
+                  }`}
+                  title={isSelected ? 'לחץ לביטול בחירה' : 'לחץ לבחירה'}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-1">
+                      <Box size={16} className={isSelected ? 'text-green-400' : 'text-dark-textSecondary'} />
+                      <span className={`text-xs font-medium ${isSelected ? 'text-white' : 'text-dark-textSecondary'}`}>
+                        {room.name}
+                      </span>
+                    </div>
+                    {isSelected && (
+                      <CheckCircle2 size={14} className="text-green-400 flex-shrink-0" />
+                    )}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+          {selectedRooms.size > 0 && (
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-xs text-dark-textSecondary">
+                נבחרו {selectedRooms.size} מתוך {rooms.length} חדרים
+              </span>
+              <button
+                onClick={handleCleanSelectedRooms}
+                disabled={localLoading || loading}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <Play size={14} />
+                התחל ניקוי {selectedRooms.size} חדרים
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -918,6 +1347,168 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
         </div>
       )}
       
+      {/* Модальное окно настроек уборки с полным функционалом Dreame */}
+      {showStartOptions && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowStartOptions(false)}
+          >
+            <div 
+              className="bg-dark-card border border-dark-border rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-4 border-b border-dark-border flex items-center justify-between sticky top-0 bg-dark-card z-10">
+                <h3 className="text-lg font-semibold text-white">הגדרות ניקוי מלאות</h3>
+                <button
+                  onClick={() => setShowStartOptions(false)}
+                  className="p-1 hover:bg-dark-cardHover rounded transition-colors"
+                >
+                  <X size={20} className="text-dark-textSecondary" />
+                </button>
+              </div>
+              <div className="p-4 space-y-6">
+                {/* Тип уборки */}
+                <div>
+                  <label className="block text-sm font-medium text-dark-textSecondary mb-3">
+                    סוג ניקוי
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { id: 'auto', label: 'אוטומטי', icon: Zap, description: 'ניקוי אוטומטי מלא' },
+                      { id: 'vacuum', label: 'שאיבה בלבד', icon: Wind, description: 'רק שאיבת אבק' },
+                      { id: 'mop', label: 'שטיפה בלבד', icon: Droplet, description: 'רק שטיפה' },
+                      { id: 'vacuum_and_mop', label: 'שאיבה ושטיפה', icon: Activity, description: 'שאיבה ושטיפה יחד' }
+                    ].map((type) => {
+                      const Icon = type.icon
+                      return (
+                        <button
+                          key={type.id}
+                          onClick={() => setSelectedCleaningType(type.id)}
+                          className={`p-3 rounded-lg border transition-all ${
+                            selectedCleaningType === type.id
+                              ? 'border-blue-500 bg-blue-500/20 text-white'
+                              : 'border-dark-border bg-dark-bg text-dark-textSecondary hover:border-blue-500/50'
+                          }`}
+                          title={type.description}
+                        >
+                          <div className="flex flex-col items-center gap-2">
+                            <Icon size={20} />
+                            <span className="text-xs font-medium">{type.label}</span>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Количество повторений */}
+                <div>
+                  <label className="block text-sm font-medium text-dark-textSecondary mb-2">
+                    מספר חזרות: {cleaningRepeats}
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setCleaningRepeats(Math.max(1, cleaningRepeats - 1))}
+                      className="px-3 py-2 bg-dark-bg border border-dark-border rounded-lg hover:bg-dark-cardHover transition-colors"
+                    >
+                      <ChevronDown size={16} className="text-white" />
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      max="5"
+                      value={cleaningRepeats}
+                      onChange={(e) => setCleaningRepeats(Math.max(1, Math.min(5, parseInt(e.target.value) || 1)))}
+                      className="flex-1 px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-white text-center"
+                    />
+                    <button
+                      onClick={() => setCleaningRepeats(Math.min(5, cleaningRepeats + 1))}
+                      className="px-3 py-2 bg-dark-bg border border-dark-border rounded-lg hover:bg-dark-cardHover transition-colors"
+                    >
+                      <ChevronUp size={16} className="text-white" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Дополнительные опции из документации Dreame */}
+                <div className="border-t border-dark-border pt-4">
+                  <label className="block text-sm font-medium text-dark-textSecondary mb-3">
+                    אפשרויות נוספות
+                  </label>
+                  <div className="space-y-2">
+                    {/* Выбор комнат */}
+                    {rooms.length > 0 && (
+                      <div>
+                        <label className="block text-xs text-dark-textSecondary mb-2">
+                          בחר חדרים ספציפיים (אופציונלי)
+                        </label>
+                        <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 bg-dark-bg rounded-lg border border-dark-border">
+                          {rooms.map((room) => {
+                            const isSelected = selectedRooms.has(room.id)
+                            return (
+                              <button
+                                key={room.id}
+                                onClick={() => handleRoomClick(room.id)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                  isSelected
+                                    ? 'bg-green-600 text-white border border-green-500'
+                                    : 'bg-dark-card text-dark-textSecondary border border-dark-border hover:border-green-500/50'
+                                }`}
+                              >
+                                {room.name}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        {selectedRooms.size > 0 && (
+                          <p className="text-xs text-green-400 mt-1">
+                            נבחרו {selectedRooms.size} חדרים
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Кнопки запуска */}
+                <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-dark-border">
+                  <button
+                    onClick={() => {
+                      if (selectedRooms.size > 0) {
+                        handleCleanSelectedRooms()
+                      } else {
+                        handleStart(selectedCleaningType, cleaningRepeats)
+                      }
+                      setShowStartOptions(false)
+                    }}
+                    disabled={localLoading || loading}
+                    className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
+                  >
+                    <Play size={18} />
+                    <span>
+                      {selectedRooms.size > 0 
+                        ? `התחל ניקוי ${selectedRooms.size} חדרים`
+                        : 'התחל ניקוי'
+                      }
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowStartOptions(false)
+                      setSelectedRooms(new Set())
+                    }}
+                    className="px-4 py-3 bg-dark-bg border border-dark-border hover:bg-dark-cardHover text-white rounded-lg transition-all"
+                  >
+                    ביטול
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Расширенные настройки */}
       <div className="border-t border-dark-border pt-2 mt-2">
         <button

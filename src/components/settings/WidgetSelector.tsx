@@ -37,6 +37,16 @@ const WidgetSelector = ({
           .map((widget) => {
             const widgetId = widget.id || ''
             const enabled = widgetEnabledStates[widgetId] ?? isWidgetEnabledSync(widgetId)
+            return { widget, enabled, widgetId }
+          })
+          .sort((a, b) => {
+            // Сначала включенные виджеты
+            if (a.enabled && !b.enabled) return -1
+            if (!a.enabled && b.enabled) return 1
+            // Затем сортируем по алфавиту по имени
+            return a.widget.name.localeCompare(b.widget.name, 'he')
+          })
+          .map(({ widget, enabled, widgetId }) => {
             const Icon = widget.icon
             return (
               <div
