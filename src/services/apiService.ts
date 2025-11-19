@@ -106,6 +106,12 @@ export interface WidgetConfig {
       }>
     }>
   }
+  tvPreview: {
+    tvs: Array<{
+      entityId: string | null
+      name: string
+    }>
+  }
   enabledWidgets: {
     [widgetId: string]: boolean
   }

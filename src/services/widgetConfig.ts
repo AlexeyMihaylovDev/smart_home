@@ -59,6 +59,11 @@ export interface CameraConfig {
   name: string
 }
 
+export interface TVPreviewConfig {
+  entityId: string | null
+  name: string
+}
+
 export type AmbientLightingStyle = 'list' | 'cards' | 'compact' | 'minimal'
 export type WaterHeaterStyle = 'compact' | 'card' | 'minimal' | 'modern'
 export type SensorsStyle = 'list' | 'card' | 'compact' | 'grid'
@@ -115,6 +120,9 @@ export interface WidgetConfig {
     cameras: CameraConfig[]
     style?: CamerasStyle
   }
+  tvPreview: {
+    tvs: TVPreviewConfig[]
+  }
   enabledWidgets: {
     [widgetId: string]: boolean
   }
@@ -169,6 +177,9 @@ const DEFAULT_CONFIG: WidgetConfig = {
   cameras: {
     cameras: [],
     style: 'grid'
+  },
+  tvPreview: {
+    tvs: []
   },
   enabledWidgets: {},
   navigationIcons: {
@@ -682,5 +693,25 @@ export const updateCamerasStyle = async (style: CamerasStyle): Promise<void> => 
   } else {
     config.cameras.style = style
   }
+  await saveWidgetConfig(config)
+}
+
+// TV Preview Config functions
+export const getTVPreviewConfigs = async (): Promise<TVPreviewConfig[]> => {
+  const config = await getWidgetConfig()
+  return config.tvPreview?.tvs || []
+}
+
+export const getTVPreviewConfigsSync = (): TVPreviewConfig[] => {
+  const config = getWidgetConfigSync()
+  return config.tvPreview?.tvs || []
+}
+
+export const updateTVPreviewConfigs = async (tvs: TVPreviewConfig[]): Promise<void> => {
+  const config = await getWidgetConfig()
+  if (!config.tvPreview) {
+    config.tvPreview = { tvs: [] }
+  }
+  config.tvPreview.tvs = tvs
   await saveWidgetConfig(config)
 }

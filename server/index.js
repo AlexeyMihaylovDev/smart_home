@@ -213,6 +213,9 @@ app.get('/api/config/widget', requireAuth, async (req, res) => {
         vacuum: {
           vacuums: []
         },
+        tvPreview: {
+          tvs: []
+        },
         enabledWidgets: {},
         navigationIcons: {
           icons: [

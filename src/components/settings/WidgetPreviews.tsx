@@ -1,7 +1,7 @@
 // Preview компоненты для виджетов
 import React from 'react'
 import { Tv, Music, Wind, Droplet, Gauge, Sparkles } from 'lucide-react'
-import { ACConfig, WaterHeaterConfig, SensorConfig, MotorConfig, BoseConfig, VacuumConfig, CameraConfig, WaterHeaterStyle, SensorsStyle, MotorsStyle, CamerasStyle } from '../../services/widgetConfig'
+import { ACConfig, WaterHeaterConfig, SensorConfig, MotorConfig, BoseConfig, VacuumConfig, CameraConfig, TVPreviewConfig, WaterHeaterStyle, SensorsStyle, MotorsStyle, CamerasStyle } from '../../services/widgetConfig'
 import { CompactNotConfigured, CardNotConfigured, MinimalNotConfigured, ModernNotConfigured } from '../widgets/WaterHeaterStyles'
 import { PreparedSensor, SensorsListStyle, SensorsCardStyle, SensorsCompactStyle, SensorsGridStyle, SensorsListNotConfigured, SensorsCardNotConfigured, SensorsCompactNotConfigured, SensorsGridNotConfigured } from '../widgets/SensorsStyles'
 import { PreparedMotor, MotorsListStyle, MotorsCardStyle, MotorsCompactStyle, MotorsListNotConfigured, MotorsCardNotConfigured, MotorsCompactNotConfigured } from '../widgets/MotorsStyles'
@@ -102,19 +102,34 @@ export const CanvasPreview = () => (
   </div>
 )
 
-export const TVPreviewWidget = () => (
+export const TVPreviewWidget = ({ configs }: { configs: TVPreviewConfig[] }) => (
   <div className="space-y-3">
-    <div className="p-3 bg-dark-card rounded-lg border border-dark-border">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
-          <Tv size={24} className="text-orange-400" />
+    {configs.length > 0 ? configs.map((tv, index) => (
+      <div key={index} className="p-3 bg-dark-card rounded-lg border border-dark-border">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
+            <Tv size={24} className="text-orange-400" />
+          </div>
+          <div className="flex-1">
+            <div className="text-sm font-medium text-white">{tv.name || 'TV Preview'}</div>
+            <div className="text-xs text-dark-textSecondary">
+              {tv.entityId ? 'מוגדר' : 'לא מוגדר'}
+            </div>
+          </div>
         </div>
-        <div className="flex-1">
-          <div className="text-sm font-medium text-white">TV Preview</div>
-          <div className="text-xs text-dark-textSecondary">Не настроен</div>
+        {/* Миниатюрный дизайн телевизора */}
+        <div className="mt-3 bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded border-2 border-gray-700 overflow-hidden">
+          <div className="h-16 bg-gradient-to-br from-blue-900/50 via-purple-900/50 to-pink-900/50 flex items-center justify-center">
+            <Tv size={24} className="text-white/30" />
+          </div>
+          <div className="h-1 bg-gray-800"></div>
         </div>
       </div>
-    </div>
+    )) : (
+      <div className="p-3 bg-dark-card rounded-lg border border-dark-border">
+        <div className="text-sm text-dark-textSecondary">אין טלוויזיות מוגדרות</div>
+      </div>
+    )}
   </div>
 )
 

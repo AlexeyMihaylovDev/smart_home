@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
 import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock, Navigation, Plus, Sparkles, ChevronDown } from 'lucide-react'
-import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getWaterHeaterStyleSync, updateWaterHeaterStyle, WaterHeaterStyle, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getSensorsStyleSync, updateSensorsStyle, SensorsStyle, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getMotorsStyleSync, updateMotorsStyle, MotorsStyle, getSpotifyConfigSync, updateSpotifyConfig, SpotifyConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, getCameraConfigsSync, updateCameraConfigs, CameraConfig, getCamerasStyleSync, updateCamerasStyle, CamerasStyle, isWidgetEnabledSync, setWidgetEnabled, getWidgetConfig } from '../services/widgetConfig'
+import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getWaterHeaterStyleSync, updateWaterHeaterStyle, WaterHeaterStyle, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getSensorsStyleSync, updateSensorsStyle, SensorsStyle, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getMotorsStyleSync, updateMotorsStyle, MotorsStyle, getSpotifyConfigSync, updateSpotifyConfig, SpotifyConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, getCameraConfigsSync, updateCameraConfigs, CameraConfig, getCamerasStyleSync, updateCamerasStyle, CamerasStyle, getTVPreviewConfigsSync, updateTVPreviewConfigs, TVPreviewConfig, isWidgetEnabledSync, setWidgetEnabled, getWidgetConfig } from '../services/widgetConfig'
 import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 import ToggleSwitch from './ui/ToggleSwitch'
 import Toast from './ui/Toast'
@@ -12,7 +12,7 @@ import NavigationIconsSettings from './settings/NavigationIconsSettings'
 import WidgetSelector, { WidgetType, WidgetOption } from './settings/WidgetSelector'
 import {
   TVTimePreview, MediaPlayerPreview, SpotifyPreview, MediaRoomPreview, CanvasPreview,
-  TVPreviewWidget, PlexPreview, TVDurationPreview, WeatherCalendarPreview, LivingRoomPreview,
+  TVPreviewWidget as TVPreviewWidgetPreview, PlexPreview, TVDurationPreview, WeatherCalendarPreview, LivingRoomPreview,
   ACPreview, WaterHeaterPreview, SensorsPreview, MotorsPreview, BosePreview, VacuumPreview, CamerasPreview
 } from './settings/WidgetPreviews'
 
@@ -164,6 +164,13 @@ const Settings = () => {
   const [cameraConfigs, setCameraConfigs] = useState<CameraConfig[]>(() => {
     try {
       return getCameraConfigsSync()
+    } catch {
+      return []
+    }
+  })
+  const [tvPreviewConfigs, setTVPreviewConfigs] = useState<TVPreviewConfig[]>(() => {
+    try {
+      return getTVPreviewConfigsSync()
     } catch {
       return []
     }
@@ -388,6 +395,8 @@ const Settings = () => {
     setCameraConfigs(cameras && Array.isArray(cameras) ? cameras : [])
     const camerasStyleValue = getCamerasStyleSync()
     setCamerasStyle(camerasStyleValue)
+    const tvs = getTVPreviewConfigsSync()
+    setTVPreviewConfigs(tvs && Array.isArray(tvs) ? tvs : [])
   }
 
   useEffect(() => {
@@ -1853,6 +1862,172 @@ const Settings = () => {
                       <div className="font-medium text-white">Bose</div>
                     </div>
                     <BosePreview configs={boseConfigs} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {selectedWidget === 'tv-preview' && (
+            <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
+              <div className="p-4 border-b border-dark-border">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setSelectedWidget(null)}
+                      className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
+                      title="חזור לבחירת וידג'ט"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                      <h2 className="font-medium text-lg">TV Preview Widget</h2>
+                      <p className="text-sm text-dark-textSecondary mt-1">
+                        הגדרת וידג'ט טלוויזיה
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const newTV: TVPreviewConfig = {
+                          name: `טלוויזיה ${tvPreviewConfigs.length + 1}`,
+                          entityId: null
+                        }
+                        setTVPreviewConfigs([...tvPreviewConfigs, newTV])
+                        setHasUnsavedChanges(true)
+                      }}
+                      className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                      title="הוסף טלוויזיה חדשה"
+                    >
+                      <Tv size={16} />
+                      הוסף טלוויזיה
+                    </button>
+                    {hasUnsavedChanges && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await updateTVPreviewConfigs(tvPreviewConfigs)
+                            setHasUnsavedChanges(false)
+                            window.dispatchEvent(new Event('widgets-changed'))
+                            setToast({ message: 'הגדרות טלוויזיות נשמרו!', type: 'success' })
+                          } catch (error) {
+                            console.error('Ошибка сохранения:', error)
+                            setToast({ message: 'שגיאה בשמירת ההגדרות', type: 'error' })
+                          }
+                        }}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
+                        title="שמור שינויים"
+                      >
+                        <Save size={16} />
+                        שמור
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
+                {tvPreviewConfigs && tvPreviewConfigs.length > 0 ? tvPreviewConfigs.map((tv, index) => (
+                  <div key={index} className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <label className="block text-xs text-dark-textSecondary mb-1">
+                          שם טלוויזיה:
+                        </label>
+                        <input
+                          type="text"
+                          value={tv.name}
+                          onChange={(e) => {
+                            const newConfigs = [...tvPreviewConfigs]
+                            newConfigs[index].name = e.target.value
+                            setTVPreviewConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }}
+                          className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="שם הטלוויזיה"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (confirm('למחוק את הטלוויזיה הזו?')) {
+                            const newConfigs = tvPreviewConfigs.filter((_, i) => i !== index)
+                            setTVPreviewConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }
+                        }}
+                        className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0 ml-2"
+                        title="מחק את הטלוויזיה הזו"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-dark-textSecondary mb-1">
+                        מזהה ישות של טלוויזיה: {tv.entityId || 'לא מקושר'}
+                      </label>
+                      <SearchableSelect
+                        value={tv.entityId || ''}
+                        onChange={(selectedEntityId) => {
+                          const entityId = selectedEntityId || null
+                          let friendlyName = tv.name
+                          if (entityId) {
+                            const entity = entities.find(e => e.entity_id === entityId)
+                            if (entity && entity.attributes.friendly_name) {
+                              friendlyName = entity.attributes.friendly_name
+                            }
+                          }
+                          const newConfigs = [...tvPreviewConfigs]
+                          newConfigs[index] = { entityId, name: friendlyName }
+                          setTVPreviewConfigs(newConfigs)
+                          setHasUnsavedChanges(true)
+                        }}
+                        options={[
+                          { value: '', label: '-- בחר טלוויזיה --' },
+                          ...entities
+                            .filter(e => {
+                              const domain = e.entity_id.split('.')[0]
+                              return domain === 'media_player'
+                            })
+                            .map(entity => ({
+                              value: entity.entity_id,
+                              label: `${entity.attributes.friendly_name || entity.entity_id} (${entity.entity_id})`
+                            }))
+                        ]}
+                        placeholder="-- בחר טלוויזיה --"
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                )) : (
+                  <div className="text-center text-dark-textSecondary py-8">
+                    <p className="mb-4">אין טלוויזיות בווידג'ט</p>
+                    <button
+                      onClick={() => {
+                        const newTV: TVPreviewConfig = {
+                          name: 'טלוויזיה 1',
+                          entityId: null
+                        }
+                        setTVPreviewConfigs([newTV])
+                        setHasUnsavedChanges(true)
+                      }}
+                      className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+                    >
+                      הוסף טלוויזיה ראשונה
+                    </button>
+                  </div>
+                )}
+                </div>
+                {/* Preview виджета */}
+                <div className="lg:border-l lg:border-dark-border lg:pl-4">
+                  <h3 className="text-sm font-medium text-dark-textSecondary mb-3">תצוגה מקדימה של הווידג'ט:</h3>
+                  <div className="bg-dark-bg rounded-lg border border-dark-border p-4 max-h-[60vh] overflow-y-auto">
+                    <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                      <div className="p-2 bg-orange-500/20 rounded-lg">
+                        <Tv size={18} className="text-orange-400" />
+                      </div>
+                      <div className="font-medium text-white">TV Preview</div>
+                    </div>
+                    <TVPreviewWidgetPreview configs={tvPreviewConfigs} />
                   </div>
                 </div>
               </div>
