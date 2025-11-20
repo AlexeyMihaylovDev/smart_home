@@ -370,4 +370,105 @@ input[type="range"].slider:disabled {
   cursor: not-allowed;
 }
 
+/* Стили для слайдера яркости LED */
+input[type="range"].slider-brightness {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"].slider-brightness::-webkit-slider-track {
+  height: 12px;
+  border-radius: 6px;
+}
+
+input[type="range"].slider-brightness::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #fbbf24;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  margin-top: -4px;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+input[type="range"].slider-brightness::-webkit-slider-thumb:hover {
+  background: #f59e0b;
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+}
+
+input[type="range"].slider-brightness::-moz-range-track {
+  height: 12px;
+  border-radius: 6px;
+}
+
+input[type="range"].slider-brightness::-moz-range-thumb {
+  background: #fbbf24;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+input[type="range"].slider-brightness::-moz-range-thumb:hover {
+  background: #f59e0b;
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+}
+
+/* Стили для RGB слайдеров */
+input[type="range"].slider-rgb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"].slider-rgb::-webkit-slider-track {
+  height: 8px;
+  border-radius: 4px;
+}
+
+input[type="range"].slider-rgb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  margin-top: -5px;
+  transition: box-shadow 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+input[type="range"].slider-rgb::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+input[type="range"].slider-rgb::-moz-range-track {
+  height: 8px;
+  border-radius: 4px;
+}
+
+input[type="range"].slider-rgb::-moz-range-thumb {
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  transition: box-shadow 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+input[type="range"].slider-rgb::-moz-range-thumb:hover {
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
 

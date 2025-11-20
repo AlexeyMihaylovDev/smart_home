@@ -216,6 +216,18 @@ app.get('/api/config/widget', requireAuth, async (req, res) => {
         tvPreview: {
           tvs: []
         },
+        clock: {
+          name: 'שעון',
+          timezone: undefined,
+          showSeconds: false,
+          showDate: true,
+          showDayOfWeek: true,
+          format24h: true,
+          style: 'digital'
+        },
+        led: {
+          leds: []
+        },
         enabledWidgets: {},
         navigationIcons: {
           icons: [

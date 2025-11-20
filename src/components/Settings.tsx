@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
-import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock, Navigation, Plus, Sparkles, ChevronDown } from 'lucide-react'
-import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getWaterHeaterStyleSync, updateWaterHeaterStyle, WaterHeaterStyle, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getSensorsStyleSync, updateSensorsStyle, SensorsStyle, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getMotorsStyleSync, updateMotorsStyle, MotorsStyle, getSpotifyConfigSync, updateSpotifyConfig, SpotifyConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, getCameraConfigsSync, updateCameraConfigs, CameraConfig, getCamerasStyleSync, updateCamerasStyle, CamerasStyle, getTVPreviewConfigsSync, updateTVPreviewConfigs, TVPreviewConfig, isWidgetEnabledSync, setWidgetEnabled, getWidgetConfig } from '../services/widgetConfig'
+import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock, Navigation, Plus, Sparkles, ChevronDown, Palette } from 'lucide-react'
+import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getWaterHeaterStyleSync, updateWaterHeaterStyle, WaterHeaterStyle, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getSensorsStyleSync, updateSensorsStyle, SensorsStyle, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getMotorsStyleSync, updateMotorsStyle, MotorsStyle, getSpotifyConfigSync, updateSpotifyConfig, SpotifyConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, getCameraConfigsSync, updateCameraConfigs, CameraConfig, getCamerasStyleSync, updateCamerasStyle, CamerasStyle, getTVPreviewConfigsSync, updateTVPreviewConfigs, TVPreviewConfig, getClockConfigSync, updateClockConfig, ClockConfig, getLEDConfigsSync, updateLEDConfigs, LEDConfig, isWidgetEnabledSync, setWidgetEnabled, getWidgetConfig } from '../services/widgetConfig'
 import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 import ToggleSwitch from './ui/ToggleSwitch'
 import Toast from './ui/Toast'
@@ -10,6 +10,7 @@ import SearchableSelect from './ui/SearchableSelect'
 import { ListStyle, CardsStyle, CompactStyle, MinimalStyle } from './widgets/AmbientLightingStyles'
 import NavigationIconsSettings from './settings/NavigationIconsSettings'
 import WidgetSelector, { WidgetType, WidgetOption } from './settings/WidgetSelector'
+import ClockWidget from './widgets/ClockWidget'
 import {
   TVTimePreview, MediaPlayerPreview, SpotifyPreview, MediaRoomPreview, CanvasPreview,
   TVPreviewWidget as TVPreviewWidgetPreview, PlexPreview, TVDurationPreview, WeatherCalendarPreview, LivingRoomPreview,
@@ -175,6 +176,20 @@ const Settings = () => {
       return []
     }
   })
+  const [clockConfig, setClockConfig] = useState<ClockConfig>(() => {
+    try {
+      return getClockConfigSync()
+    } catch {
+      return {
+        name: 'שעון',
+        showSeconds: false,
+        showDate: true,
+        showDayOfWeek: true,
+        format24h: true,
+        style: 'digital'
+      }
+    }
+  })
   const [camerasStyle, setCamerasStyle] = useState<CamerasStyle>(() => {
     try {
       return getCamerasStyleSync()
@@ -241,6 +256,20 @@ const Settings = () => {
       description: 'תצוגה מקדימה של טלוויזיה',
       icon: Tv,
       color: 'bg-orange-500'
+    },
+    {
+      id: 'clock',
+      name: 'Clock Widget',
+      description: 'שעון דיגיטלי',
+      icon: Clock,
+      color: 'bg-indigo-500'
+    },
+    {
+      id: 'led',
+      name: 'LED Widget',
+      description: 'ניהול נורות LED',
+      icon: Lightbulb,
+      color: 'bg-yellow-500'
     },
     {
       id: 'plex',
@@ -397,6 +426,15 @@ const Settings = () => {
     setCamerasStyle(camerasStyleValue)
     const tvs = getTVPreviewConfigsSync()
     setTVPreviewConfigs(tvs && Array.isArray(tvs) ? tvs : [])
+    const clock = getClockConfigSync()
+    setClockConfig(clock || {
+      name: 'שעון',
+      showSeconds: false,
+      showDate: true,
+      showDayOfWeek: true,
+      format24h: true,
+      style: 'digital'
+    })
   }
 
   useEffect(() => {
@@ -2028,6 +2066,174 @@ const Settings = () => {
                       <div className="font-medium text-white">TV Preview</div>
                     </div>
                     <TVPreviewWidgetPreview configs={tvPreviewConfigs} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {selectedWidget === 'clock' && (
+            <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
+              <div className="p-4 border-b border-dark-border">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setSelectedWidget(null)}
+                      className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
+                      title="חזור לבחירת וידג'ט"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                      <h2 className="font-medium text-lg">Clock Widget</h2>
+                      <p className="text-sm text-dark-textSecondary mt-1">
+                        הגדרת וידג'ט שעון
+                      </p>
+                    </div>
+                  </div>
+                  {hasUnsavedChanges && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          await updateClockConfig(clockConfig)
+                          setHasUnsavedChanges(false)
+                          window.dispatchEvent(new Event('widgets-changed'))
+                          setToast({ message: 'הגדרות שעון נשמרו!', type: 'success' })
+                        } catch (error) {
+                          console.error('Ошибка сохранения:', error)
+                          setToast({ message: 'שגיאה בשמירת ההגדרות', type: 'error' })
+                        }
+                      }}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
+                      title="שמור שינויים"
+                    >
+                      <Save size={16} />
+                      שמור
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
+                  <div className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-4">
+                    <div>
+                      <label className="block text-xs text-dark-textSecondary mb-1">
+                        שם השעון:
+                      </label>
+                      <input
+                        type="text"
+                        value={clockConfig.name}
+                        onChange={(e) => {
+                          setClockConfig({ ...clockConfig, name: e.target.value })
+                          setHasUnsavedChanges(true)
+                        }}
+                        className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="שם השעון"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs text-dark-textSecondary">
+                        הצג שניות
+                      </label>
+                      <ToggleSwitch
+                        checked={clockConfig.showSeconds || false}
+                        onChange={(checked) => {
+                          setClockConfig({ ...clockConfig, showSeconds: checked })
+                          setHasUnsavedChanges(true)
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs text-dark-textSecondary">
+                        הצג תאריך
+                      </label>
+                      <ToggleSwitch
+                        checked={clockConfig.showDate !== false}
+                        onChange={(checked) => {
+                          setClockConfig({ ...clockConfig, showDate: checked })
+                          setHasUnsavedChanges(true)
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs text-dark-textSecondary">
+                        הצג יום בשבוע
+                      </label>
+                      <ToggleSwitch
+                        checked={clockConfig.showDayOfWeek !== false}
+                        onChange={(checked) => {
+                          setClockConfig({ ...clockConfig, showDayOfWeek: checked })
+                          setHasUnsavedChanges(true)
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs text-dark-textSecondary">
+                        פורמט 24 שעות
+                      </label>
+                      <ToggleSwitch
+                        checked={clockConfig.format24h !== false}
+                        onChange={(checked) => {
+                          setClockConfig({ ...clockConfig, format24h: checked })
+                          setHasUnsavedChanges(true)
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-dark-textSecondary mb-1">
+                        סגנון:
+                      </label>
+                      <select
+                        value={clockConfig.style || 'digital'}
+                        onChange={(e) => {
+                          setClockConfig({ ...clockConfig, style: e.target.value as 'digital' | 'analog' | 'minimal' })
+                          setHasUnsavedChanges(true)
+                        }}
+                        className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="digital">דיגיטלי</option>
+                        <option value="analog">אנלוגי</option>
+                        <option value="minimal">מינימלי</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-dark-textSecondary mb-1">
+                        אזור זמן (אופציונלי):
+                      </label>
+                      <input
+                        type="text"
+                        value={clockConfig.timezone || ''}
+                        onChange={(e) => {
+                          setClockConfig({ ...clockConfig, timezone: e.target.value || undefined })
+                          setHasUnsavedChanges(true)
+                        }}
+                        className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="לדוגמה: Europe/Moscow, America/New_York"
+                      />
+                      <p className="text-xs text-dark-textSecondary mt-1">
+                        השאר ריק לשימוש בזמן המקומי
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {/* Preview виджета */}
+                <div className="lg:border-l lg:border-dark-border lg:pl-4">
+                  <h3 className="text-sm font-medium text-dark-textSecondary mb-3">תצוגה מקדימה של הווידג'ט:</h3>
+                  <div className="bg-dark-bg rounded-lg border border-dark-border p-4 max-h-[60vh] overflow-y-auto">
+                    <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                      <div className="p-2 bg-indigo-500/20 rounded-lg">
+                        <Clock size={18} className="text-indigo-400" />
+                      </div>
+                      <div className="font-medium text-white">Clock</div>
+                    </div>
+                    <div className="h-64">
+                      <ClockWidget />
+                    </div>
                   </div>
                 </div>
               </div>

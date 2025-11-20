@@ -64,6 +64,22 @@ export interface TVPreviewConfig {
   name: string
 }
 
+export interface ClockConfig {
+  name: string
+  timezone?: string // Опционально: часовой пояс (например, 'Europe/Moscow', 'America/New_York')
+  showSeconds?: boolean // Показывать секунды
+  showDate?: boolean // Показывать дату
+  showDayOfWeek?: boolean // Показывать день недели
+  format24h?: boolean // 24-часовой формат
+  style?: 'digital' | 'analog' | 'minimal' // Стиль отображения
+}
+
+export interface LEDConfig {
+  entityId: string | null
+  name: string
+  type: 'rgb' | 'dimmer' // Тип лампы: RGB или простой dimmer
+}
+
 export type AmbientLightingStyle = 'list' | 'cards' | 'compact' | 'minimal'
 export type WaterHeaterStyle = 'compact' | 'card' | 'minimal' | 'modern'
 export type SensorsStyle = 'list' | 'card' | 'compact' | 'grid'
@@ -123,6 +139,10 @@ export interface WidgetConfig {
   tvPreview: {
     tvs: TVPreviewConfig[]
   }
+  clock: ClockConfig
+  led: {
+    leds: LEDConfig[]
+  }
   enabledWidgets: {
     [widgetId: string]: boolean
   }
@@ -180,6 +200,18 @@ const DEFAULT_CONFIG: WidgetConfig = {
   },
   tvPreview: {
     tvs: []
+  },
+  clock: {
+    name: 'שעון',
+    timezone: undefined,
+    showSeconds: false,
+    showDate: true,
+    showDayOfWeek: true,
+    format24h: true,
+    style: 'digital'
+  },
+  led: {
+    leds: []
   },
   enabledWidgets: {},
   navigationIcons: {
@@ -306,23 +338,65 @@ export const getWidgetConfigSync = (): WidgetConfig => {
   return DEFAULT_CONFIG
 }
 
+// Функция для очистки объекта от циклических ссылок и несериализуемых свойств
+const cleanConfigForSerialization = (obj: any): any => {
+  if (obj === null || typeof obj !== 'object') {
+    return obj
+  }
+  
+  // Если это DOM-элемент или React-компонент, пропускаем
+  if (obj instanceof HTMLElement || obj instanceof Element || obj.constructor?.name === 'FiberNode') {
+    return undefined
+  }
+  
+  // Если это массив
+  if (Array.isArray(obj)) {
+    return obj.map(cleanConfigForSerialization).filter(item => item !== undefined)
+  }
+  
+  // Если это объект
+  const cleaned: any = {}
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      // Пропускаем React-специфичные свойства
+      if (key.startsWith('__react') || key.startsWith('__FIBER') || key === 'stateNode') {
+        continue
+      }
+      
+      try {
+        const value = cleanConfigForSerialization(obj[key])
+        if (value !== undefined) {
+          cleaned[key] = value
+        }
+      } catch (e) {
+        // Пропускаем свойства, которые не могут быть сериализованы
+        continue
+      }
+    }
+  }
+  return cleaned
+}
+
 export const saveWidgetConfig = async (config: WidgetConfig): Promise<void> => {
   try {
+    // Очищаем конфигурацию от циклических ссылок перед сохранением
+    const cleanedConfig = cleanConfigForSerialization(config) as WidgetConfig
+    
     console.log('[WidgetConfig] Сохранение конфигурации на сервер...', {
-      ambientLighting: config.ambientLighting?.lights?.length || 0,
-      ac: config.ac?.airConditioners?.length || 0,
-      vacuum: config.vacuum?.vacuums?.length || 0,
-      bose: config.bose?.soundbars?.length || 0,
-      navigationIcons: config.navigationIcons?.icons?.length || 0,
-      enabledWidgets: Object.keys(config.enabledWidgets || {}).length
+      ambientLighting: cleanedConfig.ambientLighting?.lights?.length || 0,
+      ac: cleanedConfig.ac?.airConditioners?.length || 0,
+      vacuum: cleanedConfig.vacuum?.vacuums?.length || 0,
+      bose: cleanedConfig.bose?.soundbars?.length || 0,
+      navigationIcons: cleanedConfig.navigationIcons?.icons?.length || 0,
+      enabledWidgets: Object.keys(cleanedConfig.enabledWidgets || {}).length
     })
     // Всегда сохраняем на сервер в первую очередь
-    await saveWidgetConfigToAPI(config as APIWidgetConfig)
+    await saveWidgetConfigToAPI(cleanedConfig as APIWidgetConfig)
     console.log('[WidgetConfig] Конфигурация успешно сохранена на сервер')
-    configCache = config
+    configCache = cleanedConfig
     // Также сохраняем в localStorage как backup
     try {
-      localStorage.setItem('widget_config', JSON.stringify(config))
+      localStorage.setItem('widget_config', JSON.stringify(cleanedConfig))
       console.log('[WidgetConfig] Конфигурация сохранена в localStorage как backup')
     } catch (localError) {
       console.warn('[WidgetConfig] Не удалось сохранить в localStorage (backup):', localError)
@@ -331,8 +405,9 @@ export const saveWidgetConfig = async (config: WidgetConfig): Promise<void> => {
     console.error('[WidgetConfig] Ошибка сохранения конфигурации на сервер:', error)
     // Fallback на localStorage только если сервер недоступен
     try {
-      localStorage.setItem('widget_config', JSON.stringify(config))
-      configCache = config
+      const cleanedConfig = cleanConfigForSerialization(config) as WidgetConfig
+      localStorage.setItem('widget_config', JSON.stringify(cleanedConfig))
+      configCache = cleanedConfig
       console.warn('[WidgetConfig] Конфигурация сохранена в localStorage как fallback')
     } catch (localError) {
       console.error('[WidgetConfig] Ошибка сохранения в localStorage:', localError)
@@ -713,5 +788,42 @@ export const updateTVPreviewConfigs = async (tvs: TVPreviewConfig[]): Promise<vo
     config.tvPreview = { tvs: [] }
   }
   config.tvPreview.tvs = tvs
+  await saveWidgetConfig(config)
+}
+
+// Clock Config functions
+export const getClockConfig = async (): Promise<ClockConfig> => {
+  const config = await getWidgetConfig()
+  return config.clock || DEFAULT_CONFIG.clock
+}
+
+export const getClockConfigSync = (): ClockConfig => {
+  const config = getWidgetConfigSync()
+  return config.clock || DEFAULT_CONFIG.clock
+}
+
+export const updateClockConfig = async (clockConfig: ClockConfig): Promise<void> => {
+  const config = await getWidgetConfig()
+  config.clock = clockConfig
+  await saveWidgetConfig(config)
+}
+
+// LED Config functions
+export const getLEDConfigs = async (): Promise<LEDConfig[]> => {
+  const config = await getWidgetConfig()
+  return config.led?.leds || []
+}
+
+export const getLEDConfigsSync = (): LEDConfig[] => {
+  const config = getWidgetConfigSync()
+  return config.led?.leds || []
+}
+
+export const updateLEDConfigs = async (leds: LEDConfig[]): Promise<void> => {
+  const config = await getWidgetConfig()
+  if (!config.led) {
+    config.led = { leds: [] }
+  }
+  config.led.leds = leds
   await saveWidgetConfig(config)
 }

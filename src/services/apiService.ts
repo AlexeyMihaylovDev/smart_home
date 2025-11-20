@@ -112,6 +112,22 @@ export interface WidgetConfig {
       name: string
     }>
   }
+  clock: {
+    name: string
+    timezone?: string
+    showSeconds?: boolean
+    showDate?: boolean
+    showDayOfWeek?: boolean
+    format24h?: boolean
+    style?: 'digital' | 'analog' | 'minimal'
+  }
+  led: {
+    leds: Array<{
+      entityId: string | null
+      name: string
+      type: 'rgb' | 'dimmer'
+    }>
+  }
   enabledWidgets: {
     [widgetId: string]: boolean
   }
@@ -175,14 +191,52 @@ export const getWidgetConfig = async (): Promise<WidgetConfig> => {
   }
 }
 
+// Функция для очистки объекта от циклических ссылок
+const cleanForSerialization = (obj: any): any => {
+  if (obj === null || typeof obj !== 'object') {
+    return obj
+  }
+  
+  // Пропускаем DOM-элементы и React-компоненты
+  if (obj instanceof HTMLElement || obj instanceof Element || obj.constructor?.name === 'FiberNode') {
+    return undefined
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(cleanForSerialization).filter(item => item !== undefined)
+  }
+  
+  const cleaned: any = {}
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      // Пропускаем React-специфичные свойства
+      if (key.startsWith('__react') || key.startsWith('__FIBER') || key === 'stateNode') {
+        continue
+      }
+      
+      try {
+        const value = cleanForSerialization(obj[key])
+        if (value !== undefined) {
+          cleaned[key] = value
+        }
+      } catch (e) {
+        continue
+      }
+    }
+  }
+  return cleaned
+}
+
 export const saveWidgetConfig = async (config: WidgetConfig): Promise<void> => {
   try {
-    console.log('[API] Сохранение widget config на сервер...', config)
-    await apiClient.post('/api/config/widget', config)
+    // Очищаем конфигурацию перед сохранением
+    const cleanedConfig = cleanForSerialization(config) as WidgetConfig
+    console.log('[API] Сохранение widget config на сервер...', cleanedConfig)
+    await apiClient.post('/api/config/widget', cleanedConfig)
     console.log('[API] Widget config успешно сохранен на сервер')
     // Также сохраняем в localStorage как backup
     try {
-      localStorage.setItem('widget_config', JSON.stringify(config))
+      localStorage.setItem('widget_config', JSON.stringify(cleanedConfig))
       console.log('[API] Widget config сохранен в localStorage как backup')
     } catch (localError) {
       console.warn('[API] Не удалось сохранить в localStorage (backup):', localError)
@@ -191,7 +245,8 @@ export const saveWidgetConfig = async (config: WidgetConfig): Promise<void> => {
     console.error('[API] Ошибка сохранения widget config на сервер:', error)
     // Fallback на localStorage только если сервер недоступен
     try {
-      localStorage.setItem('widget_config', JSON.stringify(config))
+      const cleanedConfig = cleanForSerialization(config) as WidgetConfig
+      localStorage.setItem('widget_config', JSON.stringify(cleanedConfig))
       console.warn('[API] Widget config сохранен в localStorage как fallback')
     } catch (localError) {
       console.error('[API] Ошибка сохранения в localStorage:', localError)

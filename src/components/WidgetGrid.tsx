@@ -9,6 +9,8 @@ import SpotifyWidget from './widgets/SpotifyWidget'
 import MediaRoomWidget from './widgets/MediaRoomWidget'
 import CanvasWidget from './widgets/CanvasWidget'
 import TVPreviewWidget from './widgets/TVPreviewWidget'
+import ClockWidget from './widgets/ClockWidget'
+import LEDWidget from './widgets/LEDWidget'
 import PlexWidget from './widgets/PlexWidget'
 import TVDurationWidget from './widgets/TVDurationWidget'
 import AmbientLightingWidget from './widgets/AmbientLightingWidget'
@@ -33,7 +35,9 @@ const DEFAULT_LAYOUTS: Record<string, Omit<WidgetLayout, 'i'>> = {
   'media-room': { x: 0, y: 2, w: 4, h: 2, minW: 2, minH: 2 },
   'canvas': { x: 4, y: 3, w: 4, h: 3, minW: 3, minH: 2 },
   'tv-preview': { x: 8, y: 4, w: 4, h: 2, minW: 3, minH: 2 },
-  'plex': { x: 0, y: 4, w: 4, h: 2, minW: 2, minH: 2 },
+  'clock': { x: 0, y: 4, w: 4, h: 3, minW: 2, minH: 2 },
+  'led': { x: 4, y: 4, w: 4, h: 3, minW: 2, minH: 2 },
+  'plex': { x: 0, y: 7, w: 4, h: 2, minW: 2, minH: 2 },
   'tv-duration': { x: 4, y: 6, w: 4, h: 2, minW: 2, minH: 2 },
   'weather-calendar': { x: 8, y: 6, w: 4, h: 6, minW: 1, minH: 1 },
   'ambient-lighting': { x: 0, y: 6, w: 4, h: 4, minW: 2, minH: 3 },
@@ -55,6 +59,8 @@ const widgetComponents: Record<string, React.ComponentType<any>> = {
   'media-room': MediaRoomWidget,
   'canvas': CanvasWidget,
   'tv-preview': TVPreviewWidget,
+  'clock': ClockWidget,
+  'led': LEDWidget,
   'plex': PlexWidget,
   'tv-duration': TVDurationWidget,
   'weather-calendar': WeatherCalendarWidget,
