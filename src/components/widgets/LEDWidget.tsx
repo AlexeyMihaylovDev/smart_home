@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useHomeAssistant } from '../../context/HomeAssistantContext'
 import { Entity } from '../../services/homeAssistantAPI'
 import { getLEDConfigsSync, LEDConfig } from '../../services/widgetConfig'
@@ -17,13 +17,18 @@ const LEDUnit = ({ ledConfig, entity, api, loading, onLoadingChange }: LEDUnitPr
   const [brightness, setBrightness] = useState<number>(0)
   const [rgbColor, setRgbColor] = useState({ r: 255, g: 255, b: 255 })
   const [showColorPicker, setShowColorPicker] = useState(false)
+  const brightnessTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isDraggingRef = useRef(false)
+  const currentBrightnessRef = useRef<number>(0)
 
   useEffect(() => {
     if (entity) {
       const brightnessLevel = entity.attributes.brightness
       if (typeof brightnessLevel === 'number') {
         // Home Assistant использует 0-255 для brightness
-        setBrightness(Math.round((brightnessLevel / 255) * 100))
+        const brightnessPercent = Math.round((brightnessLevel / 255) * 100)
+        setBrightness(brightnessPercent)
+        currentBrightnessRef.current = brightnessPercent
       }
       
       // Получаем RGB цвет, если доступен
@@ -36,6 +41,15 @@ const LEDUnit = ({ ledConfig, entity, api, loading, onLoadingChange }: LEDUnitPr
       }
     }
   }, [entity])
+
+  // Очистка таймера при размонтировании
+  useEffect(() => {
+    return () => {
+      if (brightnessTimeoutRef.current) {
+        clearTimeout(brightnessTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const isOn = entity?.state === 'on'
   const friendlyName = ledConfig.name || entity?.attributes.friendly_name || ledConfig.entityId || 'LED'
@@ -59,17 +73,14 @@ const LEDUnit = ({ ledConfig, entity, api, loading, onLoadingChange }: LEDUnitPr
     }
   }
 
-  const handleBrightnessChange = async (newBrightness: number) => {
+  const applyBrightnessChange = useCallback(async (newBrightness: number) => {
     if (!api || !ledConfig.entityId) return
-
-    const clampedBrightness = Math.max(0, Math.min(100, newBrightness))
-    setBrightness(clampedBrightness)
 
     setLocalLoading(true)
     onLoadingChange(true)
     try {
       // Преобразуем процент в значение 0-255 для Home Assistant
-      const brightnessValue = Math.round((clampedBrightness / 100) * 255)
+      const brightnessValue = Math.round((newBrightness / 100) * 255)
       
       await api.callService({
         domain: 'light',
@@ -83,7 +94,43 @@ const LEDUnit = ({ ledConfig, entity, api, loading, onLoadingChange }: LEDUnitPr
       setLocalLoading(false)
       onLoadingChange(false)
     }
-  }
+  }, [api, ledConfig.entityId, onLoadingChange])
+
+  const handleBrightnessChange = useCallback((newBrightness: number) => {
+    const clampedBrightness = Math.max(0, Math.min(100, newBrightness))
+    setBrightness(clampedBrightness)
+    currentBrightnessRef.current = clampedBrightness
+
+    // Очищаем предыдущий таймер
+    if (brightnessTimeoutRef.current) {
+      clearTimeout(brightnessTimeoutRef.current)
+    }
+
+    // Если пользователь перетаскивает, используем debounce
+    if (isDraggingRef.current) {
+      brightnessTimeoutRef.current = setTimeout(() => {
+        applyBrightnessChange(currentBrightnessRef.current)
+      }, 150) // 150ms задержка при перетаскивании
+    } else {
+      // Если это одиночное изменение, применяем сразу
+      applyBrightnessChange(clampedBrightness)
+    }
+  }, [applyBrightnessChange])
+
+  const handleBrightnessMouseDown = useCallback(() => {
+    isDraggingRef.current = true
+  }, [])
+
+  const handleBrightnessMouseUp = useCallback(() => {
+    isDraggingRef.current = false
+    // Применяем финальное значение сразу при отпускании
+    if (brightnessTimeoutRef.current) {
+      clearTimeout(brightnessTimeoutRef.current)
+      brightnessTimeoutRef.current = null
+    }
+    // Используем ref для получения актуального значения
+    applyBrightnessChange(currentBrightnessRef.current)
+  }, [applyBrightnessChange])
 
   const handleColorChange = async (color: { r: number; g: number; b: number }) => {
     if (!api || !ledConfig.entityId || ledConfig.type !== 'rgb') return
@@ -172,8 +219,12 @@ const LEDUnit = ({ ledConfig, entity, api, loading, onLoadingChange }: LEDUnitPr
                 max="100"
                 value={brightness}
                 onChange={(e) => handleBrightnessChange(Number(e.target.value))}
+                onMouseDown={handleBrightnessMouseDown}
+                onMouseUp={handleBrightnessMouseUp}
+                onTouchStart={handleBrightnessMouseDown}
+                onTouchEnd={handleBrightnessMouseUp}
                 disabled={localLoading || loading}
-                className="w-full h-3 bg-dark-card rounded-lg appearance-none cursor-pointer accent-yellow-500 disabled:opacity-50 slider-brightness"
+                className="w-full h-3 bg-dark-card rounded-lg appearance-none cursor-pointer accent-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed slider-brightness"
                 style={{
                   background: `linear-gradient(to right, #fbbf24 0%, #fbbf24 ${brightness}%, #1a1a1a ${brightness}%, #1a1a1a 100%)`
                 }}

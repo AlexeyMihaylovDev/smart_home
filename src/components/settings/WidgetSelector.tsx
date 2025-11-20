@@ -3,7 +3,7 @@ import { Lightbulb, Tv, Music, Gauge, Wind, Droplet, Camera, Navigation } from '
 import ToggleSwitch from '../ui/ToggleSwitch'
 import { isWidgetEnabledSync, setWidgetEnabled } from '../../services/widgetConfig'
 
-export type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | 'water-heater' | 'motors' | 'bose' | 'vacuum' | null
+export type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | 'water-heater' | 'motors' | 'bose' | 'vacuum' | 'led' | 'clock' | 'tv-preview' | null
 
 export interface WidgetOption {
   id: WidgetType

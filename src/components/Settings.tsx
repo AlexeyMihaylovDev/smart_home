@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
 import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Activity, User, Gauge as GaugeIcon, Clock, Navigation, Plus, Sparkles, ChevronDown, Palette } from 'lucide-react'
-import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getWaterHeaterStyleSync, updateWaterHeaterStyle, WaterHeaterStyle, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getSensorsStyleSync, updateSensorsStyle, SensorsStyle, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getMotorsStyleSync, updateMotorsStyle, MotorsStyle, getSpotifyConfigSync, updateSpotifyConfig, SpotifyConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, getCameraConfigsSync, updateCameraConfigs, CameraConfig, getCamerasStyleSync, updateCamerasStyle, CamerasStyle, getTVPreviewConfigsSync, updateTVPreviewConfigs, TVPreviewConfig, getClockConfigSync, updateClockConfig, ClockConfig, getLEDConfigsSync, updateLEDConfigs, LEDConfig, isWidgetEnabledSync, setWidgetEnabled, getWidgetConfig } from '../services/widgetConfig'
+import { getAmbientLightingConfigSync, updateAmbientLightingConfig, getAmbientLightingStyleSync, updateAmbientLightingStyle, LightConfig, AmbientLightingStyle, getACConfigsSync, updateACConfigs, ACConfig, getWaterHeaterConfigSync, updateWaterHeaterConfig, WaterHeaterConfig, getWaterHeaterStyleSync, updateWaterHeaterStyle, WaterHeaterStyle, getSensorsConfigSync, updateSensorsConfig, SensorConfig, getSensorsStyleSync, updateSensorsStyle, SensorsStyle, getMotorConfigsSync, updateMotorConfigs, MotorConfig, getMotorsStyleSync, updateMotorsStyle, MotorsStyle, getSpotifyConfigSync, updateSpotifyConfig, SpotifyConfig, getBoseConfigsSync, updateBoseConfigs, BoseConfig, getVacuumConfigsSync, updateVacuumConfigs, VacuumConfig, getCameraConfigsSync, updateCameraConfigs, CameraConfig, getCamerasStyleSync, updateCamerasStyle, CamerasStyle, getTVPreviewConfigsSync, updateTVPreviewConfigs, TVPreviewConfig, getClockConfigSync, updateClockConfig, ClockConfig, getLEDConfigsSync, updateLEDConfigs, LEDConfig, getLEDStyleSync, updateLEDStyle, LEDStyle, isWidgetEnabledSync, setWidgetEnabled, getWidgetConfig } from '../services/widgetConfig'
 import { getConnectionConfig, saveConnectionConfig } from '../services/apiService'
 import ToggleSwitch from './ui/ToggleSwitch'
 import Toast from './ui/Toast'
@@ -14,7 +14,7 @@ import ClockWidget from './widgets/ClockWidget'
 import {
   TVTimePreview, MediaPlayerPreview, SpotifyPreview, MediaRoomPreview, CanvasPreview,
   TVPreviewWidget as TVPreviewWidgetPreview, PlexPreview, TVDurationPreview, WeatherCalendarPreview, LivingRoomPreview,
-  ACPreview, WaterHeaterPreview, SensorsPreview, MotorsPreview, BosePreview, VacuumPreview, CamerasPreview
+  ACPreview, WaterHeaterPreview, SensorsPreview, MotorsPreview, BosePreview, VacuumPreview, CamerasPreview, LEDPreview
 } from './settings/WidgetPreviews'
 
 type Tab = 'devices' | 'widgets' | 'navigation' | 'home-assistant'
@@ -190,6 +190,21 @@ const Settings = () => {
       }
     }
   })
+  const [ledConfigs, setLEDConfigs] = useState<LEDConfig[]>(() => {
+    try {
+      return getLEDConfigsSync()
+    } catch {
+      return []
+    }
+  })
+  const [ledStyle, setLEDStyle] = useState<LEDStyle>(() => {
+    try {
+      return getLEDStyleSync()
+    } catch {
+      return 'list'
+    }
+  })
+  const [showLEDDemo, setShowLEDDemo] = useState(false)
   const [camerasStyle, setCamerasStyle] = useState<CamerasStyle>(() => {
     try {
       return getCamerasStyleSync()
@@ -435,6 +450,10 @@ const Settings = () => {
       format24h: true,
       style: 'digital'
     })
+    const leds = getLEDConfigsSync()
+    setLEDConfigs(leds && Array.isArray(leds) ? leds : [])
+    const ledStyleValue = getLEDStyleSync()
+    setLEDStyle(ledStyleValue)
   }
 
   useEffect(() => {
@@ -2234,6 +2253,194 @@ const Settings = () => {
                     <div className="h-64">
                       <ClockWidget />
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {selectedWidget === 'led' && (
+            <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
+              <div className="p-4 border-b border-dark-border">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setSelectedWidget(null)}
+                      className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
+                      title="חזור לבחירת וידג'ט"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                      <h2 className="font-medium text-lg">LED Widget</h2>
+                      <p className="text-sm text-dark-textSecondary mt-1">
+                        הגדרת נורות LED
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {/* Выбор стиля виджета */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-dark-textSecondary whitespace-nowrap">סגנון וידג'ט:</label>
+                      <select
+                        value={ledStyle}
+                        onChange={async (e) => {
+                          const newStyle = e.target.value as LEDStyle
+                          setLEDStyle(newStyle)
+                          await updateLEDStyle(newStyle)
+                          setHasUnsavedChanges(true)
+                          window.dispatchEvent(new Event('widgets-changed'))
+                        }}
+                        className="bg-dark-bg border border-dark-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="list">רשימה</option>
+                        <option value="card">כרטיסים</option>
+                        <option value="compact">קומפקטי</option>
+                        <option value="modern">מודרני</option>
+                      </select>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          const newLED: LEDConfig = {
+                            name: `LED ${ledConfigs.length + 1}`,
+                            entityId: null,
+                            type: 'dimmer'
+                          }
+                          setLEDConfigs([...ledConfigs, newLED])
+                          setHasUnsavedChanges(true)
+                        }}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                        title="הוסף LED חדש"
+                      >
+                        <Plus size={16} />
+                        הוסף LED
+                      </button>
+                      {hasUnsavedChanges && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              await updateLEDConfigs(ledConfigs)
+                              setHasUnsavedChanges(false)
+                              window.dispatchEvent(new Event('widgets-changed'))
+                              setToast({ message: 'הגדרות LED נשמרו!', type: 'success' })
+                            } catch (error) {
+                              console.error('Ошибка сохранения:', error)
+                              setToast({ message: 'שגיאה בשמירת ההגדרות', type: 'error' })
+                            }
+                          }}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-lg"
+                          title="שמור שינויים"
+                        >
+                          <Save size={16} />
+                          שמור
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
+                  {ledConfigs.length === 0 ? (
+                    <div className="text-center py-8 text-dark-textSecondary">
+                      <Lightbulb size={48} className="mx-auto mb-4 opacity-50" />
+                      <p>אין נורות LED מוגדרות</p>
+                      <p className="text-xs mt-2">לחץ על "הוסף LED" כדי להוסיף נורה חדשה</p>
+                    </div>
+                  ) : (
+                    ledConfigs.map((led, index) => (
+                      <div key={index} className="p-4 bg-dark-bg rounded-lg border border-dark-border space-y-3">
+                        <div>
+                          <label className="block text-xs text-dark-textSecondary mb-1">
+                            שם הנורה:
+                          </label>
+                          <input
+                            type="text"
+                            value={led.name}
+                            onChange={(e) => {
+                              const newConfigs = [...ledConfigs]
+                              newConfigs[index].name = e.target.value
+                              setLEDConfigs(newConfigs)
+                              setHasUnsavedChanges(true)
+                            }}
+                            className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="שם הנורה"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-dark-textSecondary mb-1">
+                            Entity ID:
+                          </label>
+                          <SearchableSelect
+                            value={led.entityId || ''}
+                            onChange={(value) => {
+                              const newConfigs = [...ledConfigs]
+                              newConfigs[index].entityId = value || null
+                              setLEDConfigs(newConfigs)
+                              setHasUnsavedChanges(true)
+                            }}
+                            options={filteredEntities
+                              .filter(e => e.entity_id.startsWith('light.'))
+                              .map(e => ({
+                                value: e.entity_id,
+                                label: e.attributes.friendly_name || e.entity_id
+                              }))}
+                            placeholder="בחר Entity ID"
+                            searchPlaceholder="חפש Entity..."
+                            disabled={haLoading}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-dark-textSecondary mb-1">
+                            סוג נורה:
+                          </label>
+                          <select
+                            value={led.type}
+                            onChange={(e) => {
+                              const newConfigs = [...ledConfigs]
+                              newConfigs[index].type = e.target.value as 'rgb' | 'dimmer'
+                              setLEDConfigs(newConfigs)
+                              setHasUnsavedChanges(true)
+                            }}
+                            className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="dimmer">Dimmer (בהירות בלבד)</option>
+                            <option value="rgb">RGB (בהירות + צבע)</option>
+                          </select>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const newConfigs = ledConfigs.filter((_, i) => i !== index)
+                            setLEDConfigs(newConfigs)
+                            setHasUnsavedChanges(true)
+                          }}
+                          className="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
+                        >
+                          מחק
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+                {/* Preview виджета */}
+                <div className="lg:border-l lg:border-dark-border lg:pl-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-dark-textSecondary">תצוגה מקדימה של הווידג'ט:</h3>
+                    <button
+                      onClick={() => setShowLEDDemo(!showLEDDemo)}
+                      className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center gap-2 text-xs font-medium"
+                      title={showLEDDemo ? 'הסתר דמו' : 'הצג דמו'}
+                    >
+                      <Sparkles size={14} />
+                      {showLEDDemo ? 'הסתר דמו' : 'הצג דמו'}
+                    </button>
+                  </div>
+                  <div className="bg-dark-bg rounded-lg border border-dark-border p-4 max-h-[60vh] overflow-y-auto">
+                    <LEDPreview 
+                      configs={ledConfigs} 
+                      style={ledStyle} 
+                      demo={showLEDDemo}
+                    />
                   </div>
                 </div>
               </div>

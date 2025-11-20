@@ -85,6 +85,7 @@ export type WaterHeaterStyle = 'compact' | 'card' | 'minimal' | 'modern'
 export type SensorsStyle = 'list' | 'card' | 'compact' | 'grid'
 export type MotorsStyle = 'list' | 'card' | 'compact'
 export type CamerasStyle = 'list' | 'card' | 'compact' | 'grid'
+export type LEDStyle = 'list' | 'card' | 'compact' | 'modern'
 
 export interface SpotifyConfig {
   accountName: string
@@ -142,6 +143,7 @@ export interface WidgetConfig {
   clock: ClockConfig
   led: {
     leds: LEDConfig[]
+    style?: LEDStyle
   }
   enabledWidgets: {
     [widgetId: string]: boolean
@@ -211,7 +213,8 @@ const DEFAULT_CONFIG: WidgetConfig = {
     style: 'digital'
   },
   led: {
-    leds: []
+    leds: [],
+    style: 'list'
   },
   enabledWidgets: {},
   navigationIcons: {
@@ -822,8 +825,27 @@ export const getLEDConfigsSync = (): LEDConfig[] => {
 export const updateLEDConfigs = async (leds: LEDConfig[]): Promise<void> => {
   const config = await getWidgetConfig()
   if (!config.led) {
-    config.led = { leds: [] }
+    config.led = { leds: [], style: 'list' }
   }
   config.led.leds = leds
+  await saveWidgetConfig(config)
+}
+
+export const getLEDStyle = async (): Promise<LEDStyle> => {
+  const config = await getWidgetConfig()
+  return config.led?.style || 'list'
+}
+
+export const getLEDStyleSync = (): LEDStyle => {
+  const config = getWidgetConfigSync()
+  return config.led?.style || 'list'
+}
+
+export const updateLEDStyle = async (style: LEDStyle): Promise<void> => {
+  const config = await getWidgetConfig()
+  if (!config.led) {
+    config.led = { leds: [], style: 'list' }
+  }
+  config.led.style = style
   await saveWidgetConfig(config)
 }

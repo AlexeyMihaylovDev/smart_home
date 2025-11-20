@@ -1,7 +1,8 @@
 // Preview компоненты для виджетов
 import React from 'react'
-import { Tv, Music, Wind, Droplet, Gauge, Sparkles } from 'lucide-react'
-import { ACConfig, WaterHeaterConfig, SensorConfig, MotorConfig, BoseConfig, VacuumConfig, CameraConfig, TVPreviewConfig, WaterHeaterStyle, SensorsStyle, MotorsStyle, CamerasStyle } from '../../services/widgetConfig'
+import { Tv, Music, Wind, Droplet, Gauge, Sparkles, Lightbulb } from 'lucide-react'
+import { ACConfig, WaterHeaterConfig, SensorConfig, MotorConfig, BoseConfig, VacuumConfig, CameraConfig, TVPreviewConfig, WaterHeaterStyle, SensorsStyle, MotorsStyle, CamerasStyle, LEDConfig, LEDStyle } from '../../services/widgetConfig'
+import { PreparedLED, LEDListStyle, LEDCardStyle, LEDCompactStyle, LEDModernStyle, LEDListNotConfigured, LEDCardNotConfigured, LEDCompactNotConfigured, LEDModernNotConfigured } from '../widgets/LEDStyles'
 import { CompactNotConfigured, CardNotConfigured, MinimalNotConfigured, ModernNotConfigured } from '../widgets/WaterHeaterStyles'
 import { PreparedSensor, SensorsListStyle, SensorsCardStyle, SensorsCompactStyle, SensorsGridStyle, SensorsListNotConfigured, SensorsCardNotConfigured, SensorsCompactNotConfigured, SensorsGridNotConfigured } from '../widgets/SensorsStyles'
 import { PreparedMotor, MotorsListStyle, MotorsCardStyle, MotorsCompactStyle, MotorsListNotConfigured, MotorsCardNotConfigured, MotorsCompactNotConfigured } from '../widgets/MotorsStyles'
@@ -531,6 +532,106 @@ export const CamerasPreview = ({ configs, style, demo }: { configs: CameraConfig
     case 'list':
     default:
       return <CamerasListStyle {...props} />
+  }
+}
+
+export const LEDPreview = ({ configs = [], style = 'list', demo = false }: { configs: LEDConfig[], style?: LEDStyle, demo?: boolean }) => {
+  if (demo) {
+    const demoLEDs: PreparedLED[] = [
+      { 
+        id: 'led-1', 
+        name: 'נורת סלון', 
+        type: 'rgb', 
+        isOn: true, 
+        brightness: 75, 
+        rgbColor: { r: 255, g: 100, b: 50 },
+        hasEntity: true,
+        controlsDisabled: true
+      },
+      { 
+        id: 'led-2', 
+        name: 'נורת חדר שינה', 
+        type: 'dimmer', 
+        isOn: true, 
+        brightness: 45, 
+        rgbColor: { r: 255, g: 255, b: 255 },
+        hasEntity: true,
+        controlsDisabled: true
+      },
+      { 
+        id: 'led-3', 
+        name: 'נורת מטבח', 
+        type: 'rgb', 
+        isOn: false, 
+        brightness: 0, 
+        rgbColor: { r: 255, g: 255, b: 255 },
+        hasEntity: true,
+        controlsDisabled: true
+      }
+    ]
+
+    const renderDemo = () => {
+      const props = { leds: demoLEDs }
+      switch (style) {
+        case 'card':
+          return <LEDCardStyle {...props} />
+        case 'compact':
+          return <LEDCompactStyle {...props} />
+        case 'modern':
+          return <LEDModernStyle {...props} />
+        case 'list':
+        default:
+          return <LEDListStyle {...props} />
+      }
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="text-xs text-dark-textSecondary bg-white/5 border border-dark-border rounded-lg px-3 py-2 flex items-center gap-2">
+          <Sparkles size={14} className="text-purple-400" />
+          Показан демо-режим: пример отображения LED Widget
+        </div>
+        {renderDemo()}
+      </div>
+    )
+  }
+
+  if (configs.length === 0) {
+    switch (style) {
+      case 'card':
+        return <LEDCardNotConfigured />
+      case 'compact':
+        return <LEDCompactNotConfigured />
+      case 'modern':
+        return <LEDModernNotConfigured />
+      case 'list':
+      default:
+        return <LEDListNotConfigured />
+    }
+  }
+
+  const preparedLEDs: PreparedLED[] = configs.map((led, index) => ({
+    id: led.entityId || `led-${index}`,
+    name: led.name || `LED ${index + 1}`,
+    type: led.type,
+    isOn: !!led.entityId, // Предполагаем включенным, если настроен
+    brightness: 50, // Дефолтное значение для preview
+    rgbColor: { r: 255, g: 255, b: 255 },
+    hasEntity: led.entityId !== null,
+    controlsDisabled: true
+  }))
+
+  const props = { leds: preparedLEDs }
+  switch (style) {
+    case 'card':
+      return <LEDCardStyle {...props} />
+    case 'compact':
+      return <LEDCompactStyle {...props} />
+    case 'modern':
+      return <LEDModernStyle {...props} />
+    case 'list':
+    default:
+      return <LEDListStyle {...props} />
   }
 }
 
