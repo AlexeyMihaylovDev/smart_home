@@ -177,10 +177,20 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/config/widget', requireAuth, async (req, res) => {
   try {
     const userId = req.userId
+    console.log(`[Server] Загрузка widget config для пользователя ${userId} из базы данных...`)
     const config = await readDataFile(`widget_config_${userId}.json`)
     if (config) {
+      console.log(`[Server] Widget config загружен из базы данных для пользователя ${userId}:`, {
+        ambientLighting: config.ambientLighting?.lights?.length || 0,
+        ac: config.ac?.airConditioners?.length || 0,
+        vacuum: config.vacuum?.vacuums?.length || 0,
+        bose: config.bose?.soundbars?.length || 0,
+        navigationIcons: config.navigationIcons?.icons?.length || 0,
+        enabledWidgets: Object.keys(config.enabledWidgets || {}).length
+      })
       res.json(config)
     } else {
+      console.log(`[Server] Widget config не найден для пользователя ${userId}, возвращаем дефолтный`)
       // Возвращаем дефолтную конфигурацию
       const defaultConfig = {
         ambientLighting: {
@@ -250,7 +260,17 @@ app.get('/api/config/widget', requireAuth, async (req, res) => {
 app.post('/api/config/widget', requireAuth, async (req, res) => {
   try {
     const userId = req.userId
-    await writeDataFile(`widget_config_${userId}.json`, req.body)
+    const config = req.body
+    console.log(`[Server] Сохранение widget config для пользователя ${userId} в базу данных:`, {
+      ambientLighting: config.ambientLighting?.lights?.length || 0,
+      ac: config.ac?.airConditioners?.length || 0,
+      vacuum: config.vacuum?.vacuums?.length || 0,
+      bose: config.bose?.soundbars?.length || 0,
+      navigationIcons: config.navigationIcons?.icons?.length || 0,
+      enabledWidgets: Object.keys(config.enabledWidgets || {}).length
+    })
+    await writeDataFile(`widget_config_${userId}.json`, config)
+    console.log(`[Server] Widget config успешно сохранен в базу данных для пользователя ${userId}`)
     res.json({ success: true })
   } catch (error) {
     console.error('Ошибка сохранения widget config:', error)
@@ -262,10 +282,17 @@ app.post('/api/config/widget', requireAuth, async (req, res) => {
 app.get('/api/config/layout', requireAuth, async (req, res) => {
   try {
     const userId = req.userId
+    console.log(`[Server] Загрузка dashboard layout для пользователя ${userId} из базы данных...`)
     const layout = await readDataFile(`dashboard_layout_${userId}.json`)
     if (layout) {
+      console.log(`[Server] Dashboard layout загружен из базы данных для пользователя ${userId}:`, {
+        layoutsCount: layout.layouts?.length || 0,
+        cols: layout.cols,
+        rowHeight: layout.rowHeight
+      })
       res.json(layout)
     } else {
+      console.log(`[Server] Layout не найден для пользователя ${userId}, возвращаем дефолтный`)
       // Возвращаем дефолтный layout
       res.json({
         layouts: [],
@@ -282,7 +309,14 @@ app.get('/api/config/layout', requireAuth, async (req, res) => {
 app.post('/api/config/layout', requireAuth, async (req, res) => {
   try {
     const userId = req.userId
-    await writeDataFile(`dashboard_layout_${userId}.json`, req.body)
+    const layout = req.body
+    console.log(`[Server] Сохранение dashboard layout для пользователя ${userId}:`, {
+      layoutsCount: layout.layouts?.length || 0,
+      cols: layout.cols,
+      rowHeight: layout.rowHeight
+    })
+    await writeDataFile(`dashboard_layout_${userId}.json`, layout)
+    console.log(`[Server] Dashboard layout успешно сохранен в базу данных для пользователя ${userId}`)
     res.json({ success: true })
   } catch (error) {
     console.error('Ошибка сохранения layout:', error)
@@ -331,10 +365,17 @@ app.post('/api/config/connection', requireAuth, async (req, res) => {
 app.get('/api/config/dashboard-layouts', requireAuth, async (req, res) => {
   try {
     const userId = req.userId
+    console.log(`[Server] Загрузка dashboard layouts для пользователя ${userId} из базы данных...`)
     const layouts = await readDataFile(`dashboard_layouts_${userId}.json`)
     if (layouts) {
+      const dashboardIds = Object.keys(layouts || {})
+      console.log(`[Server] Dashboard layouts загружены из базы данных для пользователя ${userId}:`, {
+        dashboardsCount: dashboardIds.length,
+        dashboardIds: dashboardIds
+      })
       res.json(layouts)
     } else {
+      console.log(`[Server] Dashboard layouts не найдены для пользователя ${userId}, возвращаем пустой объект`)
       // Возвращаем пустой объект
       res.json({})
     }
@@ -347,7 +388,14 @@ app.get('/api/config/dashboard-layouts', requireAuth, async (req, res) => {
 app.post('/api/config/dashboard-layouts', requireAuth, async (req, res) => {
   try {
     const userId = req.userId
-    await writeDataFile(`dashboard_layouts_${userId}.json`, req.body)
+    const layouts = req.body
+    const dashboardIds = Object.keys(layouts || {})
+    console.log(`[Server] Сохранение dashboard layouts для пользователя ${userId}:`, {
+      dashboardsCount: dashboardIds.length,
+      dashboardIds: dashboardIds
+    })
+    await writeDataFile(`dashboard_layouts_${userId}.json`, layouts)
+    console.log(`[Server] Dashboard layouts успешно сохранены в базу данных для пользователя ${userId}`)
     res.json({ success: true })
   } catch (error) {
     console.error('Ошибка сохранения dashboard layouts:', error)

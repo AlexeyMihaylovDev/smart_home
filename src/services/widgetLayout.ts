@@ -86,6 +86,9 @@ export const getDashboardLayout = async (): Promise<DashboardLayout> => {
     console.log('[WidgetLayout] Dashboard layout загружен с сервера:', stored)
     const enabledWidgets = await getAllEnabledWidgets()
     
+    // Сохраняем savedCols для использования ниже
+    const savedCols = stored?.cols || DEFAULT_COLS
+    
     if (stored && stored.layouts && stored.layouts.length > 0) {
       const savedLayouts = stored.layouts || []
       
@@ -206,9 +209,22 @@ export const getDashboardLayout = async (): Promise<DashboardLayout> => {
   // Если нет сохраненного layout, создаем новый с автоматическим распределением
   console.log('[WidgetLayout] Создаем новый layout для включенных виджетов')
   const enabledWidgets = await getAllEnabledWidgets()
+  console.log('[WidgetLayout] Включенные виджеты:', enabledWidgets)
+  
+  if (enabledWidgets.length === 0) {
+    console.warn('[WidgetLayout] Нет включенных виджетов! Layout будет пустым.')
+    const emptyResult = {
+      layouts: [],
+      cols: DEFAULT_COLS,
+      rowHeight: DEFAULT_ROW_HEIGHT
+    }
+    layoutCache = emptyResult
+    return emptyResult
+  }
   
   // Используем автоматическое распределение для равномерного размещения
   const layouts = autoDistributeWidgets(enabledWidgets, DEFAULT_COLS)
+  console.log('[WidgetLayout] Создан новый layout с виджетами:', layouts.map(l => l.i))
   
   const result = {
     layouts,
@@ -216,6 +232,17 @@ export const getDashboardLayout = async (): Promise<DashboardLayout> => {
     rowHeight: DEFAULT_ROW_HEIGHT
   }
   layoutCache = result
+  
+  // Автоматически сохраняем новый layout на сервер в базу данных
+  try {
+    console.log('[WidgetLayout] Сохранение нового layout на сервер в базу данных...')
+    await saveDashboardLayoutToAPI(result as APIDashboardLayout)
+    console.log('[WidgetLayout] Новый layout успешно сохранен на сервер в базу данных')
+  } catch (error) {
+    console.error('[WidgetLayout] Ошибка сохранения нового layout на сервер:', error)
+    // Продолжаем работу даже если сохранение не удалось
+  }
+  
   return result
 }
 
@@ -536,20 +563,35 @@ export const getDashboardLayoutByDashboardId = async (dashboardId: string): Prom
   try {
     // Загружаем все dashboard layouts
     const allLayouts = await getAllDashboardLayouts()
-    if (allLayouts[dashboardId]) {
+    if (allLayouts[dashboardId] && allLayouts[dashboardId].layouts && allLayouts[dashboardId].layouts.length > 0) {
       return allLayouts[dashboardId]
     }
   } catch (error) {
     console.error('Ошибка загрузки layout для dashboard:', error)
   }
   
-  // Возвращаем пустой layout по умолчанию
-  return {
-    layouts: [],
+  // Если layout не найден, создаем новый с автоматическим распределением
+  console.log(`[WidgetLayout] Создаем новый layout для dashboard ${dashboardId}`)
+  const enabledWidgets = await getAllEnabledWidgets()
+  const layouts = autoDistributeWidgets(enabledWidgets, DEFAULT_COLS)
+  
+  const newLayout = {
+    layouts,
     cols: DEFAULT_COLS,
     rowHeight: DEFAULT_ROW_HEIGHT,
     dashboardId
   }
+  
+  // Автоматически сохраняем новый layout на сервер в базу данных
+  try {
+    console.log(`[WidgetLayout] Сохранение нового layout для dashboard ${dashboardId} на сервер...`)
+    await saveDashboardLayoutByDashboardId(dashboardId, newLayout)
+    console.log(`[WidgetLayout] Новый layout для dashboard ${dashboardId} успешно сохранен на сервер`)
+  } catch (error) {
+    console.error(`[WidgetLayout] Ошибка сохранения нового layout для dashboard ${dashboardId}:`, error)
+  }
+  
+  return newLayout
 }
 
 export const saveDashboardLayoutByDashboardId = async (dashboardId: string, layout: DashboardLayout): Promise<void> => {

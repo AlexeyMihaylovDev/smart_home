@@ -212,10 +212,16 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
             }
           }
           
-          // Для home используем старый способ
-          const savedLayout = getDashboardLayoutSync()
+          // Для home загружаем layout с сервера асинхронно
+          const savedLayout = await getDashboardLayout()
           const currentCols = getCols()
           const savedCols = savedLayout.cols || 12
+          
+          // Если layout пустой, возвращаем пустой массив (layout будет создан автоматически)
+          if (!savedLayout.layouts || savedLayout.layouts.length === 0) {
+            console.log('[WidgetGrid] Layout пустой, будет создан автоматически')
+            return []
+          }
           
           return savedLayout.layouts.map(l => {
             const scale = currentCols / savedCols
@@ -246,7 +252,60 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
         }
         
         const loadedLayout = await getLayout()
-        setLayout(loadedLayout)
+        console.log('[WidgetGrid] Layout загружен:', {
+          layoutCount: loadedLayout.length,
+          widgets: loadedLayout.map(l => l.i)
+        })
+        
+        // Если layout пустой, загружаем его заново с сервера (он должен быть создан автоматически)
+        if (loadedLayout.length === 0 && currentTab === 'home') {
+          console.log('[WidgetGrid] Layout пустой, загружаем заново с сервера...')
+          try {
+            const freshLayout = await getDashboardLayout()
+            if (freshLayout.layouts && freshLayout.layouts.length > 0) {
+              const currentCols = getCols()
+              const savedCols = freshLayout.cols || 12
+              const mappedLayout = freshLayout.layouts.map(l => {
+                const scale = currentCols / savedCols
+                let newW = Math.max(1, Math.round(l.w * scale))
+                let newH = l.h
+                
+                if (typeof window !== 'undefined' && window.innerWidth < 640) {
+                  newW = currentCols
+                  newH = Math.max(2, Math.round(l.h * 0.7))
+                } else if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                  newH = Math.max(1, Math.round(l.h * 0.9))
+                } else if (typeof window !== 'undefined' && window.innerWidth >= 1920) {
+                  newH = Math.max(1, Math.round(l.h * 1.1))
+                }
+                
+                return {
+                  i: l.i,
+                  x: (typeof window !== 'undefined' && window.innerWidth < 640) ? 0 : Math.round(l.x * scale),
+                  y: l.y,
+                  w: newW,
+                  h: newH,
+                  minW: (typeof window !== 'undefined' && window.innerWidth < 640) ? currentCols : l.minW,
+                  minH: l.minH,
+                  maxW: (typeof window !== 'undefined' && window.innerWidth < 640) ? currentCols : l.maxW,
+                  maxH: l.maxH,
+                }
+              })
+              console.log('[WidgetGrid] Обновленный layout загружен:', {
+                layoutCount: mappedLayout.length,
+                widgets: mappedLayout.map(l => l.i)
+              })
+              setLayout(mappedLayout)
+            } else {
+              setLayout(loadedLayout)
+            }
+          } catch (retryError) {
+            console.error('[WidgetGrid] Ошибка повторной загрузки layout:', retryError)
+            setLayout(loadedLayout)
+          }
+        } else {
+          setLayout(loadedLayout)
+        }
       } catch (error) {
         console.error('Ошибка загрузки layout:', error)
         setLayout([])
@@ -267,6 +326,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
   const clickCountRef = useRef(0)
   const clickTimerRef = useRef<NodeJS.Timeout | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const saveLayoutTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Обработка изменения размера окна
   useEffect(() => {
@@ -407,6 +467,10 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
     return () => {
       window.removeEventListener('widgets-changed', handleWidgetsChanged)
       window.removeEventListener('resize', handleResize)
+      // Очищаем таймер сохранения при размонтировании
+      if (saveLayoutTimeoutRef.current) {
+        clearTimeout(saveLayoutTimeoutRef.current)
+      }
     }
   }, [cols, rowHeight, currentTab])
 
@@ -422,9 +486,15 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
       dashboardId = dashboardIcon?.dashboardId
     }
     setLayout(newLayout)
-    // Сохраняем layout при изменении (только в режиме редактирования)
-    // В обычном режиме react-grid-layout сам компактирует через compactType
-    if (editMode) {
+    
+    // Очищаем предыдущий таймер сохранения
+    if (saveLayoutTimeoutRef.current) {
+      clearTimeout(saveLayoutTimeoutRef.current)
+    }
+    
+    // Сохраняем layout при изменении с debounce (500ms) для оптимизации
+    // Это обеспечивает синхронизацию между устройствами
+    saveLayoutTimeoutRef.current = setTimeout(async () => {
       const widgetLayouts: WidgetLayout[] = newLayout.map(l => ({
         i: l.i,
         x: l.x || 0,
@@ -440,11 +510,12 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
         // Сохраняем layout с текущим количеством колонок и высотой строки
         const currentColsValue = cols || getCols()
         await updateWidgetLayout(widgetLayouts, currentColsValue, rowHeight, dashboardId)
+        console.log('[WidgetGrid] Layout сохранен на сервер для синхронизации между устройствами')
       } catch (error) {
         console.error('Ошибка сохранения layout:', error)
       }
-    }
-  }, [editMode, cols, rowHeight, currentTab])
+    }, 500) // 500ms debounce
+  }, [cols, rowHeight, currentTab])
 
   const TRIPLE_CLICK_TIMEOUT = 500 // 500ms между кликами
   const REQUIRED_CLICKS = 3

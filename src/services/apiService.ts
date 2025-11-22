@@ -30,10 +30,14 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     const userId = getUserId()
+    // Для запроса логина userId еще не установлен - это нормально
+    const isLoginRequest = config.url === '/api/auth/login'
+    
     if (userId) {
       config.headers['x-user-id'] = userId
       console.log(`[API] Запрос к ${config.url} с userId: ${userId}`)
-    } else {
+    } else if (!isLoginRequest) {
+      // Показываем предупреждение только для запросов, которые требуют авторизации
       console.warn(`[API] Запрос к ${config.url} без userId!`)
     }
     return config
