@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useHomeAssistant } from '../../context/HomeAssistantContext'
 import { Entity } from '../../services/homeAssistantAPI'
 import { getBoseConfigsSync, BoseConfig } from '../../services/widgetConfig'
@@ -20,20 +20,56 @@ const BoseUnit = ({ boseConfig, entity, api, loading, onLoadingChange }: BoseUni
   const [localLoading, setLocalLoading] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [volume, setVolume] = useState<number>(0)
+  const [localVolume, setLocalVolume] = useState<number | null>(null)
+  const volumeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isDraggingRef = useRef(false)
+  const currentVolumeRef = useRef<number>(0)
+  const pendingVolumeRef = useRef<number | null>(null)
 
   useEffect(() => {
-    if (entity) {
+    if (entity && !isDraggingRef.current) {
       const volumeLevel = entity.attributes.volume_level
+      let newVolume = 0
       if (typeof volumeLevel === 'number') {
-        setVolume(Math.round(volumeLevel * 100))
+        newVolume = Math.round(volumeLevel * 100)
       } else if (typeof volumeLevel === 'string') {
         const parsed = parseFloat(volumeLevel)
         if (!isNaN(parsed)) {
-          setVolume(Math.round(parsed * 100))
+          newVolume = Math.round(parsed * 100)
+        }
+      }
+      
+      // Обновляем только если нет локального значения или если значение совпадает с ожидаемым
+      if (localVolume === null) {
+        setVolume(newVolume)
+        currentVolumeRef.current = newVolume
+      } else if (pendingVolumeRef.current !== null) {
+        // Проверяем, совпадает ли значение из API с ожидаемым (с погрешностью ±2%)
+        if (Math.abs(newVolume - pendingVolumeRef.current) <= 2) {
+          setLocalVolume(null)
+          setVolume(newVolume)
+          currentVolumeRef.current = newVolume
+          pendingVolumeRef.current = null
+        }
+      } else {
+        // Если нет ожидаемого значения, но есть локальное, проверяем совпадение
+        if (Math.abs(newVolume - localVolume) <= 2) {
+          setLocalVolume(null)
+          setVolume(newVolume)
+          currentVolumeRef.current = newVolume
         }
       }
     }
-  }, [entity])
+  }, [entity, localVolume])
+  
+  // Очистка таймера при размонтировании
+  useEffect(() => {
+    return () => {
+      if (volumeTimeoutRef.current) {
+        clearTimeout(volumeTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const isOn = entity?.state === 'on' || entity?.state === 'playing'
   const isPlaying = entity?.state === 'playing'
@@ -69,23 +105,65 @@ const BoseUnit = ({ boseConfig, entity, api, loading, onLoadingChange }: BoseUni
     }
   }
 
-  const handleVolumeChange = async (newVolume: number) => {
+  const applyVolumeChange = useCallback(async (newVolume: number) => {
     if (!api || !boseConfig.entityId) return
-
-    const clampedVolume = Math.max(0, Math.min(100, newVolume))
-    setVolume(clampedVolume)
 
     setLocalLoading(true)
     onLoadingChange(true)
     try {
-      await api.setVolume(boseConfig.entityId, clampedVolume)
+      await api.setVolume(boseConfig.entityId, newVolume)
+      pendingVolumeRef.current = newVolume
+      // Удаляем ожидаемое значение через небольшую задержку после успешного применения
+      setTimeout(() => {
+        pendingVolumeRef.current = null
+      }, 500)
     } catch (error) {
       console.error('Ошибка изменения громкости:', error)
+      pendingVolumeRef.current = null
     } finally {
       setLocalLoading(false)
       onLoadingChange(false)
     }
-  }
+  }, [api, boseConfig.entityId, onLoadingChange])
+
+  const handleVolumeChange = useCallback((newVolume: number) => {
+    const clampedVolume = Math.max(0, Math.min(100, newVolume))
+    
+    // Обновляем локальное состояние для немедленного отображения
+    setLocalVolume(clampedVolume)
+    setVolume(clampedVolume)
+    currentVolumeRef.current = clampedVolume
+
+    // Очищаем предыдущий таймер
+    if (volumeTimeoutRef.current) {
+      clearTimeout(volumeTimeoutRef.current)
+    }
+
+    // Если пользователь перетаскивает, используем debounce
+    if (isDraggingRef.current) {
+      volumeTimeoutRef.current = setTimeout(() => {
+        applyVolumeChange(currentVolumeRef.current)
+      }, 150) // 150ms задержка при перетаскивании
+    } else {
+      // Если это одиночное изменение, применяем сразу
+      applyVolumeChange(clampedVolume)
+    }
+  }, [applyVolumeChange])
+
+  const handleVolumeMouseDown = useCallback(() => {
+    isDraggingRef.current = true
+  }, [])
+
+  const handleVolumeMouseUp = useCallback(() => {
+    isDraggingRef.current = false
+    // Применяем финальное значение сразу при отпускании
+    if (volumeTimeoutRef.current) {
+      clearTimeout(volumeTimeoutRef.current)
+      volumeTimeoutRef.current = null
+    }
+    // Используем ref для получения актуального значения
+    applyVolumeChange(currentVolumeRef.current)
+  }, [applyVolumeChange])
 
   const handlePlayPause = async () => {
     if (!api || !boseConfig.entityId) return
@@ -257,19 +335,19 @@ const BoseUnit = ({ boseConfig, entity, api, loading, onLoadingChange }: BoseUni
           <div className="mb-2 sm:mb-3">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
-                {volume === 0 ? (
+                {(localVolume !== null ? localVolume : volume) === 0 ? (
                   <VolumeX size={14} className="text-dark-textSecondary" />
                 ) : (
                   <Volume2 size={14} className="text-blue-400" />
                 )}
                 <span className="text-[10px] sm:text-xs text-dark-textSecondary">עוצמת קול</span>
               </div>
-              <span className="text-[10px] sm:text-xs font-medium text-white">{volume}%</span>
+              <span className="text-[10px] sm:text-xs font-medium text-white">{localVolume !== null ? localVolume : volume}%</span>
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => handleVolumeChange(volume - 5)}
-                disabled={localLoading || loading || volume <= 0}
+                onClick={() => handleVolumeChange((localVolume !== null ? localVolume : volume) - 5)}
+                disabled={localLoading || loading || (localVolume !== null ? localVolume : volume) <= 0}
                 className="p-1 rounded bg-dark-card hover:bg-dark-cardHover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronDown size={12} className="text-white" />
@@ -278,17 +356,21 @@ const BoseUnit = ({ boseConfig, entity, api, loading, onLoadingChange }: BoseUni
                 type="range"
                 min="0"
                 max="100"
-                value={volume}
-                onChange={(e) => handleVolumeChange(parseInt(e.target.value))}
+                value={localVolume !== null ? localVolume : volume}
+                onChange={(e) => handleVolumeChange(Number(e.target.value))}
+                onMouseDown={handleVolumeMouseDown}
+                onMouseUp={handleVolumeMouseUp}
+                onTouchStart={handleVolumeMouseDown}
+                onTouchEnd={handleVolumeMouseUp}
                 disabled={localLoading || loading}
-                className="flex-1 h-2 bg-dark-card rounded-lg appearance-none cursor-pointer accent-blue-500 disabled:opacity-50"
+                className="flex-1 h-2 bg-dark-card rounded-lg appearance-none cursor-pointer accent-blue-500 disabled:opacity-50 disabled:cursor-not-allowed slider-volume"
                 style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${volume}%, #1a1a1a ${volume}%, #1a1a1a 100%)`
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${localVolume !== null ? localVolume : volume}%, #1a1a1a ${localVolume !== null ? localVolume : volume}%, #1a1a1a 100%)`
                 }}
               />
               <button
-                onClick={() => handleVolumeChange(volume + 5)}
-                disabled={localLoading || loading || volume >= 100}
+                onClick={() => handleVolumeChange((localVolume !== null ? localVolume : volume) + 5)}
+                disabled={localLoading || loading || (localVolume !== null ? localVolume : volume) >= 100}
                 className="p-1 rounded bg-dark-card hover:bg-dark-cardHover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronUp size={12} className="text-white" />
