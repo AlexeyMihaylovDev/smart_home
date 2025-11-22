@@ -371,6 +371,7 @@ const LEDWidget = () => {
   const [localBrightness, setLocalBrightness] = useState<Map<string, number>>(new Map())
   const brightnessTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
   const isDraggingRef = useRef<Map<string, boolean>>(new Map())
+  const pendingBrightnessRef = useRef<Map<string, number>>(new Map())
 
   useEffect(() => {
     const loadConfigs = () => {
@@ -431,12 +432,47 @@ const LEDWidget = () => {
         const state = states[index]
         if (state) {
           newEntities.set(id, state)
-          // Очищаем локальное значение brightness при обновлении из API
-          setLocalBrightness(prev => {
-            const newMap = new Map(prev)
-            newMap.delete(id)
-            return newMap
-          })
+          
+          // Получаем текущее значение brightness из API
+          const brightnessLevel = state.attributes.brightness
+          const apiBrightness = typeof brightnessLevel === 'number' 
+            ? Math.round((brightnessLevel / 255) * 100) 
+            : 0
+          
+          // Проверяем, есть ли ожидаемое значение (изменение в процессе)
+          const pendingBrightness = pendingBrightnessRef.current.get(id)
+          const isDragging = isDraggingRef.current.get(id)
+          
+          // Не трогаем локальное значение, если пользователь сейчас перетаскивает
+          if (!isDragging) {
+            // Очищаем локальное значение только если:
+            // 1. Нет ожидаемого значения (изменение не в процессе)
+            // 2. Или значение из API совпадает с ожидаемым (с погрешностью ±2%)
+            setLocalBrightness(prev => {
+              const newMap = new Map(prev)
+              const localValue = newMap.get(id)
+              
+              if (pendingBrightness !== undefined) {
+                // Если есть ожидаемое значение, проверяем совпадение
+                if (Math.abs(apiBrightness - pendingBrightness) <= 2) {
+                  // Значение совпадает, можно очистить локальное
+                  newMap.delete(id)
+                  pendingBrightnessRef.current.delete(id)
+                }
+                // Если не совпадает, оставляем локальное значение
+              } else if (localValue !== undefined) {
+                // Если нет ожидаемого значения, но есть локальное
+                // Проверяем, совпадает ли оно с API (с погрешностью ±2%)
+                if (Math.abs(apiBrightness - localValue) <= 2) {
+                  // Значение совпадает, очищаем локальное
+                  newMap.delete(id)
+                }
+                // Если не совпадает, оставляем локальное (возможно, пользователь еще двигает)
+              }
+              
+              return newMap
+            })
+          }
         }
       })
 
@@ -475,6 +511,10 @@ const LEDWidget = () => {
     const ledConfig = ledConfigs.find(c => (c.entityId || '') === led.id || c.name === led.name)
     if (!ledConfig?.entityId) return
 
+    const ledId = ledConfig.entityId
+    // Сохраняем ожидаемое значение
+    pendingBrightnessRef.current.set(ledId, brightness)
+
     setLoading(true)
     try {
       const brightnessValue = Math.round((brightness / 100) * 255)
@@ -486,8 +526,14 @@ const LEDWidget = () => {
       })
     } catch (error) {
       console.error('Ошибка изменения яркости:', error)
+      // При ошибке удаляем ожидаемое значение
+      pendingBrightnessRef.current.delete(ledId)
     } finally {
       setLoading(false)
+      // Удаляем ожидаемое значение через небольшую задержку после успешного применения
+      setTimeout(() => {
+        pendingBrightnessRef.current.delete(ledId)
+      }, 500)
     }
   }
 
@@ -533,11 +579,9 @@ const LEDWidget = () => {
       clearTimeout(existingTimeout)
       brightnessTimeoutsRef.current.delete(led.id)
     }
-    // Используем текущее значение brightness из preparedLEDs
-    const currentLED = preparedLEDs.find(l => l.id === led.id)
-    if (currentLED) {
-      applyBrightnessChange(currentLED, currentLED.brightness)
-    }
+    // Используем значение из локального состояния или из led (который уже содержит актуальное значение)
+    const finalBrightness = localBrightness.get(led.id) ?? led.brightness
+    applyBrightnessChange(led, finalBrightness)
   }
 
   const handleColorChange = async (led: PreparedLED, color: { r: number; g: number; b: number }) => {
