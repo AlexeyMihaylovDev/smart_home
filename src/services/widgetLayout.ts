@@ -55,25 +55,28 @@ if (typeof window !== 'undefined') {
   })
 }
 
-// Дефолтные layout для всех виджетов (используются только для новых виджетов)
+// Дефолтные layout для всех виджетов с оптимальными размерами для полного отображения данных
 const DEFAULT_LAYOUTS: Record<string, Omit<WidgetLayout, 'i'>> = {
-  'tv-time': { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 },
-  'media-player': { x: 4, y: 0, w: 4, h: 3, minW: 3, minH: 2 },
-  'spotify': { x: 8, y: 0, w: 4, h: 4, minW: 3, minH: 3 },
-  'media-room': { x: 0, y: 2, w: 4, h: 2, minW: 2, minH: 2 },
-  'canvas': { x: 4, y: 3, w: 4, h: 3, minW: 3, minH: 2 },
-  'tv-preview': { x: 8, y: 4, w: 4, h: 2, minW: 3, minH: 2 },
-  'plex': { x: 0, y: 4, w: 4, h: 2, minW: 2, minH: 2 },
-  'tv-duration': { x: 4, y: 6, w: 4, h: 2, minW: 2, minH: 2 },
-  'weather-calendar': { x: 8, y: 6, w: 4, h: 6, minW: 1, minH: 1 },
-  'ambient-lighting': { x: 0, y: 6, w: 4, h: 4, minW: 2, minH: 3 },
-  'living-room': { x: 0, y: 10, w: 4, h: 3, minW: 2, minH: 2 },
-  'ac': { x: 4, y: 10, w: 4, h: 5, minW: 3, minH: 4 },
-  'water-heater': { x: 8, y: 10, w: 4, h: 5, minW: 1, minH: 1 },
-  'sensors': { x: 0, y: 13, w: 4, h: 4, minW: 2, minH: 3 },
-  'motors': { x: 4, y: 13, w: 4, h: 4, minW: 1, minH: 1 },
-  'bose': { x: 8, y: 13, w: 4, h: 5, minW: 2, minH: 3 },
-  'vacuum': { x: 0, y: 18, w: 6, h: 8, minW: 3, minH: 5 },
+  'tv-time': { x: 0, y: 0, w: 6, h: 3, minW: 3, minH: 2 },
+  'media-player': { x: 6, y: 0, w: 6, h: 4, minW: 4, minH: 3 },
+  'spotify': { x: 0, y: 3, w: 6, h: 5, minW: 4, minH: 4 },
+  'media-room': { x: 6, y: 4, w: 6, h: 3, minW: 3, minH: 2 },
+  'canvas': { x: 0, y: 8, w: 6, h: 4, minW: 4, minH: 3 },
+  'tv-preview': { x: 6, y: 7, w: 6, h: 3, minW: 4, minH: 2 },
+  'clock': { x: 0, y: 12, w: 4, h: 4, minW: 3, minH: 3 },
+  'led': { x: 4, y: 12, w: 4, h: 4, minW: 3, minH: 3 },
+  'plex': { x: 8, y: 10, w: 4, h: 3, minW: 3, minH: 2 },
+  'tv-duration': { x: 8, y: 13, w: 4, h: 3, minW: 3, minH: 2 },
+  'weather-calendar': { x: 0, y: 16, w: 4, h: 6, minW: 3, minH: 4 },
+  'ambient-lighting': { x: 4, y: 16, w: 4, h: 5, minW: 3, minH: 4 },
+  'living-room': { x: 8, y: 16, w: 4, h: 4, minW: 3, minH: 3 },
+  'ac': { x: 0, y: 22, w: 6, h: 6, minW: 4, minH: 5 },
+  'water-heater': { x: 6, y: 22, w: 6, h: 6, minW: 4, minH: 5 },
+  'sensors': { x: 0, y: 28, w: 6, h: 5, minW: 4, minH: 4 },
+  'motors': { x: 6, y: 28, w: 6, h: 5, minW: 4, minH: 4 },
+  'bose': { x: 0, y: 33, w: 6, h: 6, minW: 4, minH: 5 },
+  'vacuum': { x: 6, y: 33, w: 6, h: 6, minW: 4, minH: 5 },
+  'cameras': { x: 0, y: 39, w: 12, h: 8, minW: 6, minH: 6 },
 }
 
 export const getDashboardLayout = async (): Promise<DashboardLayout> => {
@@ -110,22 +113,24 @@ export const getDashboardLayout = async (): Promise<DashboardLayout> => {
       // Добавляем новые включенные виджеты, которых нет в сохраненном layout
       const missingWidgets = enabledWidgets
         .filter(id => !savedWidgetIds.has(id))
-        .map((id, index) => {
-          // Автоматически размещаем новые виджеты компактно
-          const maxY = enabledLayouts.length > 0 
-            ? Math.max(...enabledLayouts.map(l => l.y + l.h))
-            : -1
-          const defaultLayout = DEFAULT_LAYOUTS[id] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 }
-          return {
-            i: id,
-            ...defaultLayout,
-            y: maxY + 1, // Размещаем после последнего виджета
-            x: (index % 3) * 4 // Распределяем по колонкам
-          }
-        })
+      
+      // Используем автоматическое распределение для новых виджетов
+      const newLayouts = missingWidgets.length > 0
+        ? autoDistributeWidgets(missingWidgets, savedCols || DEFAULT_COLS)
+        : []
+      
+      // Смещаем новые виджеты вниз, чтобы они не перекрывали существующие
+      const maxY = enabledLayouts.length > 0 
+        ? Math.max(...enabledLayouts.map(l => l.y + l.h))
+        : -1
+      
+      const adjustedNewLayouts = newLayouts.map(layout => ({
+        ...layout,
+        y: layout.y + maxY + 1
+      }))
       
       // Объединяем сохраненные виджеты с новыми
-      const mergedLayouts = [...enabledLayouts, ...missingWidgets]
+      const mergedLayouts = [...enabledLayouts, ...adjustedNewLayouts]
       
       // Компактируем layout - убираем пустые места
       const compactedLayouts = compactLayoutVertical(mergedLayouts, DEFAULT_COLS)
@@ -166,19 +171,23 @@ export const getDashboardLayout = async (): Promise<DashboardLayout> => {
       const savedWidgetIds = new Set(enabledLayouts.map((l: WidgetLayout) => l.i))
         const missingWidgets = enabledWidgets
           .filter(id => !savedWidgetIds.has(id))
-          .map((id, index) => {
-            const maxY = enabledLayouts.length > 0 
-              ? Math.max(...enabledLayouts.map(l => l.y + l.h))
-              : -1
-            const defaultLayout = DEFAULT_LAYOUTS[id] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 }
-            return {
-              i: id,
-              ...defaultLayout,
-              y: maxY + 1,
-              x: (index % 3) * 4
-            }
-          })
-        const mergedLayouts = [...enabledLayouts, ...missingWidgets]
+        
+        // Используем автоматическое распределение для новых виджетов
+        const newLayouts = missingWidgets.length > 0
+          ? autoDistributeWidgets(missingWidgets, parsed.cols || DEFAULT_COLS)
+          : []
+        
+        // Смещаем новые виджеты вниз, чтобы они не перекрывали существующие
+        const maxY = enabledLayouts.length > 0 
+          ? Math.max(...enabledLayouts.map(l => l.y + l.h))
+          : -1
+        
+        const adjustedNewLayouts = newLayouts.map(layout => ({
+          ...layout,
+          y: layout.y + maxY + 1
+        }))
+        
+        const mergedLayouts = [...enabledLayouts, ...adjustedNewLayouts]
         const compactedLayouts = compactLayoutVertical(mergedLayouts, DEFAULT_COLS)
         const result = {
           layouts: compactedLayouts,
@@ -194,27 +203,15 @@ export const getDashboardLayout = async (): Promise<DashboardLayout> => {
     }
   }
   
-  // Если нет сохраненного layout, возвращаем только включенные виджеты
+  // Если нет сохраненного layout, создаем новый с автоматическим распределением
   console.log('[WidgetLayout] Создаем новый layout для включенных виджетов')
   const enabledWidgets = await getAllEnabledWidgets()
-  const layouts = enabledWidgets.map((id, index) => {
-    const defaultLayout = DEFAULT_LAYOUTS[id] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 }
-    // Размещаем виджеты компактно в сетке
-    const col = index % 3
-    const row = Math.floor(index / 3)
-    return {
-      i: id,
-      ...defaultLayout,
-      x: col * 4,
-      y: row * 3
-    }
-  })
   
-  // Компактируем layout
-  const compactedLayouts = compactLayoutVertical(layouts, DEFAULT_COLS)
+  // Используем автоматическое распределение для равномерного размещения
+  const layouts = autoDistributeWidgets(enabledWidgets, DEFAULT_COLS)
   
   const result = {
-    layouts: compactedLayouts,
+    layouts,
     cols: DEFAULT_COLS,
     rowHeight: DEFAULT_ROW_HEIGHT
   }
@@ -239,19 +236,23 @@ export const getDashboardLayoutSync = (): DashboardLayout => {
       const savedWidgetIds = new Set(enabledLayouts.map((l: WidgetLayout) => l.i))
       const missingWidgets = enabledWidgets
         .filter(id => !savedWidgetIds.has(id))
-        .map((id, index) => {
-          const maxY = enabledLayouts.length > 0 
-            ? Math.max(...enabledLayouts.map(l => l.y + l.h))
-            : -1
-          const defaultLayout = DEFAULT_LAYOUTS[id] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 }
-          return {
-            i: id,
-            ...defaultLayout,
-            y: maxY + 1,
-            x: (index % 3) * 4
-          }
-        })
-      const mergedLayouts = [...enabledLayouts, ...missingWidgets]
+      
+      // Используем автоматическое распределение для новых виджетов
+      const newLayouts = missingWidgets.length > 0
+        ? autoDistributeWidgets(missingWidgets, parsed.cols || DEFAULT_COLS)
+        : []
+      
+      // Смещаем новые виджеты вниз, чтобы они не перекрывали существующие
+      const maxY = enabledLayouts.length > 0 
+        ? Math.max(...enabledLayouts.map(l => l.y + l.h))
+        : -1
+      
+      const adjustedNewLayouts = newLayouts.map(layout => ({
+        ...layout,
+        y: layout.y + maxY + 1
+      }))
+      
+      const mergedLayouts = [...enabledLayouts, ...adjustedNewLayouts]
       const compactedLayouts = compactLayoutVertical(mergedLayouts, DEFAULT_COLS)
       const result = {
         layouts: compactedLayouts,
@@ -266,26 +267,134 @@ export const getDashboardLayoutSync = (): DashboardLayout => {
   }
   
   const enabledWidgets = getAllEnabledWidgetsSync()
-  const layouts = enabledWidgets.map((id, index) => {
-    const defaultLayout = DEFAULT_LAYOUTS[id] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 }
-    const col = index % 3
-    const row = Math.floor(index / 3)
-    return {
-      i: id,
-      ...defaultLayout,
-      x: col * 4,
-      y: row * 3
-    }
-  })
   
-  const compactedLayouts = compactLayoutVertical(layouts, DEFAULT_COLS)
+  // Используем автоматическое распределение для равномерного размещения
+  const layouts = autoDistributeWidgets(enabledWidgets, DEFAULT_COLS)
+  
   const result = {
-    layouts: compactedLayouts,
+    layouts,
     cols: DEFAULT_COLS,
     rowHeight: DEFAULT_ROW_HEIGHT
   }
   layoutCache = result
   return result
+}
+
+// Функция для автоматического равномерного распределения виджетов
+const autoDistributeWidgets = (widgetIds: string[], cols: number): WidgetLayout[] => {
+  if (widgetIds.length === 0) return []
+  
+  const layouts: WidgetLayout[] = []
+  const occupied: boolean[][] = []
+  
+  // Функция для проверки, помещается ли виджет на позиции
+  const canPlace = (x: number, y: number, w: number, h: number): boolean => {
+    if (x + w > cols) return false
+    
+    for (let dx = 0; dx < w; dx++) {
+      for (let dy = 0; dy < h; dy++) {
+        const checkX = x + dx
+        const checkY = y + dy
+        
+        if (occupied[checkY] && occupied[checkY][checkX]) {
+          return false
+        }
+      }
+    }
+    return true
+  }
+  
+  // Функция для размещения виджета
+  const placeWidget = (x: number, y: number, w: number, h: number): void => {
+    for (let dx = 0; dx < w; dx++) {
+      for (let dy = 0; dy < h; dy++) {
+        const markX = x + dx
+        const markY = y + dy
+        
+        if (!occupied[markY]) {
+          occupied[markY] = []
+        }
+        occupied[markY][markX] = true
+      }
+    }
+  }
+  
+  // Определяем оптимальные размеры для каждого виджета в зависимости от количества колонок
+  const getOptimalSize = (widgetId: string, cols: number): { w: number; h: number } => {
+    const defaultLayout = DEFAULT_LAYOUTS[widgetId] || { w: 4, h: 3, minW: 2, minH: 2 }
+    
+    // Адаптируем размеры в зависимости от количества колонок
+    let optimalW = defaultLayout.w
+    let optimalH = defaultLayout.h
+    
+    if (cols <= 4) {
+      // Мобильные устройства - виджеты на всю ширину
+      optimalW = cols
+      optimalH = Math.max(2, Math.round(defaultLayout.h * 0.7))
+    } else if (cols <= 6) {
+      // Планшеты - виджеты по 3 колонки
+      optimalW = Math.min(6, Math.max(3, defaultLayout.w))
+      optimalH = Math.max(2, Math.round(defaultLayout.h * 0.9))
+    } else if (cols >= 16) {
+      // Большие экраны - увеличиваем размеры
+      optimalW = Math.min(cols / 2, defaultLayout.w * 1.2)
+      optimalH = Math.max(3, Math.round(defaultLayout.h * 1.1))
+    }
+    
+    // Обеспечиваем минимальные размеры
+    const minW = defaultLayout.minW || 2
+    const minH = defaultLayout.minH || 2
+    
+    return {
+      w: Math.max(minW, Math.min(optimalW, cols)),
+      h: Math.max(minH, optimalH)
+    }
+  }
+  
+  // Распределяем виджеты равномерно
+  for (const widgetId of widgetIds) {
+    const defaultLayout = DEFAULT_LAYOUTS[widgetId] || { w: 4, h: 3, minW: 2, minH: 2, minW: 2, minH: 2 }
+    const { w, h } = getOptimalSize(widgetId, cols)
+    
+    let placed = false
+    let bestX = 0
+    let bestY = 0
+    let bestScore = Infinity
+    
+    // Ищем лучшее место для виджета (минимизируем пустые пространства)
+    for (let y = 0; y < 100 && !placed; y++) {
+      for (let x = 0; x <= cols - w; x++) {
+        if (canPlace(x, y, w, h)) {
+          // Вычисляем "оценку" позиции (меньше = лучше)
+          // Предпочитаем позиции ближе к началу и с меньшим количеством пустых мест
+          const score = y * 1000 + x
+          if (score < bestScore) {
+            bestScore = score
+            bestX = x
+            bestY = y
+            placed = true
+          }
+        }
+      }
+    }
+    
+    if (placed) {
+      placeWidget(bestX, bestY, w, h)
+      layouts.push({
+        i: widgetId,
+        x: bestX,
+        y: bestY,
+        w,
+        h,
+        minW: defaultLayout.minW,
+        minH: defaultLayout.minH,
+        maxW: defaultLayout.maxW,
+        maxH: defaultLayout.maxH,
+      })
+    }
+  }
+  
+  return layouts
 }
 
 // Функция для вертикального компактирования layout - убирает пустые места

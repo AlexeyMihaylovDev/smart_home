@@ -29,26 +29,26 @@ import { GripVertical, Pencil, X } from 'lucide-react'
 
 // Дефолтные layout для виджетов (копия из widgetLayout.ts для использования в компоненте)
 const DEFAULT_LAYOUTS: Record<string, Omit<WidgetLayout, 'i'>> = {
-  'tv-time': { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 },
-  'media-player': { x: 4, y: 0, w: 4, h: 3, minW: 3, minH: 2 },
-  'spotify': { x: 8, y: 0, w: 4, h: 4, minW: 3, minH: 3 },
-  'media-room': { x: 0, y: 2, w: 4, h: 2, minW: 2, minH: 2 },
-  'canvas': { x: 4, y: 3, w: 4, h: 3, minW: 3, minH: 2 },
-  'tv-preview': { x: 8, y: 4, w: 4, h: 2, minW: 3, minH: 2 },
-  'clock': { x: 0, y: 4, w: 4, h: 3, minW: 2, minH: 2 },
-  'led': { x: 4, y: 4, w: 4, h: 3, minW: 2, minH: 2 },
-  'plex': { x: 0, y: 7, w: 4, h: 2, minW: 2, minH: 2 },
-  'tv-duration': { x: 4, y: 6, w: 4, h: 2, minW: 2, minH: 2 },
-  'weather-calendar': { x: 8, y: 6, w: 4, h: 6, minW: 1, minH: 1 },
-  'ambient-lighting': { x: 0, y: 6, w: 4, h: 4, minW: 2, minH: 3 },
-  'living-room': { x: 0, y: 10, w: 4, h: 3, minW: 2, minH: 2 },
-  'ac': { x: 4, y: 10, w: 4, h: 5, minW: 3, minH: 4 },
-  'water-heater': { x: 8, y: 10, w: 4, h: 5, minW: 1, minH: 1 },
-  'sensors': { x: 0, y: 13, w: 4, h: 4, minW: 2, minH: 3 },
-  'motors': { x: 4, y: 13, w: 4, h: 4, minW: 1, minH: 1 },
-  'bose': { x: 8, y: 13, w: 4, h: 5, minW: 2, minH: 3 },
-  'vacuum': { x: 0, y: 18, w: 6, h: 8, minW: 3, minH: 5 },
-  'cameras': { x: 0, y: 18, w: 6, h: 8, minW: 3, minH: 5 },
+  'tv-time': { x: 0, y: 0, w: 6, h: 3, minW: 3, minH: 2 },
+  'media-player': { x: 6, y: 0, w: 6, h: 4, minW: 4, minH: 3 },
+  'spotify': { x: 0, y: 3, w: 6, h: 5, minW: 4, minH: 4 },
+  'media-room': { x: 6, y: 4, w: 6, h: 3, minW: 3, minH: 2 },
+  'canvas': { x: 0, y: 8, w: 6, h: 4, minW: 4, minH: 3 },
+  'tv-preview': { x: 6, y: 7, w: 6, h: 3, minW: 4, minH: 2 },
+  'clock': { x: 0, y: 12, w: 4, h: 4, minW: 3, minH: 3 },
+  'led': { x: 4, y: 12, w: 4, h: 4, minW: 3, minH: 3 },
+  'plex': { x: 8, y: 10, w: 4, h: 3, minW: 3, minH: 2 },
+  'tv-duration': { x: 8, y: 13, w: 4, h: 3, minW: 3, minH: 2 },
+  'weather-calendar': { x: 0, y: 16, w: 4, h: 6, minW: 3, minH: 4 },
+  'ambient-lighting': { x: 4, y: 16, w: 4, h: 5, minW: 3, minH: 4 },
+  'living-room': { x: 8, y: 16, w: 4, h: 4, minW: 3, minH: 3 },
+  'ac': { x: 0, y: 22, w: 6, h: 6, minW: 4, minH: 5 },
+  'water-heater': { x: 6, y: 22, w: 6, h: 6, minW: 4, minH: 5 },
+  'sensors': { x: 0, y: 28, w: 6, h: 5, minW: 4, minH: 4 },
+  'motors': { x: 6, y: 28, w: 6, h: 5, minW: 4, minH: 4 },
+  'bose': { x: 0, y: 33, w: 6, h: 6, minW: 4, minH: 5 },
+  'vacuum': { x: 6, y: 33, w: 6, h: 6, minW: 4, minH: 5 },
+  'cameras': { x: 0, y: 39, w: 12, h: 8, minW: 6, minH: 6 },
 }
 
 // Маппинг виджетов
@@ -144,13 +144,37 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
                 ? Math.max(...existingLayouts.map(l => l.y + l.h))
                 : -1
               
+              // Используем улучшенные размеры для новых виджетов
               const newLayouts = newWidgets.map((widgetId, index) => {
-                const defaultLayout = DEFAULT_LAYOUTS[widgetId] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 }
+                const defaultLayout = DEFAULT_LAYOUTS[widgetId] || { x: 0, y: 0, w: 6, h: 3, minW: 3, minH: 2 }
+                // Адаптируем размеры в зависимости от количества колонок
+                let optimalW = defaultLayout.w
+                let optimalH = defaultLayout.h
+                
+                if (currentCols <= 4) {
+                  optimalW = currentCols
+                  optimalH = Math.max(2, Math.round(defaultLayout.h * 0.7))
+                } else if (currentCols <= 6) {
+                  optimalW = Math.min(6, Math.max(3, defaultLayout.w))
+                  optimalH = Math.max(2, Math.round(defaultLayout.h * 0.9))
+                } else if (currentCols >= 16) {
+                  optimalW = Math.min(currentCols / 2, defaultLayout.w * 1.2)
+                  optimalH = Math.max(3, Math.round(defaultLayout.h * 1.1))
+                }
+                
+                // Распределяем виджеты равномерно
+                const colsPerWidget = Math.floor(currentCols / 3)
+                const col = index % 3
                 return {
                   i: widgetId,
-                  ...defaultLayout,
-                  y: maxY + 1 + index,
-                  x: (index % 3) * 4
+                  x: col * colsPerWidget,
+                  y: maxY + 1 + Math.floor(index / 3) * Math.ceil(optimalH),
+                  w: Math.max(defaultLayout.minW || 3, Math.min(optimalW, colsPerWidget)),
+                  h: Math.max(defaultLayout.minH || 2, optimalH),
+                  minW: defaultLayout.minW,
+                  minH: defaultLayout.minH,
+                  maxW: defaultLayout.maxW,
+                  maxH: defaultLayout.maxH,
                 }
               })
               
@@ -318,13 +342,38 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
               const newWidgets = dashboardWidgets.filter(widgetId => !existingWidgetIds.has(widgetId))
               const maxY = existingLayouts.length > 0 ? Math.max(...existingLayouts.map(l => l.y + l.h)) : -1
               
+              // Используем улучшенные размеры для новых виджетов
               const newLayouts = newWidgets.map((widgetId, index) => {
-                const defaultLayout = DEFAULT_LAYOUTS[widgetId] || { x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 }
+                const defaultLayout = DEFAULT_LAYOUTS[widgetId] || { x: 0, y: 0, w: 6, h: 3, minW: 3, minH: 2 }
+                // Адаптируем размеры в зависимости от количества колонок
+                let optimalW = defaultLayout.w
+                let optimalH = defaultLayout.h
+                
+                const savedColsValue = savedLayout.cols || 12
+                if (savedColsValue <= 4) {
+                  optimalW = savedColsValue
+                  optimalH = Math.max(2, Math.round(defaultLayout.h * 0.7))
+                } else if (savedColsValue <= 6) {
+                  optimalW = Math.min(6, Math.max(3, defaultLayout.w))
+                  optimalH = Math.max(2, Math.round(defaultLayout.h * 0.9))
+                } else if (savedColsValue >= 16) {
+                  optimalW = Math.min(savedColsValue / 2, defaultLayout.w * 1.2)
+                  optimalH = Math.max(3, Math.round(defaultLayout.h * 1.1))
+                }
+                
+                // Распределяем виджеты равномерно
+                const colsPerWidget = Math.floor(savedColsValue / 3)
+                const col = index % 3
                 return {
                   i: widgetId,
-                  ...defaultLayout,
-                  y: maxY + 1 + index,
-                  x: (index % 3) * 4
+                  x: col * colsPerWidget,
+                  y: maxY + 1 + Math.floor(index / 3) * Math.ceil(optimalH),
+                  w: Math.max(defaultLayout.minW || 3, Math.min(optimalW, colsPerWidget)),
+                  h: Math.max(defaultLayout.minH || 2, optimalH),
+                  minW: defaultLayout.minW,
+                  minH: defaultLayout.minH,
+                  maxW: defaultLayout.maxW,
+                  maxH: defaultLayout.maxH,
                 }
               })
               
