@@ -1,8 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useHomeAssistant } from '../../context/HomeAssistantContext'
 import { Entity } from '../../services/homeAssistantAPI'
-import { getLEDConfigsSync, LEDConfig } from '../../services/widgetConfig'
-import { Power, Lightbulb, Palette, Sun } from 'lucide-react'
+import { getLEDConfigsSync, LEDConfig, getLEDStyleSync, LEDStyle } from '../../services/widgetConfig'
+import {
+  PreparedLED,
+  LEDListStyle,
+  LEDCardStyle,
+  LEDCompactStyle,
+  LEDModernStyle,
+  LEDListNotConfigured,
+  LEDCardNotConfigured,
+  LEDCompactNotConfigured,
+  LEDModernNotConfigured,
+} from './LEDStyles'
 
 interface LEDUnitProps {
   ledConfig: LEDConfig
@@ -357,11 +367,17 @@ const LEDWidget = () => {
   const [ledConfigs, setLEDConfigs] = useState<LEDConfig[]>([])
   const [entities, setEntities] = useState<Map<string, Entity>>(new Map())
   const [loading, setLoading] = useState(false)
+  const [style, setStyle] = useState<LEDStyle>('list')
+  const [localBrightness, setLocalBrightness] = useState<Map<string, number>>(new Map())
+  const brightnessTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
+  const isDraggingRef = useRef<Map<string, boolean>>(new Map())
 
   useEffect(() => {
     const loadConfigs = () => {
       const configs = getLEDConfigsSync()
       setLEDConfigs(configs)
+      const widgetStyle = getLEDStyleSync()
+      setStyle(widgetStyle)
     }
 
     loadConfigs()
@@ -382,6 +398,9 @@ const LEDWidget = () => {
     return () => {
       window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('widgets-changed', handleWidgetsChanged)
+      // Очистка всех таймеров
+      brightnessTimeoutsRef.current.forEach(timeout => clearTimeout(timeout))
+      brightnessTimeoutsRef.current.clear()
     }
   }, [])
 
@@ -412,6 +431,12 @@ const LEDWidget = () => {
         const state = states[index]
         if (state) {
           newEntities.set(id, state)
+          // Очищаем локальное значение brightness при обновлении из API
+          setLocalBrightness(prev => {
+            const newMap = new Map(prev)
+            newMap.delete(id)
+            return newMap
+          })
         }
       })
 
@@ -421,37 +446,207 @@ const LEDWidget = () => {
     }
   }
 
-  if (ledConfigs.length === 0) {
-    return (
-      <div className="h-full p-4 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-dark-textSecondary mb-2">LED לא מוגדר</div>
-          <div className="text-xs text-dark-textSecondary">הגדר ב-Settings → הגדרת וידג'טים</div>
-        </div>
-      </div>
-    )
+  const handlePowerToggle = async (led: PreparedLED) => {
+    if (!api || !led.hasEntity) return
+
+    const ledConfig = ledConfigs.find(c => (c.entityId || '') === led.id || c.name === led.name)
+    if (!ledConfig?.entityId) return
+
+    setLoading(true)
+    try {
+      const entity = entities.get(ledConfig.entityId)
+      const isOn = entity?.state === 'on'
+      
+      if (isOn) {
+        await api.turnOff(ledConfig.entityId)
+      } else {
+        await api.turnOn(ledConfig.entityId)
+      }
+    } catch (error) {
+      console.error('Ошибка управления питанием:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const applyBrightnessChange = async (led: PreparedLED, brightness: number) => {
+    if (!api || !led.hasEntity) return
+
+    const ledConfig = ledConfigs.find(c => (c.entityId || '') === led.id || c.name === led.name)
+    if (!ledConfig?.entityId) return
+
+    setLoading(true)
+    try {
+      const brightnessValue = Math.round((brightness / 100) * 255)
+      await api.callService({
+        domain: 'light',
+        service: 'turn_on',
+        target: { entity_id: ledConfig.entityId },
+        service_data: { brightness: brightnessValue }
+      })
+    } catch (error) {
+      console.error('Ошибка изменения яркости:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBrightnessChange = (led: PreparedLED, newBrightness: number) => {
+    const clampedBrightness = Math.max(0, Math.min(100, newBrightness))
+    const ledId = led.id
+
+    // Обновляем локальное состояние для немедленного отображения
+    setLocalBrightness(prev => {
+      const newMap = new Map(prev)
+      newMap.set(ledId, clampedBrightness)
+      return newMap
+    })
+
+    // Очищаем предыдущий таймер для этой лампы
+    const existingTimeout = brightnessTimeoutsRef.current.get(ledId)
+    if (existingTimeout) {
+      clearTimeout(existingTimeout)
+    }
+
+    // Если пользователь перетаскивает, используем debounce
+    if (isDraggingRef.current.get(ledId)) {
+      const timeout = setTimeout(() => {
+        applyBrightnessChange(led, clampedBrightness)
+        brightnessTimeoutsRef.current.delete(ledId)
+      }, 150)
+      brightnessTimeoutsRef.current.set(ledId, timeout)
+    } else {
+      // Если это одиночное изменение, применяем сразу
+      applyBrightnessChange(led, clampedBrightness)
+    }
+  }
+
+  const handleBrightnessMouseDown = (led: PreparedLED) => {
+    isDraggingRef.current.set(led.id, true)
+  }
+
+  const handleBrightnessMouseUp = (led: PreparedLED) => {
+    isDraggingRef.current.set(led.id, false)
+    // Применяем финальное значение сразу при отпускании
+    const existingTimeout = brightnessTimeoutsRef.current.get(led.id)
+    if (existingTimeout) {
+      clearTimeout(existingTimeout)
+      brightnessTimeoutsRef.current.delete(led.id)
+    }
+    // Используем текущее значение brightness из preparedLEDs
+    const currentLED = preparedLEDs.find(l => l.id === led.id)
+    if (currentLED) {
+      applyBrightnessChange(currentLED, currentLED.brightness)
+    }
+  }
+
+  const handleColorChange = async (led: PreparedLED, color: { r: number; g: number; b: number }) => {
+    if (!api || !led.hasEntity || led.type !== 'rgb') return
+
+    const ledConfig = ledConfigs.find(c => (c.entityId || '') === led.id || c.name === led.name)
+    if (!ledConfig?.entityId) return
+
+    setLoading(true)
+    try {
+      const entity = entities.get(ledConfig.entityId)
+      const brightness = entity?.attributes.brightness
+      const brightnessValue = typeof brightness === 'number' ? Math.round((brightness / 255) * 100) : 50
+
+      await api.callService({
+        domain: 'light',
+        service: 'turn_on',
+        target: { entity_id: ledConfig.entityId },
+        service_data: { 
+          rgb_color: [color.r, color.g, color.b],
+          brightness: Math.round((brightnessValue / 100) * 255)
+        }
+      })
+    } catch (error) {
+      console.error('Ошибка изменения цвета:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Преобразуем конфигурации в PreparedLED
+  const preparedLEDs: PreparedLED[] = ledConfigs.map((ledConfig, index) => {
+    const entity = ledConfig.entityId ? entities.get(ledConfig.entityId) || null : null
+    const isOn = entity?.state === 'on'
+    const ledId = ledConfig.entityId || `led-${index}`
+    
+    let brightness = 0
+    let rgbColor = { r: 255, g: 255, b: 255 }
+    
+    if (entity) {
+      const brightnessLevel = entity.attributes.brightness
+      if (typeof brightnessLevel === 'number') {
+        brightness = Math.round((brightnessLevel / 255) * 100)
+      }
+      
+      if (entity.attributes.rgb_color && Array.isArray(entity.attributes.rgb_color)) {
+        const [r, g, b] = entity.attributes.rgb_color
+        rgbColor = { r, g, b }
+      }
+    }
+
+    // Используем локальное значение brightness, если оно есть
+    const localBrightnessValue = localBrightness.get(ledId)
+    if (localBrightnessValue !== undefined) {
+      brightness = localBrightnessValue
+    }
+
+    return {
+      id: ledId,
+      name: ledConfig.name || `LED ${index + 1}`,
+      type: ledConfig.type,
+      isOn,
+      brightness,
+      rgbColor,
+      hasEntity: ledConfig.entityId !== null,
+      controlsDisabled: false
+    }
+  })
+
+  const renderStyle = () => {
+    if (preparedLEDs.length === 0) {
+      switch (style) {
+        case 'card':
+          return <LEDCardNotConfigured />
+        case 'compact':
+          return <LEDCompactNotConfigured />
+        case 'modern':
+          return <LEDModernNotConfigured />
+        case 'list':
+        default:
+          return <LEDListNotConfigured />
+      }
+    }
+
+    const props = {
+      leds: preparedLEDs,
+      onPowerToggle: handlePowerToggle,
+      onBrightnessChange: handleBrightnessChange,
+      onBrightnessMouseDown: handleBrightnessMouseDown,
+      onBrightnessMouseUp: handleBrightnessMouseUp,
+      onColorChange: handleColorChange
+    }
+
+    switch (style) {
+      case 'card':
+        return <LEDCardStyle {...props} />
+      case 'compact':
+        return <LEDCompactStyle {...props} />
+      case 'modern':
+        return <LEDModernStyle {...props} />
+      case 'list':
+      default:
+        return <LEDListStyle {...props} />
+    }
   }
 
   return (
     <div className="h-full p-2 sm:p-3 md:p-4 overflow-y-auto">
-      <div className={`grid gap-3 sm:gap-4 ${
-        ledConfigs.length === 1 
-          ? 'grid-cols-1' 
-          : ledConfigs.length === 2 
-          ? 'grid-cols-1 md:grid-cols-2' 
-          : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-      }`}>
-        {ledConfigs.map((ledConfig, index) => (
-          <LEDUnit
-            key={ledConfig.entityId || index}
-            ledConfig={ledConfig}
-            entity={ledConfig.entityId ? entities.get(ledConfig.entityId) || null : null}
-            api={api}
-            loading={loading}
-            onLoadingChange={setLoading}
-          />
-        ))}
-      </div>
+      {renderStyle()}
     </div>
   )
 }

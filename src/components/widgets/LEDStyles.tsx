@@ -15,11 +15,13 @@ interface LEDStyleProps {
   leds: PreparedLED[]
   onPowerToggle?: (led: PreparedLED) => void
   onBrightnessChange?: (led: PreparedLED, brightness: number) => void
+  onBrightnessMouseDown?: (led: PreparedLED) => void
+  onBrightnessMouseUp?: (led: PreparedLED) => void
   onColorChange?: (led: PreparedLED, color: { r: number; g: number; b: number }) => void
 }
 
 // Стиль 1: Список (по умолчанию)
-export const LEDListStyle = ({ leds, onPowerToggle, onBrightnessChange, onColorChange }: LEDStyleProps) => {
+export const LEDListStyle = ({ leds, onPowerToggle, onBrightnessChange, onBrightnessMouseDown, onBrightnessMouseUp, onColorChange }: LEDStyleProps) => {
   return (
     <div className="space-y-3 sm:space-y-4">
       {leds.map((led) => (
@@ -74,7 +76,11 @@ export const LEDListStyle = ({ leds, onPowerToggle, onBrightnessChange, onColorC
                     max="100"
                     value={led.brightness}
                     onChange={(e) => onBrightnessChange(led, Number(e.target.value))}
-                    className="w-full h-3 bg-dark-card rounded-lg appearance-none cursor-pointer accent-yellow-500 slider-brightness"
+                    onMouseDown={() => onBrightnessMouseDown?.(led)}
+                    onMouseUp={() => onBrightnessMouseUp?.(led)}
+                    onTouchStart={() => onBrightnessMouseDown?.(led)}
+                    onTouchEnd={() => onBrightnessMouseUp?.(led)}
+                    className="w-full h-3 bg-dark-card rounded-lg appearance-none cursor-pointer accent-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed slider-brightness"
                     style={{
                       background: `linear-gradient(to right, #fbbf24 0%, #fbbf24 ${led.brightness}%, #1a1a1a ${led.brightness}%, #1a1a1a 100%)`
                     }}
@@ -111,7 +117,7 @@ export const LEDListStyle = ({ leds, onPowerToggle, onBrightnessChange, onColorC
 }
 
 // Стиль 2: Карточки
-export const LEDCardStyle = ({ leds, onPowerToggle, onBrightnessChange, onColorChange }: LEDStyleProps) => {
+export const LEDCardStyle = ({ leds, onPowerToggle, onBrightnessChange, onBrightnessMouseDown, onBrightnessMouseUp, onColorChange }: LEDStyleProps) => {
   return (
     <div className={`grid gap-3 sm:gap-4 ${
       leds.length === 1 
@@ -171,7 +177,11 @@ export const LEDCardStyle = ({ leds, onPowerToggle, onBrightnessChange, onColorC
                     max="100"
                     value={led.brightness}
                     onChange={(e) => onBrightnessChange(led, Number(e.target.value))}
-                    className="w-full h-2 bg-dark-card rounded-lg appearance-none cursor-pointer accent-yellow-500 slider-brightness"
+                    onMouseDown={() => onBrightnessMouseDown?.(led)}
+                    onMouseUp={() => onBrightnessMouseUp?.(led)}
+                    onTouchStart={() => onBrightnessMouseDown?.(led)}
+                    onTouchEnd={() => onBrightnessMouseUp?.(led)}
+                    className="w-full h-2 bg-dark-card rounded-lg appearance-none cursor-pointer accent-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed slider-brightness"
                     style={{
                       background: `linear-gradient(to right, #fbbf24 0%, #fbbf24 ${led.brightness}%, #1a1a1a ${led.brightness}%, #1a1a1a 100%)`
                     }}
@@ -202,7 +212,7 @@ export const LEDCardStyle = ({ leds, onPowerToggle, onBrightnessChange, onColorC
 }
 
 // Стиль 3: Компактный
-export const LEDCompactStyle = ({ leds, onPowerToggle, onBrightnessChange, onColorChange }: LEDStyleProps) => {
+export const LEDCompactStyle = ({ leds, onPowerToggle, onBrightnessChange, onBrightnessMouseDown, onBrightnessMouseUp, onColorChange }: LEDStyleProps) => {
   return (
     <div className="space-y-2">
       {leds.map((led) => (
@@ -241,7 +251,7 @@ export const LEDCompactStyle = ({ leds, onPowerToggle, onBrightnessChange, onCol
 }
 
 // Стиль 4: Современный (Modern)
-export const LEDModernStyle = ({ leds, onPowerToggle, onBrightnessChange, onColorChange }: LEDStyleProps) => {
+export const LEDModernStyle = ({ leds, onPowerToggle, onBrightnessChange, onBrightnessMouseDown, onBrightnessMouseUp, onColorChange }: LEDStyleProps) => {
   return (
     <div className="space-y-4">
       {leds.map((led) => (
@@ -312,7 +322,11 @@ export const LEDModernStyle = ({ leds, onPowerToggle, onBrightnessChange, onColo
                       max="100"
                       value={led.brightness}
                       onChange={(e) => onBrightnessChange(led, Number(e.target.value))}
-                      className="w-full h-4 bg-dark-card rounded-lg appearance-none cursor-pointer accent-yellow-500 slider-brightness"
+                      onMouseDown={() => onBrightnessMouseDown?.(led)}
+                      onMouseUp={() => onBrightnessMouseUp?.(led)}
+                      onTouchStart={() => onBrightnessMouseDown?.(led)}
+                      onTouchEnd={() => onBrightnessMouseUp?.(led)}
+                      className="w-full h-4 bg-dark-card rounded-lg appearance-none cursor-pointer accent-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed slider-brightness"
                       style={{
                         background: `linear-gradient(to right, #fbbf24 0%, #fbbf24 ${led.brightness}%, #1a1a1a ${led.brightness}%, #1a1a1a 100%)`
                       }}

@@ -226,7 +226,8 @@ app.get('/api/config/widget', requireAuth, async (req, res) => {
           style: 'digital'
         },
         led: {
-          leds: []
+          leds: [],
+          style: 'list'
         },
         enabledWidgets: {},
         navigationIcons: {
