@@ -21,22 +21,22 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
   const location = useLocation()
   const [showLoginModal, setShowLoginModal] = useState(!isAuthenticated)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  
+
   // Определяем текущую страницу из URL
   const getCurrentPage = (): Page => {
     if (location.pathname === '/settings') return 'settings'
     return 'dashboard'
   }
-  
+
   const [currentPage, setCurrentPage] = useState<Page>(initialPage || getCurrentPage())
-  
+
   // Получаем текущий таб из URL параметров
   const getCurrentTabFromURL = (): string => {
     const params = new URLSearchParams(location.search)
     const tab = params.get('tab')
     return tab || 'home'
   }
-  
+
   const [currentTab, setCurrentTab] = useState<string>(() => getCurrentTabFromURL())
 
   useEffect(() => {
@@ -48,7 +48,7 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
     const page = getCurrentPage()
     setCurrentPage(page)
   }, [location.pathname])
-  
+
   // Синхронизируем currentTab с URL параметрами
   useEffect(() => {
     const tabFromURL = getCurrentTabFromURL()
@@ -59,14 +59,14 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
       return prevTab
     })
   }, [location.search])
-  
+
   // Обработчик изменения таба с обновлением URL
   const handleTabChange = (tabId: string) => {
     // Если мы в Settings, переключаемся на Dashboard
     if (currentPage === 'settings') {
       setCurrentPage('dashboard')
     }
-    
+
     setCurrentTab(tabId)
     const params = new URLSearchParams()
     if (tabId === 'home') {
@@ -114,9 +114,9 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
   }
 
   return (
-    <div className="flex h-screen bg-dark-bg text-dark-text overflow-hidden">
-      <Sidebar 
-        currentPage={currentPage} 
+    <div className="flex h-screen bg-dark-bg dark:bg-dark-bg light:bg-light-bg text-dark-text dark:text-dark-text light:text-light-text overflow-hidden">
+      <Sidebar
+        currentPage={currentPage}
         onPageChange={handlePageChange}
         isMobileMenuOpen={isMobileMenuOpen}
         onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -128,7 +128,7 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
           currentTab={currentPage === 'settings' ? undefined : currentTab}
           currentPage={currentPage}
         />
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-dark-bg">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-dark-bg dark:bg-dark-bg light:bg-light-bg">
           {currentPage === 'dashboard' ? <WidgetGrid currentTab={currentTab} /> : <Settings />}
         </div>
       </div>

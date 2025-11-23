@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Home, Globe, Camera, Menu, Sparkles, Lightbulb, Tv, Music } from 'lucide-react'
 import { getNavigationIconsSync, getNavigationIcons, NavigationIcon } from '../services/widgetConfig'
-import { isWidgetEnabledSync } from '../services/widgetConfig'
+
 
 interface TopBarProps {
   onMenuClick?: () => void
@@ -10,7 +10,7 @@ interface TopBarProps {
   currentPage?: 'dashboard' | 'settings'
 }
 
-const iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+const iconMap: Record<string, any> = {
   camera: Camera,
   home: Home,
   network: Globe,
@@ -89,7 +89,7 @@ const TopBar = ({ onMenuClick, onTabChange, currentTab, currentPage }: TopBarPro
       >
         <Menu size={20} />
       </button>
-      
+
       {/* Иконки - скрываем на очень маленьких экранах, показываем на планшетах и больше */}
       <div className="hidden sm:flex items-center gap-2 sm:gap-3 md:gap-4 overflow-x-auto">
         {enabledIcons.map((icon) => {
@@ -98,20 +98,19 @@ const TopBar = ({ onMenuClick, onTabChange, currentTab, currentPage }: TopBarPro
           if (icon.iconName === 'widget' && icon.widgetType) {
             IconComponent = iconMap[icon.widgetType] || Home
           }
-          
+
           const tabId = icon.dashboardId || icon.widgetId || icon.iconName
           // Таб активен только если мы на dashboard и currentTab совпадает
           const isActive = currentPage === 'dashboard' && currentTab === tabId
-          
+
           return (
             <button
               key={icon.id}
               onClick={() => handleTabClick(icon)}
-              className={`p-2 rounded-lg transition-colors flex-shrink-0 ${
-                isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'text-dark-textSecondary hover:bg-dark-cardHover hover:text-white'
-              }`}
+              className={`p-2 rounded-lg transition-colors flex-shrink-0 ${isActive
+                ? 'bg-blue-600 text-white'
+                : 'text-dark-textSecondary hover:bg-dark-cardHover hover:text-white'
+                }`}
               title={icon.label}
             >
               <IconComponent size={20} />
@@ -119,6 +118,22 @@ const TopBar = ({ onMenuClick, onTabChange, currentTab, currentPage }: TopBarPro
           )
         })}
       </div>
+
+      {/* Demo Mode Indicator */}
+      {typeof window !== 'undefined' && localStorage.getItem('demo_mode') === 'true' && (
+        <button
+          onClick={() => {
+            import('../services/widgetConfig').then(({ setDemoMode }) => {
+              setDemoMode(false)
+              window.location.reload()
+            })
+          }}
+          className="ml-auto px-3 py-1 bg-yellow-500/20 text-yellow-500 border border-yellow-500/50 rounded-full text-sm font-medium hover:bg-yellow-500/30 transition-colors flex items-center gap-2"
+        >
+          <Sparkles size={14} />
+          מצב הדגמה (יציאה)
+        </button>
+      )}
     </div>
   )
 }

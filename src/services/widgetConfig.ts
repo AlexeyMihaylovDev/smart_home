@@ -18,7 +18,7 @@ export interface WaterHeaterConfig {
   style?: WaterHeaterStyle
 }
 
-export type SensorsStyle = 'list' | 'card' | 'compact' | 'grid'
+
 
 export interface SensorConfig {
   name: string
@@ -28,8 +28,7 @@ export interface SensorConfig {
   batteryEntityId?: string | null
 }
 
-export type SensorsStyle = 'list' | 'card' | 'compact' | 'grid'
-export type MotorsStyle = 'list' | 'card' | 'compact'
+
 
 export interface MotorConfig {
   entityId: string | null
@@ -242,12 +241,142 @@ if (typeof window !== 'undefined') {
   })
 }
 
+const DEMO_CONFIG: WidgetConfig = {
+  ambientLighting: {
+    style: 'list',
+    lights: [
+      { name: 'Living Room', entityId: 'light.living_room', icon: 'lightbulb' },
+      { name: 'Kitchen', entityId: 'light.kitchen', icon: 'lightbulb' },
+      { name: 'Bedroom', entityId: 'light.bedroom', icon: 'lightbulb' },
+    ]
+  },
+  ac: {
+    airConditioners: [
+      { name: 'Living Room AC', entityId: 'climate.living_room' },
+      { name: 'Bedroom AC', entityId: 'climate.bedroom' }
+    ]
+  },
+  waterHeater: {
+    entityId: 'water_heater.main',
+    name: 'Main Boiler',
+    style: 'compact'
+  },
+  sensors: {
+    sensors: [
+      { name: 'Temperature', entityId: 'sensor.temp', type: 'presence' },
+      { name: 'Humidity', entityId: 'sensor.humidity', type: 'presence' }
+    ],
+    style: 'list'
+  },
+  motors: {
+    motors: [
+      { name: 'Blinds', entityId: 'cover.blinds' }
+    ],
+    style: 'list'
+  },
+  spotify: {
+    accountName: 'Demo User',
+    trackName: 'Demo Track',
+    artistName: 'Demo Artist',
+    deviceName: 'Demo Device',
+    coverEmoji: '🎵',
+    isPlaying: true,
+    progress: 30
+  },
+  bose: {
+    soundbars: [
+      { name: 'Living Room Soundbar', entityId: 'media_player.bose' }
+    ]
+  },
+  vacuum: {
+    vacuums: [
+      { name: 'Roborock', entityId: 'vacuum.roborock' }
+    ]
+  },
+  cameras: {
+    cameras: [
+      { name: 'Front Door', entityId: 'camera.front_door' },
+      { name: 'Backyard', entityId: 'camera.backyard' }
+    ],
+    style: 'grid'
+  },
+  tvPreview: {
+    tvs: [
+      { name: 'Living Room TV', entityId: 'media_player.tv' }
+    ]
+  },
+  clock: {
+    name: 'Clock',
+    showSeconds: false,
+    showDate: true,
+    showDayOfWeek: true,
+    format24h: true,
+    style: 'digital'
+  },
+  led: {
+    leds: [
+      { name: 'LED Strip', entityId: 'light.led_strip', type: 'rgb' }
+    ],
+    style: 'list'
+  },
+  enabledWidgets: {
+    'ambient-lighting': true,
+    'tv-time': true,
+    'media-player': true,
+    'spotify': true,
+    'media-room': true,
+    'canvas': true,
+    'tv-preview': true,
+    'clock': true,
+    'led': true,
+    'plex': true,
+    'tv-duration': true,
+    'weather-calendar': true,
+    'living-room': true,
+    'ac': true,
+    'water-heater': true,
+    'sensors': true,
+    'motors': true,
+    'bose': true,
+    'vacuum': true,
+    'cameras': true
+  },
+  navigationIcons: {
+    icons: [
+      { id: 'cameras', label: 'Cameras', iconName: 'camera', enabled: true, order: 0, dashboardId: 'cameras', widgets: [] },
+      { id: 'home', label: 'Home', iconName: 'home', enabled: true, order: 1, dashboardId: 'home', widgets: [] },
+      { id: 'network', label: 'Network', iconName: 'network', enabled: true, order: 2, dashboardId: 'network', widgets: [] },
+      { id: 'vacuum', label: 'Vacuum', iconName: 'vacuum', enabled: true, order: 3, dashboardId: 'vacuum', widgets: [] },
+    ]
+  }
+}
+
+export const isDemoMode = (): boolean => {
+  if (typeof window === 'undefined') return false
+  return localStorage.getItem('demo_mode') === 'true'
+}
+
+export const setDemoMode = (enabled: boolean): void => {
+  if (typeof window === 'undefined') return
+  if (enabled) {
+    localStorage.setItem('demo_mode', 'true')
+  } else {
+    localStorage.removeItem('demo_mode')
+  }
+  // Очищаем кэш, чтобы при следующем запросе загрузилась правильная конфигурация
+  clearWidgetConfigCache()
+}
+
 export const getWidgetConfig = async (): Promise<WidgetConfig> => {
+  if (isDemoMode()) {
+    console.log('[WidgetConfig] Demo mode active, returning DEMO_CONFIG')
+    return DEMO_CONFIG
+  }
   try {
     console.log('[WidgetConfig] Загрузка конфигурации с сервера...')
     const config = await getWidgetConfigFromAPI()
     console.log('[WidgetConfig] Конфигурация загружена с сервера:', config)
-    
+
     // Убеждаемся, что структура правильная
     if (!config.ac || !config.ac.airConditioners) {
       if (config.ac && 'entityId' in config.ac) {
@@ -309,6 +438,9 @@ export const getWidgetConfig = async (): Promise<WidgetConfig> => {
 // Синхронная версия для обратной совместимости (использует кэш)
 // ВАЖНО: Эта функция не загружает с сервера! Используйте getWidgetConfig() для загрузки с сервера
 export const getWidgetConfigSync = (): WidgetConfig => {
+  if (isDemoMode()) {
+    return DEMO_CONFIG
+  }
   if (configCache) {
     // Убеждаемся, что navigationIcons инициализирован
     if (!configCache.navigationIcons || !configCache.navigationIcons.icons) {
@@ -346,17 +478,17 @@ const cleanConfigForSerialization = (obj: any): any => {
   if (obj === null || typeof obj !== 'object') {
     return obj
   }
-  
+
   // Если это DOM-элемент или React-компонент, пропускаем
   if (obj instanceof HTMLElement || obj instanceof Element || obj.constructor?.name === 'FiberNode') {
     return undefined
   }
-  
+
   // Если это массив
   if (Array.isArray(obj)) {
     return obj.map(cleanConfigForSerialization).filter(item => item !== undefined)
   }
-  
+
   // Если это объект
   const cleaned: any = {}
   for (const key in obj) {
@@ -365,7 +497,7 @@ const cleanConfigForSerialization = (obj: any): any => {
       if (key.startsWith('__react') || key.startsWith('__FIBER') || key === 'stateNode') {
         continue
       }
-      
+
       try {
         const value = cleanConfigForSerialization(obj[key])
         if (value !== undefined) {
@@ -384,7 +516,7 @@ export const saveWidgetConfig = async (config: WidgetConfig): Promise<void> => {
   try {
     // Очищаем конфигурацию от циклических ссылок перед сохранением
     const cleanedConfig = cleanConfigForSerialization(config) as WidgetConfig
-    
+
     console.log('[WidgetConfig] Сохранение конфигурации на сервер...', {
       ambientLighting: cleanedConfig.ambientLighting?.lights?.length || 0,
       ac: cleanedConfig.ac?.airConditioners?.length || 0,
@@ -455,32 +587,32 @@ export const updateAmbientLightingStyle = async (style: AmbientLightingStyle): P
 export const updateACConfigs = async (airConditioners: ACConfig[]): Promise<void> => {
   const config = await getWidgetConfig()
   console.log('updateACConfigs: текущая конфигурация перед сохранением:', config)
-  
+
   // Убеждаемся, что структура правильная
   if (!config.ac) {
     config.ac = { airConditioners: [] }
   }
-  
+
   // Удаляем старый формат, если он есть
   if ('entityId' in config.ac) {
     delete (config.ac as any).entityId
     delete (config.ac as any).name
   }
-  
+
   // Устанавливаем новый формат
   config.ac.airConditioners = airConditioners
-  
+
   console.log('updateACConfigs: конфигурация после обновления:', config)
   console.log('updateACConfigs: config.ac:', config.ac)
   console.log('updateACConfigs: config.ac.airConditioners:', config.ac.airConditioners)
-  
+
   await saveWidgetConfig(config)
-  
+
   // Проверяем, что сохранилось правильно
   const saved = await getWidgetConfig()
   console.log('updateACConfigs: проверка сохраненной конфигурации:', saved)
   console.log('updateACConfigs: сохраненные AC конфигурации:', saved.ac?.airConditioners)
-  
+
   console.log('AC конфигурация сохранена:', airConditioners)
 }
 
@@ -488,14 +620,14 @@ export const getACConfigs = async (): Promise<ACConfig[]> => {
   const config = await getWidgetConfig()
   console.log('getACConfigs: полная конфигурация с сервера:', config)
   console.log('getACConfigs: config.ac:', config.ac)
-  
+
   // Проверяем наличие нового формата (airConditioners)
   if (config.ac && 'airConditioners' in config.ac && Array.isArray(config.ac.airConditioners)) {
     const result = config.ac.airConditioners
     console.log('AC конфигурация загружена (новый формат):', result)
     return result
   }
-  
+
   // Поддержка старого формата для миграции
   if (config.ac && 'entityId' in config.ac && !('airConditioners' in config.ac)) {
     const oldConfig = config.ac as any
@@ -511,7 +643,7 @@ export const getACConfigs = async (): Promise<ACConfig[]> => {
     }
     return []
   }
-  
+
   // Если структура неправильная или отсутствует
   const result = config.ac?.airConditioners || []
   console.log('AC конфигурация загружена (fallback):', result)
