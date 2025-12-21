@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useHomeAssistant } from '../context/HomeAssistantContext'
+// import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { useAuth } from '../context/AuthContext'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
@@ -15,28 +15,28 @@ interface DashboardProps {
 }
 
 const Dashboard = ({ initialPage }: DashboardProps) => {
-  const { isAuthenticated, login } = useAuth()
-  const { isConnected } = useHomeAssistant()
+  const { isAuthenticated } = useAuth()
+  // const { isConnected } = useHomeAssistant()
   const navigate = useNavigate()
   const location = useLocation()
   const [showLoginModal, setShowLoginModal] = useState(!isAuthenticated)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  
+
   // Определяем текущую страницу из URL
   const getCurrentPage = (): Page => {
     if (location.pathname === '/settings') return 'settings'
     return 'dashboard'
   }
-  
+
   const [currentPage, setCurrentPage] = useState<Page>(initialPage || getCurrentPage())
-  
+
   // Получаем текущий таб из URL параметров
   const getCurrentTabFromURL = (): string => {
     const params = new URLSearchParams(location.search)
     const tab = params.get('tab')
     return tab || 'home'
   }
-  
+
   const [currentTab, setCurrentTab] = useState<string>(() => getCurrentTabFromURL())
 
   useEffect(() => {
@@ -48,7 +48,7 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
     const page = getCurrentPage()
     setCurrentPage(page)
   }, [location.pathname])
-  
+
   // Синхронизируем currentTab с URL параметрами
   useEffect(() => {
     const tabFromURL = getCurrentTabFromURL()
@@ -59,14 +59,14 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
       return prevTab
     })
   }, [location.search])
-  
+
   // Обработчик изменения таба с обновлением URL
   const handleTabChange = (tabId: string) => {
     // Если мы в Settings, переключаемся на Dashboard
     if (currentPage === 'settings') {
       setCurrentPage('dashboard')
     }
-    
+
     setCurrentTab(tabId)
     const params = new URLSearchParams()
     if (tabId === 'home') {
@@ -115,8 +115,8 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
 
   return (
     <div className="flex h-screen bg-dark-bg text-dark-text overflow-hidden">
-      <Sidebar 
-        currentPage={currentPage} 
+      <Sidebar
+        currentPage={currentPage}
         onPageChange={handlePageChange}
         isMobileMenuOpen={isMobileMenuOpen}
         onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

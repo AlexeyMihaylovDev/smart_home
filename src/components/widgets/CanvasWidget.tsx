@@ -1,4 +1,4 @@
-import { Cast, Power, ChevronLeft, Play, Pause, ChevronRight } from 'lucide-react'
+import { Cast, Power, ChevronLeft, Play, ChevronRight } from 'lucide-react'
 
 const CanvasWidget = () => {
   return (
@@ -12,7 +12,7 @@ const CanvasWidget = () => {
           <div className="text-sm text-dark-textSecondary">DSC_0533</div>
         </div>
       </div>
-      
+
       <div className="mb-4 h-32 bg-gradient-to-br from-purple-500/20 via-blue-500/20 to-pink-500/20 rounded-xl flex items-center justify-center border border-white/10 backdrop-blur-sm">
         <div className="text-center text-white text-xs opacity-75">
           Video Preview

@@ -1,7 +1,7 @@
 // Preview компоненты для виджетов
-import React from 'react'
-import { Tv, Music, Wind, Droplet, Gauge, Sparkles, Lightbulb } from 'lucide-react'
-import { ACConfig, WaterHeaterConfig, SensorConfig, MotorConfig, BoseConfig, VacuumConfig, CameraConfig, TVPreviewConfig, WaterHeaterStyle, SensorsStyle, MotorsStyle, CamerasStyle, LEDConfig, LEDStyle } from '../../services/widgetConfig'
+
+import { Tv, Music, Wind, Droplet, Sparkles } from 'lucide-react'
+import { ACConfig, WaterHeaterConfig, SensorConfig, MotorConfig, BoseConfig, VacuumConfig, CameraConfig, TVPreviewConfig, WaterHeaterStyle, SensorsStyle, MotorsStyle, CamerasStyle, LEDConfig, LEDStyle, SpotifyConfig } from '../../services/widgetConfig'
 import { PreparedLED, LEDListStyle, LEDCardStyle, LEDCompactStyle, LEDModernStyle, LEDListNotConfigured, LEDCardNotConfigured, LEDCompactNotConfigured, LEDModernNotConfigured } from '../widgets/LEDStyles'
 import { CompactNotConfigured, CardNotConfigured, MinimalNotConfigured, ModernNotConfigured } from '../widgets/WaterHeaterStyles'
 import { PreparedSensor, SensorsListStyle, SensorsCardStyle, SensorsCompactStyle, SensorsGridStyle, SensorsListNotConfigured, SensorsCardNotConfigured, SensorsCompactNotConfigured, SensorsGridNotConfigured } from '../widgets/SensorsStyles'
@@ -223,7 +223,7 @@ export const ACPreview = ({ configs }: { configs: ACConfig[] }) => (
 export const WaterHeaterPreview = ({ config, style }: { config: WaterHeaterConfig, style?: WaterHeaterStyle }) => {
   const currentStyle = style || config.style || 'compact'
   const friendlyName = config.name || 'Водонагреватель'
-  
+
   // Если не настроен, показываем соответствующий компонент "Не настроен"
   if (!config.entityId) {
     const notConfiguredProps = { friendlyName }
@@ -239,7 +239,7 @@ export const WaterHeaterPreview = ({ config, style }: { config: WaterHeaterConfi
         return <CompactNotConfigured {...notConfiguredProps} />
     }
   }
-  
+
   // Если настроен, показываем простой превью
   return (
     <div className="space-y-3">
@@ -396,12 +396,12 @@ export const MotorsPreview = ({ configs = [], style = 'list', demo = false }: { 
   const prepared = buildPreparedMotors(
     configs.length > 0
       ? configs.map((motor, index) => ({
-          id: motor.entityId || `motor-${index}`,
-          name: motor.name || `מנוע ${index + 1}`,
-          isConnected: !!motor.entityId,
-          state: motor.entityId ? 'closed' : 'disconnected',
-          position: motor.entityId ? 50 : null
-        }))
+        id: motor.entityId || `motor-${index}`,
+        name: motor.name || `מנוע ${index + 1}`,
+        isConnected: !!motor.entityId,
+        state: motor.entityId ? 'closed' : 'disconnected',
+        position: motor.entityId ? 50 : null
+      }))
       : []
   )
 
@@ -538,32 +538,32 @@ export const CamerasPreview = ({ configs, style, demo }: { configs: CameraConfig
 export const LEDPreview = ({ configs = [], style = 'list', demo = false }: { configs: LEDConfig[], style?: LEDStyle, demo?: boolean }) => {
   if (demo) {
     const demoLEDs: PreparedLED[] = [
-      { 
-        id: 'led-1', 
-        name: 'נורת סלון', 
-        type: 'rgb', 
-        isOn: true, 
-        brightness: 75, 
+      {
+        id: 'led-1',
+        name: 'נורת סלון',
+        type: 'rgb',
+        isOn: true,
+        brightness: 75,
         rgbColor: { r: 255, g: 100, b: 50 },
         hasEntity: true,
         controlsDisabled: true
       },
-      { 
-        id: 'led-2', 
-        name: 'נורת חדר שינה', 
-        type: 'dimmer', 
-        isOn: true, 
-        brightness: 45, 
+      {
+        id: 'led-2',
+        name: 'נורת חדר שינה',
+        type: 'dimmer',
+        isOn: true,
+        brightness: 45,
         rgbColor: { r: 255, g: 255, b: 255 },
         hasEntity: true,
         controlsDisabled: true
       },
-      { 
-        id: 'led-3', 
-        name: 'נורת מטבח', 
-        type: 'rgb', 
-        isOn: false, 
-        brightness: 0, 
+      {
+        id: 'led-3',
+        name: 'נורת מטבח',
+        type: 'rgb',
+        isOn: false,
+        brightness: 0,
         rgbColor: { r: 255, g: 255, b: 255 },
         hasEntity: true,
         controlsDisabled: true

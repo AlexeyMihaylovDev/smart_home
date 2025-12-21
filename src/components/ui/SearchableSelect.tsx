@@ -11,10 +11,12 @@ interface SearchableSelectProps {
   onChange: (value: string) => void
   options: SearchableSelectOption[]
   placeholder?: string
+  searchPlaceholder?: string
   className?: string
+  disabled?: boolean
 }
 
-const SearchableSelect = ({ value, onChange, options, placeholder = '-- בחר מכשיר --', className = '' }: SearchableSelectProps) => {
+const SearchableSelect = ({ value, onChange, options, placeholder = '-- בחר מכשיר --', searchPlaceholder = 'חיפוש...', className = '', disabled = false }: SearchableSelectProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
@@ -64,8 +66,9 @@ const SearchableSelect = ({ value, onChange, options, placeholder = '-- בחר �
     <div ref={containerRef} className={`relative ${className}`}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between text-left"
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        className={`w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between text-left ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <span className={value ? 'text-white' : 'text-dark-textSecondary'}>
           {selectedOption ? selectedOption.label : placeholder}
@@ -95,7 +98,7 @@ const SearchableSelect = ({ value, onChange, options, placeholder = '-- בחר �
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="חיפוש..."
+                placeholder={searchPlaceholder}
                 className="w-full bg-dark-bg border border-dark-border rounded px-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 onClick={(e) => e.stopPropagation()}
               />
@@ -110,9 +113,8 @@ const SearchableSelect = ({ value, onChange, options, placeholder = '-- בחר �
                   key={option.value}
                   type="button"
                   onClick={() => handleSelect(option.value)}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-dark-cardHover transition-colors whitespace-nowrap ${
-                    value === option.value ? 'bg-blue-600 bg-opacity-20 text-blue-400' : 'text-white'
-                  }`}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-dark-cardHover transition-colors whitespace-nowrap ${value === option.value ? 'bg-blue-600 bg-opacity-20 text-blue-400' : 'text-white'
+                    }`}
                 >
                   {option.label}
                 </button>

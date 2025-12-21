@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  smart-home:
+    build: .
+    image: smart-home-dashboard
+    container_name: smart-home-dashboard
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./server/data:/app/server/data
+    environment:
+      - NODE_ENV=production
+      # Default user credentials - change these!
+      - DEFAULT_USERNAME=${DEFAULT_USERNAME:-admin}
+      - DEFAULT_PASSWORD=${DEFAULT_PASSWORD:-admin}
+      # Home Assistant connection (optional - can be configured in UI)
+      - HOME_ASSISTANT_URL=${HOME_ASSISTANT_URL:-http://homeassistant.local:8123}
+      - HOME_ASSISTANT_TOKEN=${HOME_ASSISTANT_TOKEN:-}
+    network_mode: host # For easier access to Home Assistant on localhost

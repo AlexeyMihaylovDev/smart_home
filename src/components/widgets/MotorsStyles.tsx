@@ -1,4 +1,4 @@
-import { Activity, ChevronDown, ChevronUp, Gauge, Square } from 'lucide-react'
+import { ChevronDown, ChevronUp, Gauge, Square } from 'lucide-react'
 
 export interface PreparedMotor {
   id: string

@@ -2,9 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useHomeAssistant } from '../../context/HomeAssistantContext'
 import { Entity } from '../../services/homeAssistantAPI'
 import { getBoseConfigsSync, BoseConfig } from '../../services/widgetConfig'
-import { 
-  Power, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack, 
-  Music, Radio, Bluetooth, Settings, Speaker, Battery,
+import {
+  Power, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack,
+  Music, Settings, Speaker, Battery,
   ChevronDown, ChevronUp
 } from 'lucide-react'
 
@@ -38,7 +38,7 @@ const BoseUnit = ({ boseConfig, entity, api, loading, onLoadingChange }: BoseUni
           newVolume = Math.round(parsed * 100)
         }
       }
-      
+
       // Обновляем только если нет локального значения или если значение совпадает с ожидаемым
       if (localVolume === null) {
         setVolume(newVolume)
@@ -61,7 +61,7 @@ const BoseUnit = ({ boseConfig, entity, api, loading, onLoadingChange }: BoseUni
       }
     }
   }, [entity, localVolume])
-  
+
   // Очистка таймера при размонтировании
   useEffect(() => {
     return () => {
@@ -73,16 +73,14 @@ const BoseUnit = ({ boseConfig, entity, api, loading, onLoadingChange }: BoseUni
 
   const isOn = entity?.state === 'on' || entity?.state === 'playing'
   const isPlaying = entity?.state === 'playing'
-  const isPaused = entity?.state === 'paused'
-  const isOff = entity?.state === 'off' || entity?.state === 'unavailable'
-  
+
   const mediaTitle = entity?.attributes.media_title || ''
   const mediaArtist = entity?.attributes.media_artist || ''
   const mediaAlbum = entity?.attributes.media_album_name || ''
   const mediaImage = entity?.attributes.entity_picture || ''
   const source = entity?.attributes.source || ''
   const batteryLevel = entity?.attributes.battery_level
-  
+
   const hasMedia = !!(mediaTitle || mediaArtist)
   const friendlyName = boseConfig.name || entity?.attributes.friendly_name || boseConfig.entityId || 'Bose'
 
@@ -128,7 +126,7 @@ const BoseUnit = ({ boseConfig, entity, api, loading, onLoadingChange }: BoseUni
 
   const handleVolumeChange = useCallback((newVolume: number) => {
     const clampedVolume = Math.max(0, Math.min(100, newVolume))
-    
+
     // Обновляем локальное состояние для немедленного отображения
     setLocalVolume(clampedVolume)
     setVolume(clampedVolume)
@@ -280,11 +278,10 @@ const BoseUnit = ({ boseConfig, entity, api, loading, onLoadingChange }: BoseUni
         <button
           onClick={handlePower}
           disabled={localLoading || loading}
-          className={`p-1.5 sm:p-2 rounded-lg transition-all flex-shrink-0 ${
-            isOn 
-              ? 'bg-green-600 hover:bg-green-700 text-white' 
+          className={`p-1.5 sm:p-2 rounded-lg transition-all flex-shrink-0 ${isOn
+              ? 'bg-green-600 hover:bg-green-700 text-white'
               : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
-          } disabled:opacity-50 disabled:cursor-not-allowed`}
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
           title={isOn ? 'כבה' : 'הדלק'}
         >
           <Power size={14} className="sm:w-4 sm:h-4" />
@@ -298,7 +295,7 @@ const BoseUnit = ({ boseConfig, entity, api, loading, onLoadingChange }: BoseUni
             <div className="mb-2 sm:mb-3 p-2 bg-dark-card rounded-lg border border-dark-border">
               {mediaImage && (
                 <div className="w-full h-24 sm:h-32 mb-2 rounded-lg overflow-hidden bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
-                  <img 
+                  <img
                     src={mediaImage.startsWith('http') ? mediaImage : `http://${window.location.hostname}:8123${mediaImage}`}
                     alt={mediaTitle || 'Album Art'}
                     className="w-full h-full object-cover"
@@ -392,11 +389,10 @@ const BoseUnit = ({ boseConfig, entity, api, loading, onLoadingChange }: BoseUni
               <button
                 onClick={handlePlayPause}
                 disabled={localLoading || loading}
-                className={`p-3 sm:p-4 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95 ${
-                  isPlaying 
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/30' 
+                className={`p-3 sm:p-4 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95 ${isPlaying
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/30'
                     : 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/30'
-                }`}
+                  }`}
                 title={isPlaying ? 'השהה' : 'נגן'}
               >
                 {isPlaying ? (
@@ -426,11 +422,10 @@ const BoseUnit = ({ boseConfig, entity, api, loading, onLoadingChange }: BoseUni
                     key={src}
                     onClick={() => handleSourceSelect(src)}
                     disabled={localLoading || loading}
-                    className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded text-[10px] sm:text-xs transition-all truncate disabled:opacity-50 disabled:cursor-not-allowed ${
-                      source === src
+                    className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded text-[10px] sm:text-xs transition-all truncate disabled:opacity-50 disabled:cursor-not-allowed ${source === src
                         ? 'bg-blue-600 text-white'
                         : 'bg-dark-card hover:bg-dark-cardHover text-dark-textSecondary'
-                    }`}
+                      }`}
                   >
                     {src}
                   </button>
@@ -449,12 +444,12 @@ const BoseUnit = ({ boseConfig, entity, api, loading, onLoadingChange }: BoseUni
                 <Settings size={12} />
                 <span>הגדרות מתקדמות</span>
               </div>
-              <ChevronDown 
-                size={12} 
-                className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`} 
+              <ChevronDown
+                size={12}
+                className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
               />
             </button>
-            
+
             {showAdvanced && (
               <div className="mt-2 space-y-2 pt-2 border-t border-dark-border">
                 {/* Bass, Treble, Center, Surround - если доступны */}
@@ -493,7 +488,7 @@ const BoseUnit = ({ boseConfig, entity, api, loading, onLoadingChange }: BoseUni
                     />
                   </div>
                 )}
-                
+
                 {entity.attributes.treble_level !== undefined && (
                   <div>
                     <div className="flex items-center justify-between mb-1">
@@ -616,13 +611,12 @@ const BoseWidget = () => {
 
   return (
     <div className="h-full p-2 sm:p-3 md:p-4 overflow-y-auto">
-      <div className={`grid gap-3 sm:gap-4 ${
-        boseConfigs.length === 1 
-          ? 'grid-cols-1' 
-          : boseConfigs.length === 2 
-          ? 'grid-cols-1 md:grid-cols-2' 
-          : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-      }`}>
+      <div className={`grid gap-3 sm:gap-4 ${boseConfigs.length === 1
+          ? 'grid-cols-1'
+          : boseConfigs.length === 2
+            ? 'grid-cols-1 md:grid-cols-2'
+            : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+        }`}>
         {Array.isArray(boseConfigs) && boseConfigs.map((boseConfig, index) => (
           <BoseUnit
             key={boseConfig.entityId || index}

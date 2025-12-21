@@ -1,12 +1,11 @@
 // Сервис для управления layout виджетов
 import { getAllEnabledWidgets, getAllEnabledWidgetsSync } from './widgetConfig'
-import { 
-  getDashboardLayout as getDashboardLayoutFromAPI, 
-  saveDashboardLayout as saveDashboardLayoutToAPI, 
+import {
+  getDashboardLayout as getDashboardLayoutFromAPI,
+  saveDashboardLayout as saveDashboardLayoutToAPI,
   DashboardLayout as APIDashboardLayout,
   getAllDashboardLayouts as getAllDashboardLayoutsFromAPI,
-  saveAllDashboardLayouts as saveAllDashboardLayoutsToAPI,
-  DashboardLayouts as APIDashboardLayouts
+  saveAllDashboardLayouts as saveAllDashboardLayoutsToAPI
 } from './apiService'
 
 export interface WidgetLayout {
@@ -85,13 +84,13 @@ export const getDashboardLayout = async (): Promise<DashboardLayout> => {
     const stored = await getDashboardLayoutFromAPI()
     console.log('[WidgetLayout] Dashboard layout загружен с сервера:', stored)
     const enabledWidgets = await getAllEnabledWidgets()
-    
+
     // Сохраняем savedCols для использования ниже
     const savedCols = stored?.cols || DEFAULT_COLS
-    
+
     if (stored && stored.layouts && stored.layouts.length > 0) {
       const savedLayouts = stored.layouts || []
-      
+
       // Фильтруем только включенные виджеты
       const enabledLayouts = savedLayouts
         .filter((l: WidgetLayout) => enabledWidgets.includes(l.i))
@@ -109,35 +108,35 @@ export const getDashboardLayout = async (): Promise<DashboardLayout> => {
           }
           return l
         })
-      
+
       // Получаем список ID виджетов из сохраненного layout
       const savedWidgetIds = new Set(enabledLayouts.map((l: WidgetLayout) => l.i))
-      
+
       // Добавляем новые включенные виджеты, которых нет в сохраненном layout
       const missingWidgets = enabledWidgets
         .filter(id => !savedWidgetIds.has(id))
-      
+
       // Используем автоматическое распределение для новых виджетов
       const newLayouts = missingWidgets.length > 0
         ? autoDistributeWidgets(missingWidgets, savedCols || DEFAULT_COLS)
         : []
-      
+
       // Смещаем новые виджеты вниз, чтобы они не перекрывали существующие
-      const maxY = enabledLayouts.length > 0 
+      const maxY = enabledLayouts.length > 0
         ? Math.max(...enabledLayouts.map(l => l.y + l.h))
         : -1
-      
+
       const adjustedNewLayouts = newLayouts.map(layout => ({
         ...layout,
         y: layout.y + maxY + 1
       }))
-      
+
       // Объединяем сохраненные виджеты с новыми
       const mergedLayouts = [...enabledLayouts, ...adjustedNewLayouts]
-      
+
       // Компактируем layout - убираем пустые места
       const compactedLayouts = compactLayoutVertical(mergedLayouts, DEFAULT_COLS)
-      
+
       const result = {
         layouts: compactedLayouts,
         cols: stored.cols || DEFAULT_COLS,
@@ -152,44 +151,44 @@ export const getDashboardLayout = async (): Promise<DashboardLayout> => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
-      const parsed = JSON.parse(stored)
-      const enabledWidgets = getAllEnabledWidgetsSync()
-      const savedLayouts = parsed.layouts || []
-      const enabledLayouts = savedLayouts
-        .filter((l: WidgetLayout) => enabledWidgets.includes(l.i))
-        .map((l: WidgetLayout) => {
-          // Обновляем minW и minH из DEFAULT_LAYOUTS, если они изменились
-          const defaultLayout = DEFAULT_LAYOUTS[l.i]
-          if (defaultLayout) {
-            return {
-              ...l,
-              minW: defaultLayout.minW,
-              minH: defaultLayout.minH,
-              maxW: defaultLayout.maxW,
-              maxH: defaultLayout.maxH,
+        const parsed = JSON.parse(stored)
+        const enabledWidgets = getAllEnabledWidgetsSync()
+        const savedLayouts = parsed.layouts || []
+        const enabledLayouts = savedLayouts
+          .filter((l: WidgetLayout) => enabledWidgets.includes(l.i))
+          .map((l: WidgetLayout) => {
+            // Обновляем minW и minH из DEFAULT_LAYOUTS, если они изменились
+            const defaultLayout = DEFAULT_LAYOUTS[l.i]
+            if (defaultLayout) {
+              return {
+                ...l,
+                minW: defaultLayout.minW,
+                minH: defaultLayout.minH,
+                maxW: defaultLayout.maxW,
+                maxH: defaultLayout.maxH,
+              }
             }
-          }
-          return l
-        })
-      const savedWidgetIds = new Set(enabledLayouts.map((l: WidgetLayout) => l.i))
+            return l
+          })
+        const savedWidgetIds = new Set(enabledLayouts.map((l: WidgetLayout) => l.i))
         const missingWidgets = enabledWidgets
           .filter(id => !savedWidgetIds.has(id))
-        
+
         // Используем автоматическое распределение для новых виджетов
         const newLayouts = missingWidgets.length > 0
           ? autoDistributeWidgets(missingWidgets, parsed.cols || DEFAULT_COLS)
           : []
-        
+
         // Смещаем новые виджеты вниз, чтобы они не перекрывали существующие
-        const maxY = enabledLayouts.length > 0 
-          ? Math.max(...enabledLayouts.map(l => l.y + l.h))
+        const maxY = enabledLayouts.length > 0
+          ? Math.max(...enabledLayouts.map((l: WidgetLayout) => l.y + l.h))
           : -1
-        
+
         const adjustedNewLayouts = newLayouts.map(layout => ({
           ...layout,
           y: layout.y + maxY + 1
         }))
-        
+
         const mergedLayouts = [...enabledLayouts, ...adjustedNewLayouts]
         const compactedLayouts = compactLayoutVertical(mergedLayouts, DEFAULT_COLS)
         const result = {
@@ -205,12 +204,12 @@ export const getDashboardLayout = async (): Promise<DashboardLayout> => {
       console.error('[WidgetLayout] Ошибка загрузки из localStorage:', localError)
     }
   }
-  
+
   // Если нет сохраненного layout, создаем новый с автоматическим распределением
   console.log('[WidgetLayout] Создаем новый layout для включенных виджетов')
   const enabledWidgets = await getAllEnabledWidgets()
   console.log('[WidgetLayout] Включенные виджеты:', enabledWidgets)
-  
+
   if (enabledWidgets.length === 0) {
     console.warn('[WidgetLayout] Нет включенных виджетов! Layout будет пустым.')
     const emptyResult = {
@@ -221,18 +220,18 @@ export const getDashboardLayout = async (): Promise<DashboardLayout> => {
     layoutCache = emptyResult
     return emptyResult
   }
-  
+
   // Используем автоматическое распределение для равномерного размещения
   const layouts = autoDistributeWidgets(enabledWidgets, DEFAULT_COLS)
   console.log('[WidgetLayout] Создан новый layout с виджетами:', layouts.map(l => l.i))
-  
+
   const result = {
     layouts,
     cols: DEFAULT_COLS,
     rowHeight: DEFAULT_ROW_HEIGHT
   }
   layoutCache = result
-  
+
   // Автоматически сохраняем новый layout на сервер в базу данных
   try {
     console.log('[WidgetLayout] Сохранение нового layout на сервер в базу данных...')
@@ -242,7 +241,7 @@ export const getDashboardLayout = async (): Promise<DashboardLayout> => {
     console.error('[WidgetLayout] Ошибка сохранения нового layout на сервер:', error)
     // Продолжаем работу даже если сохранение не удалось
   }
-  
+
   return result
 }
 
@@ -251,11 +250,11 @@ export const getDashboardLayoutSync = (): DashboardLayout => {
   if (layoutCache) {
     return layoutCache
   }
-  
+
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     const enabledWidgets = getAllEnabledWidgetsSync()
-    
+
     if (stored) {
       const parsed = JSON.parse(stored)
       const savedLayouts = parsed.layouts || []
@@ -263,22 +262,22 @@ export const getDashboardLayoutSync = (): DashboardLayout => {
       const savedWidgetIds = new Set(enabledLayouts.map((l: WidgetLayout) => l.i))
       const missingWidgets = enabledWidgets
         .filter(id => !savedWidgetIds.has(id))
-      
+
       // Используем автоматическое распределение для новых виджетов
       const newLayouts = missingWidgets.length > 0
         ? autoDistributeWidgets(missingWidgets, parsed.cols || DEFAULT_COLS)
         : []
-      
+
       // Смещаем новые виджеты вниз, чтобы они не перекрывали существующие
-      const maxY = enabledLayouts.length > 0 
-        ? Math.max(...enabledLayouts.map(l => l.y + l.h))
+      const maxY = enabledLayouts.length > 0
+        ? Math.max(...enabledLayouts.map((l: WidgetLayout) => l.y + l.h))
         : -1
-      
+
       const adjustedNewLayouts = newLayouts.map(layout => ({
         ...layout,
         y: layout.y + maxY + 1
       }))
-      
+
       const mergedLayouts = [...enabledLayouts, ...adjustedNewLayouts]
       const compactedLayouts = compactLayoutVertical(mergedLayouts, DEFAULT_COLS)
       const result = {
@@ -292,12 +291,12 @@ export const getDashboardLayoutSync = (): DashboardLayout => {
   } catch (error) {
     console.error('Ошибка загрузки layout:', error)
   }
-  
+
   const enabledWidgets = getAllEnabledWidgetsSync()
-  
+
   // Используем автоматическое распределение для равномерного размещения
   const layouts = autoDistributeWidgets(enabledWidgets, DEFAULT_COLS)
-  
+
   const result = {
     layouts,
     cols: DEFAULT_COLS,
@@ -310,19 +309,19 @@ export const getDashboardLayoutSync = (): DashboardLayout => {
 // Функция для автоматического равномерного распределения виджетов
 const autoDistributeWidgets = (widgetIds: string[], cols: number): WidgetLayout[] => {
   if (widgetIds.length === 0) return []
-  
+
   const layouts: WidgetLayout[] = []
   const occupied: boolean[][] = []
-  
+
   // Функция для проверки, помещается ли виджет на позиции
   const canPlace = (x: number, y: number, w: number, h: number): boolean => {
     if (x + w > cols) return false
-    
+
     for (let dx = 0; dx < w; dx++) {
       for (let dy = 0; dy < h; dy++) {
         const checkX = x + dx
         const checkY = y + dy
-        
+
         if (occupied[checkY] && occupied[checkY][checkX]) {
           return false
         }
@@ -330,14 +329,14 @@ const autoDistributeWidgets = (widgetIds: string[], cols: number): WidgetLayout[
     }
     return true
   }
-  
+
   // Функция для размещения виджета
   const placeWidget = (x: number, y: number, w: number, h: number): void => {
     for (let dx = 0; dx < w; dx++) {
       for (let dy = 0; dy < h; dy++) {
         const markX = x + dx
         const markY = y + dy
-        
+
         if (!occupied[markY]) {
           occupied[markY] = []
         }
@@ -345,15 +344,15 @@ const autoDistributeWidgets = (widgetIds: string[], cols: number): WidgetLayout[
       }
     }
   }
-  
+
   // Определяем оптимальные размеры для каждого виджета в зависимости от количества колонок
   const getOptimalSize = (widgetId: string, cols: number): { w: number; h: number } => {
     const defaultLayout = DEFAULT_LAYOUTS[widgetId] || { w: 4, h: 3, minW: 2, minH: 2 }
-    
+
     // Адаптируем размеры в зависимости от количества колонок
     let optimalW = defaultLayout.w
     let optimalH = defaultLayout.h
-    
+
     if (cols <= 4) {
       // Мобильные устройства - виджеты на всю ширину
       optimalW = cols
@@ -367,27 +366,27 @@ const autoDistributeWidgets = (widgetIds: string[], cols: number): WidgetLayout[
       optimalW = Math.min(cols / 2, defaultLayout.w * 1.2)
       optimalH = Math.max(3, Math.round(defaultLayout.h * 1.1))
     }
-    
+
     // Обеспечиваем минимальные размеры
     const minW = defaultLayout.minW || 2
     const minH = defaultLayout.minH || 2
-    
+
     return {
       w: Math.max(minW, Math.min(optimalW, cols)),
       h: Math.max(minH, optimalH)
     }
   }
-  
+
   // Распределяем виджеты равномерно
   for (const widgetId of widgetIds) {
-    const defaultLayout = DEFAULT_LAYOUTS[widgetId] || { w: 4, h: 3, minW: 2, minH: 2, minW: 2, minH: 2 }
+    const defaultLayout = DEFAULT_LAYOUTS[widgetId] || { w: 4, h: 3, minW: 2, minH: 2 }
     const { w, h } = getOptimalSize(widgetId, cols)
-    
+
     let placed = false
     let bestX = 0
     let bestY = 0
     let bestScore = Infinity
-    
+
     // Ищем лучшее место для виджета (минимизируем пустые пространства)
     for (let y = 0; y < 100 && !placed; y++) {
       for (let x = 0; x <= cols - w; x++) {
@@ -404,7 +403,7 @@ const autoDistributeWidgets = (widgetIds: string[], cols: number): WidgetLayout[
         }
       }
     }
-    
+
     if (placed) {
       placeWidget(bestX, bestY, w, h)
       layouts.push({
@@ -420,47 +419,47 @@ const autoDistributeWidgets = (widgetIds: string[], cols: number): WidgetLayout[
       })
     }
   }
-  
+
   return layouts
 }
 
 // Функция для вертикального компактирования layout - убирает пустые места
 const compactLayoutVertical = (layouts: WidgetLayout[], cols: number): WidgetLayout[] => {
   if (layouts.length === 0) return []
-  
+
   // Сортируем виджеты по текущей позиции (сверху вниз, слева направо)
   const sorted = [...layouts].sort((a, b) => {
     if (a.y !== b.y) return a.y - b.y
     return a.x - b.x
   })
-  
+
   // Массив для отслеживания занятых ячеек
   const occupied: boolean[][] = []
-  
+
   const compacted: WidgetLayout[] = []
-  
+
   for (const item of sorted) {
     let placed = false
     let newY = 0
     let newX = 0
-    
+
     // Ищем первое свободное место, начиная сверху
     while (!placed) {
       // Проверяем, помещается ли виджет на текущей позиции
       let fits = true
-      
+
       // Проверяем все ячейки, которые займет виджет
       for (let dx = 0; dx < item.w && fits; dx++) {
         for (let dy = 0; dy < item.h && fits; dy++) {
           const checkX = newX + dx
           const checkY = newY + dy
-          
+
           // Проверяем границы
           if (checkX >= cols || checkX < 0) {
             fits = false
             break
           }
-          
+
           // Проверяем, занята ли ячейка
           if (!occupied[checkY]) {
             occupied[checkY] = []
@@ -470,21 +469,21 @@ const compactLayoutVertical = (layouts: WidgetLayout[], cols: number): WidgetLay
           }
         }
       }
-      
+
       if (fits) {
         // Помечаем ячейки как занятые
         for (let dx = 0; dx < item.w; dx++) {
           for (let dy = 0; dy < item.h; dy++) {
             const markX = newX + dx
             const markY = newY + dy
-            
+
             if (!occupied[markY]) {
               occupied[markY] = []
             }
             occupied[markY][markX] = true
           }
         }
-        
+
         compacted.push({
           ...item,
           x: newX,
@@ -501,7 +500,7 @@ const compactLayoutVertical = (layouts: WidgetLayout[], cols: number): WidgetLay
       }
     }
   }
-  
+
   return compacted
 }
 
@@ -569,19 +568,19 @@ export const getDashboardLayoutByDashboardId = async (dashboardId: string): Prom
   } catch (error) {
     console.error('Ошибка загрузки layout для dashboard:', error)
   }
-  
+
   // Если layout не найден, создаем новый с автоматическим распределением
   console.log(`[WidgetLayout] Создаем новый layout для dashboard ${dashboardId}`)
   const enabledWidgets = await getAllEnabledWidgets()
   const layouts = autoDistributeWidgets(enabledWidgets, DEFAULT_COLS)
-  
+
   const newLayout = {
     layouts,
     cols: DEFAULT_COLS,
     rowHeight: DEFAULT_ROW_HEIGHT,
     dashboardId
   }
-  
+
   // Автоматически сохраняем новый layout на сервер в базу данных
   try {
     console.log(`[WidgetLayout] Сохранение нового layout для dashboard ${dashboardId} на сервер...`)
@@ -590,7 +589,7 @@ export const getDashboardLayoutByDashboardId = async (dashboardId: string): Prom
   } catch (error) {
     console.error(`[WidgetLayout] Ошибка сохранения нового layout для dashboard ${dashboardId}:`, error)
   }
-  
+
   return newLayout
 }
 
@@ -612,7 +611,7 @@ export const getAllDashboardLayouts = async (): Promise<DashboardLayouts> => {
     console.log('[WidgetLayout] Используем кэш dashboard layouts')
     return dashboardLayoutsCache
   }
-  
+
   try {
     console.log('[WidgetLayout] Загрузка dashboard layouts с сервера...')
     // Используем API для загрузки с сервера
@@ -642,7 +641,7 @@ export const getAllDashboardLayouts = async (): Promise<DashboardLayouts> => {
       console.error('[WidgetLayout] Ошибка загрузки из localStorage:', localError)
     }
   }
-  
+
   console.warn('[WidgetLayout] Возвращаем пустой объект (сервер недоступен и localStorage пуст)')
   dashboardLayoutsCache = {}
   return {}

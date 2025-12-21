@@ -21,7 +21,7 @@ interface LEDStyleProps {
 }
 
 // Стиль 1: Список (по умолчанию)
-export const LEDListStyle = ({ leds, onPowerToggle, onBrightnessChange, onBrightnessMouseDown, onBrightnessMouseUp, onColorChange }: LEDStyleProps) => {
+export const LEDListStyle = ({ leds, onPowerToggle, onBrightnessChange, onBrightnessMouseDown, onBrightnessMouseUp, onColorChange: _onColorChange }: LEDStyleProps) => {
   return (
     <div className="space-y-3 sm:space-y-4">
       {leds.map((led) => (
@@ -44,11 +44,10 @@ export const LEDListStyle = ({ leds, onPowerToggle, onBrightnessChange, onBright
             {!led.controlsDisabled && onPowerToggle && (
               <button
                 onClick={() => onPowerToggle(led)}
-                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-all flex items-center gap-1.5 flex-shrink-0 ${
-                  led.isOn 
-                    ? 'bg-green-600 hover:bg-green-700 text-white' 
-                    : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
-                }`}
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-all flex items-center gap-1.5 flex-shrink-0 ${led.isOn
+                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                  : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
+                  }`}
                 title={led.isOn ? 'כבה' : 'הדלק'}
               >
                 <Power size={16} />
@@ -87,7 +86,7 @@ export const LEDListStyle = ({ leds, onPowerToggle, onBrightnessChange, onBright
                   />
                 ) : (
                   <div className="w-full h-3 bg-dark-card rounded-lg relative">
-                    <div 
+                    <div
                       className="h-full bg-yellow-500 rounded-lg"
                       style={{ width: `${led.brightness}%` }}
                     />
@@ -102,7 +101,7 @@ export const LEDListStyle = ({ leds, onPowerToggle, onBrightnessChange, onBright
                     <Palette size={16} className="text-blue-400" />
                     <span className="text-xs sm:text-sm text-white font-medium">צבע</span>
                   </div>
-                  <div 
+                  <div
                     className="w-full h-12 rounded-lg border-2 border-dark-border"
                     style={{ backgroundColor: `rgb(${led.rgbColor.r}, ${led.rgbColor.g}, ${led.rgbColor.b})` }}
                   />
@@ -117,21 +116,19 @@ export const LEDListStyle = ({ leds, onPowerToggle, onBrightnessChange, onBright
 }
 
 // Стиль 2: Карточки
-export const LEDCardStyle = ({ leds, onPowerToggle, onBrightnessChange, onBrightnessMouseDown, onBrightnessMouseUp, onColorChange }: LEDStyleProps) => {
+export const LEDCardStyle = ({ leds, onPowerToggle, onBrightnessChange, onBrightnessMouseDown, onBrightnessMouseUp, onColorChange: _onColorChange }: LEDStyleProps) => {
   return (
-    <div className={`grid gap-3 sm:gap-4 ${
-      leds.length === 1 
-        ? 'grid-cols-1' 
-        : leds.length === 2 
-        ? 'grid-cols-1 md:grid-cols-2' 
+    <div className={`grid gap-3 sm:gap-4 ${leds.length === 1
+      ? 'grid-cols-1'
+      : leds.length === 2
+        ? 'grid-cols-1 md:grid-cols-2'
         : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-    }`}>
+      }`}>
       {leds.map((led) => (
-        <div 
-          key={led.id} 
-          className={`p-4 bg-dark-bg rounded-lg border transition-all ${
-            led.isOn ? 'border-yellow-500/50 shadow-lg shadow-yellow-500/10' : 'border-dark-border'
-          }`}
+        <div
+          key={led.id}
+          className={`p-4 bg-dark-bg rounded-lg border transition-all ${led.isOn ? 'border-yellow-500/50 shadow-lg shadow-yellow-500/10' : 'border-dark-border'
+            }`}
         >
           {/* Заголовок */}
           <div className="flex items-center justify-between mb-3">
@@ -151,11 +148,10 @@ export const LEDCardStyle = ({ leds, onPowerToggle, onBrightnessChange, onBright
             {!led.controlsDisabled && onPowerToggle && (
               <button
                 onClick={() => onPowerToggle(led)}
-                className={`p-2 rounded-lg transition-all ${
-                  led.isOn 
-                    ? 'bg-green-600 hover:bg-green-700 text-white' 
-                    : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
-                }`}
+                className={`p-2 rounded-lg transition-all ${led.isOn
+                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                  : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
+                  }`}
               >
                 <Power size={16} />
               </button>
@@ -188,7 +184,7 @@ export const LEDCardStyle = ({ leds, onPowerToggle, onBrightnessChange, onBright
                   />
                 ) : (
                   <div className="w-full h-2 bg-dark-card rounded-lg relative">
-                    <div 
+                    <div
                       className="h-full bg-yellow-500 rounded-lg"
                       style={{ width: `${led.brightness}%` }}
                     />
@@ -198,7 +194,7 @@ export const LEDCardStyle = ({ leds, onPowerToggle, onBrightnessChange, onBright
 
               {/* RGB Color */}
               {led.type === 'rgb' && (
-                <div 
+                <div
                   className="w-full h-16 rounded-lg border-2 border-dark-border"
                   style={{ backgroundColor: `rgb(${led.rgbColor.r}, ${led.rgbColor.g}, ${led.rgbColor.b})` }}
                 />
@@ -212,7 +208,7 @@ export const LEDCardStyle = ({ leds, onPowerToggle, onBrightnessChange, onBright
 }
 
 // Стиль 3: Компактный
-export const LEDCompactStyle = ({ leds, onPowerToggle, onBrightnessChange, onBrightnessMouseDown, onBrightnessMouseUp, onColorChange }: LEDStyleProps) => {
+export const LEDCompactStyle = ({ leds, onPowerToggle, onBrightnessChange: _onBrightnessChange, onBrightnessMouseDown: _onBrightnessMouseDown, onBrightnessMouseUp: _onBrightnessMouseUp, onColorChange: _onColorChange }: LEDStyleProps) => {
   return (
     <div className="space-y-2">
       {leds.map((led) => (
@@ -227,7 +223,7 @@ export const LEDCompactStyle = ({ leds, onPowerToggle, onBrightnessChange, onBri
             </div>
           </div>
           {led.isOn && led.type === 'rgb' && (
-            <div 
+            <div
               className="w-8 h-8 rounded border border-dark-border flex-shrink-0"
               style={{ backgroundColor: `rgb(${led.rgbColor.r}, ${led.rgbColor.g}, ${led.rgbColor.b})` }}
             />
@@ -235,11 +231,10 @@ export const LEDCompactStyle = ({ leds, onPowerToggle, onBrightnessChange, onBri
           {!led.controlsDisabled && onPowerToggle && (
             <button
               onClick={() => onPowerToggle(led)}
-              className={`p-1.5 rounded transition-all ${
-                led.isOn 
-                  ? 'bg-green-600 hover:bg-green-700 text-white' 
-                  : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
-              }`}
+              className={`p-1.5 rounded transition-all ${led.isOn
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
+                }`}
             >
               <Power size={14} />
             </button>
@@ -251,28 +246,27 @@ export const LEDCompactStyle = ({ leds, onPowerToggle, onBrightnessChange, onBri
 }
 
 // Стиль 4: Современный (Modern)
-export const LEDModernStyle = ({ leds, onPowerToggle, onBrightnessChange, onBrightnessMouseDown, onBrightnessMouseUp, onColorChange }: LEDStyleProps) => {
+export const LEDModernStyle = ({ leds, onPowerToggle, onBrightnessChange, onBrightnessMouseDown, onBrightnessMouseUp, onColorChange: _onColorChange }: LEDStyleProps) => {
   return (
     <div className="space-y-4">
       {leds.map((led) => (
-        <div 
-          key={led.id} 
-          className={`relative overflow-hidden rounded-xl border transition-all ${
-            led.isOn 
-              ? 'border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 to-transparent' 
-              : 'border-dark-border bg-dark-bg'
-          }`}
+        <div
+          key={led.id}
+          className={`relative overflow-hidden rounded-xl border transition-all ${led.isOn
+            ? 'border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 to-transparent'
+            : 'border-dark-border bg-dark-bg'
+            }`}
         >
           {/* Фоновый градиент для RGB */}
           {led.isOn && led.type === 'rgb' && (
-            <div 
+            <div
               className="absolute inset-0 opacity-20"
-              style={{ 
+              style={{
                 background: `linear-gradient(135deg, rgb(${led.rgbColor.r}, ${led.rgbColor.g}, ${led.rgbColor.b}) 0%, transparent 100%)`
               }}
             />
           )}
-          
+
           <div className="relative p-4">
             {/* Заголовок */}
             <div className="flex items-center justify-between mb-4">
@@ -290,11 +284,10 @@ export const LEDModernStyle = ({ leds, onPowerToggle, onBrightnessChange, onBrig
               {!led.controlsDisabled && onPowerToggle && (
                 <button
                   onClick={() => onPowerToggle(led)}
-                  className={`px-4 py-2 rounded-xl transition-all font-medium text-sm ${
-                    led.isOn 
-                      ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/30' 
-                      : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                  }`}
+                  className={`px-4 py-2 rounded-xl transition-all font-medium text-sm ${led.isOn
+                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/30'
+                    : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                    }`}
                 >
                   <Power size={18} className="inline mr-1" />
                   {led.isOn ? 'כבה' : 'הדלק'}
@@ -333,7 +326,7 @@ export const LEDModernStyle = ({ leds, onPowerToggle, onBrightnessChange, onBrig
                     />
                   ) : (
                     <div className="w-full h-4 bg-dark-card rounded-lg relative overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-lg"
                         style={{ width: `${led.brightness}%` }}
                       />
@@ -348,9 +341,9 @@ export const LEDModernStyle = ({ leds, onPowerToggle, onBrightnessChange, onBrig
                       <Palette size={18} className="text-blue-400" />
                       <span className="text-sm font-medium text-white">צבע</span>
                     </div>
-                    <div 
+                    <div
                       className="w-full h-20 rounded-xl border-2 border-dark-border shadow-lg transition-all hover:scale-[1.02]"
-                      style={{ 
+                      style={{
                         backgroundColor: `rgb(${led.rgbColor.r}, ${led.rgbColor.g}, ${led.rgbColor.b})`,
                         boxShadow: `0 8px 32px rgba(${led.rgbColor.r}, ${led.rgbColor.g}, ${led.rgbColor.b}, 0.3)`
                       }}

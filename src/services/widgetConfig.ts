@@ -18,8 +18,6 @@ export interface WaterHeaterConfig {
   style?: WaterHeaterStyle
 }
 
-export type SensorsStyle = 'list' | 'card' | 'compact' | 'grid'
-
 export interface SensorConfig {
   name: string
   entityId: string | null
@@ -28,8 +26,6 @@ export interface SensorConfig {
   batteryEntityId?: string | null
 }
 
-export type SensorsStyle = 'list' | 'card' | 'compact' | 'grid'
-export type MotorsStyle = 'list' | 'card' | 'compact'
 
 export interface MotorConfig {
   entityId: string | null
@@ -247,7 +243,7 @@ export const getWidgetConfig = async (): Promise<WidgetConfig> => {
     console.log('[WidgetConfig] Загрузка конфигурации с сервера...')
     const config = await getWidgetConfigFromAPI()
     console.log('[WidgetConfig] Конфигурация загружена с сервера:', config)
-    
+
     // Убеждаемся, что структура правильная
     if (!config.ac || !config.ac.airConditioners) {
       if (config.ac && 'entityId' in config.ac) {
@@ -346,17 +342,17 @@ const cleanConfigForSerialization = (obj: any): any => {
   if (obj === null || typeof obj !== 'object') {
     return obj
   }
-  
+
   // Если это DOM-элемент или React-компонент, пропускаем
   if (obj instanceof HTMLElement || obj instanceof Element || obj.constructor?.name === 'FiberNode') {
     return undefined
   }
-  
+
   // Если это массив
   if (Array.isArray(obj)) {
     return obj.map(cleanConfigForSerialization).filter(item => item !== undefined)
   }
-  
+
   // Если это объект
   const cleaned: any = {}
   for (const key in obj) {
@@ -365,7 +361,7 @@ const cleanConfigForSerialization = (obj: any): any => {
       if (key.startsWith('__react') || key.startsWith('__FIBER') || key === 'stateNode') {
         continue
       }
-      
+
       try {
         const value = cleanConfigForSerialization(obj[key])
         if (value !== undefined) {
@@ -384,7 +380,7 @@ export const saveWidgetConfig = async (config: WidgetConfig): Promise<void> => {
   try {
     // Очищаем конфигурацию от циклических ссылок перед сохранением
     const cleanedConfig = cleanConfigForSerialization(config) as WidgetConfig
-    
+
     console.log('[WidgetConfig] Сохранение конфигурации на сервер...', {
       ambientLighting: cleanedConfig.ambientLighting?.lights?.length || 0,
       ac: cleanedConfig.ac?.airConditioners?.length || 0,
@@ -455,32 +451,32 @@ export const updateAmbientLightingStyle = async (style: AmbientLightingStyle): P
 export const updateACConfigs = async (airConditioners: ACConfig[]): Promise<void> => {
   const config = await getWidgetConfig()
   console.log('updateACConfigs: текущая конфигурация перед сохранением:', config)
-  
+
   // Убеждаемся, что структура правильная
   if (!config.ac) {
     config.ac = { airConditioners: [] }
   }
-  
+
   // Удаляем старый формат, если он есть
   if ('entityId' in config.ac) {
     delete (config.ac as any).entityId
     delete (config.ac as any).name
   }
-  
+
   // Устанавливаем новый формат
   config.ac.airConditioners = airConditioners
-  
+
   console.log('updateACConfigs: конфигурация после обновления:', config)
   console.log('updateACConfigs: config.ac:', config.ac)
   console.log('updateACConfigs: config.ac.airConditioners:', config.ac.airConditioners)
-  
+
   await saveWidgetConfig(config)
-  
+
   // Проверяем, что сохранилось правильно
   const saved = await getWidgetConfig()
   console.log('updateACConfigs: проверка сохраненной конфигурации:', saved)
   console.log('updateACConfigs: сохраненные AC конфигурации:', saved.ac?.airConditioners)
-  
+
   console.log('AC конфигурация сохранена:', airConditioners)
 }
 
@@ -488,14 +484,14 @@ export const getACConfigs = async (): Promise<ACConfig[]> => {
   const config = await getWidgetConfig()
   console.log('getACConfigs: полная конфигурация с сервера:', config)
   console.log('getACConfigs: config.ac:', config.ac)
-  
+
   // Проверяем наличие нового формата (airConditioners)
   if (config.ac && 'airConditioners' in config.ac && Array.isArray(config.ac.airConditioners)) {
     const result = config.ac.airConditioners
     console.log('AC конфигурация загружена (новый формат):', result)
     return result
   }
-  
+
   // Поддержка старого формата для миграции
   if (config.ac && 'entityId' in config.ac && !('airConditioners' in config.ac)) {
     const oldConfig = config.ac as any
@@ -511,7 +507,7 @@ export const getACConfigs = async (): Promise<ACConfig[]> => {
     }
     return []
   }
-  
+
   // Если структура неправильная или отсутствует
   const result = config.ac?.airConditioners || []
   console.log('AC конфигурация загружена (fallback):', result)

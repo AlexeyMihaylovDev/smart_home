@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../../context/HomeAssistantContext'
-import { Entity } from '../../services/homeAssistantAPI'
-import { Cloud, Sun, Wind, Calendar as CalendarIcon } from 'lucide-react'
+import { Cloud, Sun, Wind } from 'lucide-react'
 
 interface WeatherData {
   condition: string
@@ -47,15 +46,15 @@ const WeatherCalendarWidget = () => {
     try {
       // Пытаемся найти weather entity
       const states = await api.getStates()
-      const weatherEntity = states.find(e => 
-        e.entity_id.startsWith('weather.') || 
+      const weatherEntity = states.find(e =>
+        e.entity_id.startsWith('weather.') ||
         e.entity_id.includes('weather') ||
         e.entity_id.includes('forecast')
       )
 
       if (weatherEntity) {
         const attrs = weatherEntity.attributes
-        
+
         // Получаем текущую погоду
         const condition = attrs.condition || attrs.state || 'Unknown'
         const temperature = attrs.temperature || 0
@@ -152,21 +151,21 @@ const WeatherCalendarWidget = () => {
     const startingDayOfWeek = firstDay.getDay()
 
     const days = []
-    
+
     // Пустые дни в начале месяца
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null)
     }
-    
+
     // Дни месяца
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(day)
     }
-    
+
     return days
   }
 
-  const monthNames = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 
+  const monthNames = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני',
     'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר']
   const dayNames = ['א\'', 'ב\'', 'ג\'', 'ד\'', 'ה\'', 'ו\'', 'ש\'']
 
@@ -177,9 +176,9 @@ const WeatherCalendarWidget = () => {
   const isToday = (day: number | null) => {
     if (!day) return false
     const today = new Date()
-    return day === today.getDate() && 
-           currentDate.getMonth() === today.getMonth() && 
-           currentDate.getFullYear() === today.getFullYear()
+    return day === today.getDate() &&
+      currentDate.getMonth() === today.getMonth() &&
+      currentDate.getFullYear() === today.getFullYear()
   }
 
   const days = getDaysInMonth(currentDate)
@@ -227,7 +226,7 @@ const WeatherCalendarWidget = () => {
         <div className="mb-1 flex-shrink-0">
           <h3 className="text-sm font-bold">לוח שנה</h3>
         </div>
-        
+
         {/* Текущее время - перемещено вверх */}
         <div className="mb-1.5 pb-1.5 border-b border-dark-border text-center flex-shrink-0">
           <div className="text-sm font-bold">
@@ -279,17 +278,16 @@ const WeatherCalendarWidget = () => {
             <button
               key={index}
               onClick={() => day && setSelectedDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), day))}
-              className={`flex items-center justify-center text-[10px] rounded transition-colors ${
-                !day 
-                  ? 'cursor-default' 
-                  : isToday(day)
+              className={`flex items-center justify-center text-[10px] rounded transition-colors ${!day
+                ? 'cursor-default'
+                : isToday(day)
                   ? 'bg-blue-600 text-white font-bold'
-                  : selectedDate.getDate() === day && 
+                  : selectedDate.getDate() === day &&
                     selectedDate.getMonth() === currentDate.getMonth() &&
                     selectedDate.getFullYear() === currentDate.getFullYear()
-                  ? 'bg-dark-cardHover text-white'
-                  : 'hover:bg-dark-cardHover text-dark-textSecondary'
-              }`}
+                    ? 'bg-dark-cardHover text-white'
+                    : 'hover:bg-dark-cardHover text-dark-textSecondary'
+                }`}
               style={{ minHeight: '20px' }}
             >
               {day}

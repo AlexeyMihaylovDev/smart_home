@@ -3,14 +3,14 @@ import { useHomeAssistant } from '../../context/HomeAssistantContext'
 import { Entity } from '../../services/homeAssistantAPI'
 import { getVacuumConfigsSync, VacuumConfig } from '../../services/widgetConfig'
 import { getConnectionConfig } from '../../services/apiService'
-import { 
-  Play, Pause, Square, Home, Battery, Map as MapIcon, 
-  Clock, Settings, ChevronDown, ChevronUp, 
-  RefreshCw, Navigation, Zap, Activity, 
+import {
+  Play, Pause, Square, Home, Battery, Map as MapIcon,
+  Clock, Settings, ChevronDown, ChevronUp,
+  Navigation, Zap, Activity,
   Gauge, Timer, Ruler, AlertCircle, CheckCircle2,
   ZoomIn, ZoomOut, RotateCcw, Box, Droplet, Wind,
   Info, Database, Calendar, Hash, Menu, X, MapPin,
-  Target, Layers, Wrench, Power, RotateCw
+  Target, Layers, RotateCw
 } from 'lucide-react'
 
 interface VacuumUnitProps {
@@ -143,40 +143,40 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
   // Получаем URL для 3D карты (если доступно)
   const getMapUrl = (): string | null => {
     if (!mapImage) return null
-    
+
     if (map3D) {
       // Пробуем найти 3D версию карты в атрибутах
-      const map3DUrl = mapEntity?.attributes.map_3d || 
-                       mapEntity?.attributes.map_image_3d ||
-                       entity?.attributes.map_3d ||
-                       entity?.attributes.map_image_3d
-      
+      const map3DUrl = mapEntity?.attributes.map_3d ||
+        mapEntity?.attributes.map_image_3d ||
+        entity?.attributes.map_3d ||
+        entity?.attributes.map_image_3d
+
       if (map3DUrl) {
         if (!map3DUrl.startsWith('http')) {
           return map3DUrl.startsWith('/') ? `${haBaseUrl}${map3DUrl}` : `${haBaseUrl}/${map3DUrl}`
         }
         return map3DUrl
       }
-      
+
       // Если 3D версии нет, используем обычную карту с 3D эффектом
       return mapImage
     }
-    
+
     return mapImage
   }
 
   useEffect(() => {
     if (!haBaseUrl) return // Ждем загрузки базового URL
-    
+
     setMapError(false)
-    
+
     // Загружаем карту из map entity или из основного entity
     if (mapEntity) {
       // Пробуем разные атрибуты для карты
-      let mapUrl = mapEntity.attributes.map_image || 
-                   mapEntity.attributes.entity_picture || 
-                   mapEntity.attributes.image
-      
+      let mapUrl = mapEntity.attributes.map_image ||
+        mapEntity.attributes.entity_picture ||
+        mapEntity.attributes.image
+
       if (mapUrl) {
         // Если URL относительный, делаем его абсолютным
         if (!mapUrl.startsWith('http')) {
@@ -191,13 +191,13 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
         setMapImage(null)
       }
     } else if (entity) {
-      const mapUrl = entity.attributes.map_image || 
-                     entity.attributes.entity_picture || 
-                     entity.attributes.image
+      const mapUrl = entity.attributes.map_image ||
+        entity.attributes.entity_picture ||
+        entity.attributes.image
       if (mapUrl) {
         // Если URL относительный, делаем его абсолютным
-        const fullUrl = mapUrl.startsWith('http') 
-          ? mapUrl 
+        const fullUrl = mapUrl.startsWith('http')
+          ? mapUrl
           : (mapUrl.startsWith('/') ? `${haBaseUrl}${mapUrl}` : `${haBaseUrl}/${mapUrl}`)
         setMapImage(fullUrl)
       } else {
@@ -219,7 +219,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
   const fanSpeedList = entity?.attributes.fan_speed_list || []
   const currentRoom = entity?.attributes.current_room
   const friendlyName = vacuumConfig.name || entity?.attributes.friendly_name || vacuumConfig.entityId || 'Vacuum'
-  
+
   // Дополнительная информация из атрибутов
   const cleanedArea = entity?.attributes.cleaned_area
   const cleaningTime = entity?.attributes.cleaning_time
@@ -231,7 +231,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
   const sideBrushLife = entity?.attributes.side_brush_life
   const filterLife = entity?.attributes.filter_life
   const sensorDirtyLife = entity?.attributes.sensor_dirty_life
-  
+
   // Дополнительные важные атрибуты из Dreame vacuum
   const waterBoxLife = entity?.attributes.water_box_life
   const mopLife = entity?.attributes.mop_life
@@ -250,7 +250,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
   const firmwareVersion = entity?.attributes.firmware_version
   const serialNumber = entity?.attributes.serial_number
   const model = entity?.attributes.model
-  
+
   // Получаем данные из связанных entities (ищем по паттернам)
   const getRelatedEntityValue = (pattern: string): string | undefined => {
     for (const [id, entity] of relatedEntities.entries()) {
@@ -260,11 +260,11 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
     }
     return undefined
   }
-  
+
   const mappingTime = getRelatedEntityValue('mapping_time') || getRelatedEntityValue('mapping')
   const cleanedAreaSensor = getRelatedEntityValue('cleaned_area')
   const cleaningTimeSensor = getRelatedEntityValue('cleaning_time')
-  
+
   // Форматируем время
   const formatTime = (time: any): string => {
     if (!time) return '-'
@@ -275,7 +275,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
     }
     return String(time)
   }
-  
+
   // Форматируем площадь
   const formatArea = (area: any): string => {
     if (!area) return '-'
@@ -284,7 +284,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
     }
     return String(area)
   }
-  
+
   // Автообновление карты каждые 5 секунд во время уборки
   useEffect(() => {
     if (isCleaning && mapImage && !mapError) {
@@ -302,7 +302,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
     onLoadingChange(true)
     try {
       const serviceData: any = {}
-      
+
       // Добавляем параметры типа уборки и количества повторений
       if (cleaningType) {
         serviceData.cleaning_mode = cleaningType
@@ -422,7 +422,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
           domain: 'vacuum',
           service: 'send_command',
           target: { entity_id: vacuumConfig.entityId },
-          service_data: { 
+          service_data: {
             command: 'app_segment_clean',
             params: [roomId]
           }
@@ -486,9 +486,9 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
   }
 
   // Обработчик клика на комнату на карте
-  const handleRoomClick = (roomId: string | number, roomEntityId?: string) => {
+  const handleRoomClick = (roomId: string | number, _roomEntityId?: string) => {
     if (!roomSelectionMode) return
-    
+
     const newSelected = new Set(selectedRooms)
     if (newSelected.has(roomId)) {
       newSelected.delete(roomId)
@@ -507,14 +507,14 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
     const roomsArray = Array.from(selectedRooms)
     setRoomSelectionMode(false)
     setSelectedRooms(new Set())
-    
+
     try {
       // Проверяем, есть ли Customized room cleaning entities (firmware 1156+)
       const roomEntities = Array.from(relatedEntities.values()).filter(e => {
         const eId = e.entity_id.toLowerCase()
         return eId.includes('_room_')
       })
-      
+
       // Если есть room entities, используем их для уборки
       if (roomEntities.length > 0) {
         const selectedRoomEntities = roomEntities.filter(e => {
@@ -523,7 +523,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
           const roomId = parseInt(roomIdMatch[1])
           return roomsArray.includes(roomId) || roomsArray.includes(String(roomId))
         })
-        
+
         // Вызываем сервис для каждой выбранной комнаты через её entity
         for (const roomEntity of selectedRoomEntities) {
           try {
@@ -552,13 +552,13 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
             console.error(`Ошибка вызова сервиса для комнаты ${roomEntity.entity_id}:`, error)
           }
         }
-        
+
         // Если вызвали через room entities, выходим
         if (selectedRoomEntities.length > 0) {
           return
         }
       }
-      
+
       // Иначе используем стандартный способ через segments
       try {
         await api.callService({
@@ -574,7 +574,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
             domain: 'vacuum',
             service: 'send_command',
             target: { entity_id: vacuumConfig.entityId },
-            service_data: { 
+            service_data: {
               command: 'app_segment_clean',
               params: roomsArray
             }
@@ -616,38 +616,38 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
     { id: 'reset_mop_life', label: 'איפוס סמרטוט', icon: RotateCw, description: 'איפוס מונה חיי סמרטוט' },
     { id: 'reset_dust_collection_life', label: 'איפוס מיכל אבק', icon: RotateCw, description: 'איפוס מונה חיי מיכל אבק' },
   ]
-  
+
   // Функция для вызова сервиса с меткой
   const handleServiceClick = (service: typeof dreameServices[0]) => {
     callDreameService(service.id, undefined, service.label)
   }
 
-  const getRooms = (): Array<{ 
-    id: string | number, 
-    name: string, 
-    x?: number, 
-    y?: number, 
+  const getRooms = (): Array<{
+    id: string | number,
+    name: string,
+    x?: number,
+    y?: number,
     icon?: string,
-    polygon?: Array<{x: number, y: number}>,
-    bounds?: {minX: number, minY: number, maxX: number, maxY: number}
+    polygon?: Array<{ x: number, y: number }>,
+    bounds?: { minX: number, minY: number, maxX: number, maxY: number }
   }> => {
     if (!entity) return []
-    
+
     // Пробуем разные источники данных о комнатах
-    const rooms = entity.attributes.rooms || 
-                  entity.attributes.room_list || 
-                  entity.attributes.segments ||
-                  entity.attributes.map_segments || []
-    
+    const rooms = entity.attributes.rooms ||
+      entity.attributes.room_list ||
+      entity.attributes.segments ||
+      entity.attributes.map_segments || []
+
     if (Array.isArray(rooms)) {
       return rooms.map((room: any) => {
         // Получаем координаты из разных возможных полей
         const x = room.x || room.center_x || room.position_x || room.center?.x
         const y = room.y || room.center_y || room.position_y || room.center?.y
-        
+
         // Получаем полигон комнаты (если есть)
         const polygon = room.polygon || room.outline || room.boundary
-        
+
         // Вычисляем границы комнаты
         let bounds = undefined
         if (polygon && Array.isArray(polygon) && polygon.length > 0) {
@@ -660,7 +660,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
             maxY: Math.max(...ys)
           }
         }
-        
+
         return {
           id: room.id || room.segment_id || room.segment || room,
           name: room.name || room.label || room.friendly_name || `Room ${room.id || room.segment_id || room}`,
@@ -672,35 +672,35 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
         }
       }).filter(room => room.id !== undefined && room.id !== null)
     }
-    
+
     // Если комнаты не найдены, пробуем получить из related entities (Customized room cleaning entities)
     if (relatedEntities && relatedEntities.size > 0) {
       const roomEntities = Array.from(relatedEntities.values()).filter(e => {
         const eId = e.entity_id.toLowerCase()
         // Ищем room entities: vacuum.{name}_room_{id}, button.{name}_room_{id}, switch.{name}_room_{id}
-        return eId.includes('_room_') || 
-               eId.includes('room') || 
-               eId.includes('segment') ||
-               (e.entity_id.startsWith('button.') && e.attributes.friendly_name?.toLowerCase().includes('room'))
+        return eId.includes('_room_') ||
+          eId.includes('room') ||
+          eId.includes('segment') ||
+          (e.entity_id.startsWith('button.') && e.attributes.friendly_name?.toLowerCase().includes('room'))
       })
-      
+
       return roomEntities.map((e: Entity) => {
         // Извлекаем ID комнаты из entity_id (например, из vacuum.x50_ultra_complete_room_1 получаем 1)
         const roomIdMatch = e.entity_id.match(/_room_(\d+)/i)
         const roomId = roomIdMatch ? parseInt(roomIdMatch[1]) : e.entity_id
-        
+
         return {
           id: roomId,
-          name: e.attributes.friendly_name || 
-                e.attributes.name || 
-                e.entity_id.split('.').slice(1).join('.').replace(/_room_\d+/i, ''),
+          name: e.attributes.friendly_name ||
+            e.attributes.name ||
+            e.entity_id.split('.').slice(1).join('.').replace(/_room_\d+/i, ''),
           x: e.attributes.x || e.attributes.center_x || e.attributes.position_x,
           y: e.attributes.y || e.attributes.center_y || e.attributes.position_y,
           entityId: e.entity_id // Сохраняем entity_id для вызова сервиса
         }
       })
     }
-    
+
     return []
   }
 
@@ -737,18 +737,16 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
       {/* Заголовок */}
       <div className="flex items-center justify-between mb-2 sm:mb-3">
         <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
-          <div className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${
-            isCleaning ? 'bg-green-500/20' : 
-            isPaused ? 'bg-yellow-500/20' : 
-            isDocked ? 'bg-blue-500/20' : 
-            'bg-gray-500/20'
-          }`}>
-            <Navigation size={16} className={`sm:w-[18px] sm:h-[18px] ${
-              isCleaning ? 'text-green-400' : 
-              isPaused ? 'text-yellow-400' : 
-              isDocked ? 'text-blue-400' : 
-              'text-gray-400'
-            }`} />
+          <div className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${isCleaning ? 'bg-green-500/20' :
+            isPaused ? 'bg-yellow-500/20' :
+              isDocked ? 'bg-blue-500/20' :
+                'bg-gray-500/20'
+            }`}>
+            <Navigation size={16} className={`sm:w-[18px] sm:h-[18px] ${isCleaning ? 'text-green-400' :
+              isPaused ? 'text-yellow-400' :
+                isDocked ? 'text-blue-400' :
+                  'text-gray-400'
+              }`} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-medium text-sm sm:text-base text-white truncate" title={friendlyName}>
@@ -773,16 +771,15 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
             {/* Переключатель 2D/3D */}
             <button
               onClick={() => setMap3D(!map3D)}
-              className={`p-2 rounded-lg backdrop-blur-md shadow-lg transition-all ${
-                map3D 
-                  ? 'bg-blue-600/90 text-white' 
-                  : 'bg-dark-card/90 text-dark-textSecondary hover:text-white'
-              }`}
+              className={`p-2 rounded-lg backdrop-blur-md shadow-lg transition-all ${map3D
+                ? 'bg-blue-600/90 text-white'
+                : 'bg-dark-card/90 text-dark-textSecondary hover:text-white'
+                }`}
               title={map3D ? 'Переключить на 2D' : 'Переключить на 3D'}
             >
               <Box size={16} />
             </button>
-            
+
             {/* Кнопки зума */}
             <div className="flex flex-col gap-1 bg-dark-card/90 backdrop-blur-md rounded-lg p-1">
               <button
@@ -811,7 +808,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                 </button>
               )}
             </div>
-            
+
             {/* Индикатор уровня зума */}
             {mapZoom !== 1 && (
               <div className="px-2 py-1 bg-dark-card/90 backdrop-blur-md rounded text-xs text-white text-center">
@@ -819,7 +816,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
               </div>
             )}
           </div>
-          
+
           {/* Индикатор режима выбора комнат */}
           {roomSelectionMode && (
             <div className="absolute top-2 left-2 z-30 px-3 py-2 bg-green-600/90 backdrop-blur-md rounded-lg shadow-lg flex items-center gap-2 pointer-events-auto">
@@ -837,7 +834,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
               </button>
             </div>
           )}
-          
+
           {/* Индикатор текущего режима работы */}
           {currentMode && !roomSelectionMode && (
             <div className="absolute top-2 left-2 z-30 px-3 py-2 bg-blue-600/90 backdrop-blur-md rounded-lg shadow-lg flex items-center gap-2 pointer-events-auto">
@@ -845,7 +842,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
               <span className="text-xs font-medium text-white">{currentMode}</span>
             </div>
           )}
-          
+
           {/* Список выбранных комнат */}
           {roomSelectionMode && selectedRooms.size > 0 && (
             <div className="absolute bottom-2 left-2 right-2 z-20 bg-dark-card/95 backdrop-blur-md rounded-lg shadow-lg p-2 max-h-32 overflow-y-auto">
@@ -886,11 +883,11 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
           )}
 
           {/* Контейнер карты с возможностью зума и перетаскивания */}
-          <div 
+          <div
             className="relative w-full bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-pink-900/20 overflow-hidden"
-            style={{ 
-              aspectRatio: '1', 
-              minHeight: '200px', 
+            style={{
+              aspectRatio: '1',
+              minHeight: '200px',
               maxHeight: '400px',
               cursor: roomSelectionMode ? 'crosshair' : (mapZoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default')
             }}
@@ -920,14 +917,14 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
             <div
               className="w-full h-full transition-transform duration-200 ease-out"
               style={{
-                transform: map3D 
+                transform: map3D
                   ? `scale(${mapZoom}) translate(${mapPosition.x / mapZoom}px, ${mapPosition.y / mapZoom}px) perspective(1000px) rotateX(15deg) rotateY(-10deg)`
                   : `scale(${mapZoom}) translate(${mapPosition.x / mapZoom}px, ${mapPosition.y / mapZoom}px)`,
                 transformOrigin: 'center center',
                 transformStyle: 'preserve-3d',
               }}
             >
-              <img 
+              <img
                 key={`map-${mapRefreshKey}-${map3D ? '3d' : '2d'}`}
                 src={addTimestampToUrl(getMapUrl() || mapImage)}
                 alt="Map"
@@ -942,20 +939,20 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                 }}
                 onLoad={() => setMapError(false)}
               />
-              
+
               {/* Интерактивные кликабельные области для комнат на карте */}
               {roomSelectionMode && rooms.length > 0 && (
                 <>
                   {rooms.map((room) => {
                     const isSelected = selectedRooms.has(room.id)
-                    
+
                     // Если есть границы комнаты, создаем кликабельную область
                     if (room.bounds) {
                       const width = room.bounds.maxX - room.bounds.minX
                       const height = room.bounds.maxY - room.bounds.minY
                       const left = room.bounds.minX
                       const top = room.bounds.minY
-                      
+
                       return (
                         <div
                           key={room.id}
@@ -990,22 +987,20 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                                 {isSelected && (
                                   <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-75" />
                                 )}
-                                <div className={`relative rounded-full p-1.5 shadow-lg ${
-                                  isSelected 
-                                    ? 'bg-green-600 border-2 border-white' 
-                                    : 'bg-blue-500/70 border border-blue-300'
-                                }`}>
+                                <div className={`relative rounded-full p-1.5 shadow-lg ${isSelected
+                                  ? 'bg-green-600 border-2 border-white'
+                                  : 'bg-blue-500/70 border border-blue-300'
+                                  }`}>
                                   {isSelected ? (
                                     <CheckCircle2 size={16} className="text-white" />
                                   ) : (
                                     <Box size={16} className="text-white" />
                                   )}
                                 </div>
-                                <div className={`absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-2 py-0.5 rounded text-[10px] font-medium whitespace-nowrap ${
-                                  isSelected
-                                    ? 'bg-green-600/90 text-white'
-                                    : 'bg-blue-600/90 text-white'
-                                }`}>
+                                <div className={`absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-2 py-0.5 rounded text-[10px] font-medium whitespace-nowrap ${isSelected
+                                  ? 'bg-green-600/90 text-white'
+                                  : 'bg-blue-600/90 text-white'
+                                  }`}>
                                   {room.name}
                                 </div>
                               </div>
@@ -1014,16 +1009,15 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                         </div>
                       )
                     }
-                    
+
                     // Если есть только координаты центра, показываем маркер
                     if (room.x !== undefined && room.y !== undefined) {
                       const roomEntityId = (room as any).entityId
                       return (
                         <div
                           key={room.id}
-                          className={`absolute z-30 cursor-pointer transition-all ${
-                            isSelected ? 'pointer-events-auto' : 'pointer-events-auto'
-                          }`}
+                          className={`absolute z-30 cursor-pointer transition-all ${isSelected ? 'pointer-events-auto' : 'pointer-events-auto'
+                            }`}
                           style={{
                             left: `${room.x}%`,
                             top: `${room.y}%`,
@@ -1039,39 +1033,36 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                             {isSelected && (
                               <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-75" />
                             )}
-                            <div className={`relative rounded-full p-2 shadow-lg transition-all ${
-                              isSelected 
-                                ? 'bg-green-600 border-2 border-white' 
-                                : 'bg-blue-500/70 border border-blue-300 hover:bg-blue-600'
-                            }`}>
+                            <div className={`relative rounded-full p-2 shadow-lg transition-all ${isSelected
+                              ? 'bg-green-600 border-2 border-white'
+                              : 'bg-blue-500/70 border border-blue-300 hover:bg-blue-600'
+                              }`}>
                               {isSelected ? (
                                 <CheckCircle2 size={20} className="text-white" />
                               ) : (
                                 <Box size={20} className="text-white" />
                               )}
                             </div>
-                            <div className={`absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
-                              isSelected
-                                ? 'bg-green-600/90 backdrop-blur-md text-white'
-                                : 'bg-blue-600/90 backdrop-blur-md text-white'
-                            }`}>
+                            <div className={`absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${isSelected
+                              ? 'bg-green-600/90 backdrop-blur-md text-white'
+                              : 'bg-blue-600/90 backdrop-blur-md text-white'
+                              }`}>
                               {room.name}
                             </div>
                           </div>
                         </div>
                       )
                     }
-                    
+
                     return null
                   })}
                 </>
               )}
             </div>
             {/* Overlay с информацией - не блокируем клики в режиме выбора комнат */}
-            <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 ${
-              roomSelectionMode ? 'pointer-events-none' : 'pointer-events-none'
-            }`} />
-            
+            <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 ${roomSelectionMode ? 'pointer-events-none' : 'pointer-events-none'
+              }`} />
+
             {/* Текущая комната */}
             {currentRoom && (
               <div className="absolute bottom-2 left-2 px-2.5 py-1.5 bg-blue-600/90 backdrop-blur-md rounded-lg text-xs font-medium text-white shadow-lg flex items-center gap-1.5 pointer-events-auto z-20">
@@ -1079,7 +1070,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                 {currentRoom}
               </div>
             )}
-            
+
             {/* Статус очистки */}
             {isCleaning && (
               <div className="absolute top-2 left-2 px-2.5 py-1.5 bg-green-600/90 backdrop-blur-md rounded-lg text-xs font-medium text-white shadow-lg flex items-center gap-1.5 pointer-events-auto z-20">
@@ -1087,20 +1078,19 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                 מנקה
               </div>
             )}
-            
+
             {/* Индикатор батареи на карте */}
-            <div className={`absolute bottom-2 right-2 px-2 py-1 rounded-lg backdrop-blur-md text-xs font-medium shadow-lg flex items-center gap-1.5 pointer-events-auto z-20 ${
-              batteryLevel > 50 ? 'bg-green-600/90 text-white' :
+            <div className={`absolute bottom-2 right-2 px-2 py-1 rounded-lg backdrop-blur-md text-xs font-medium shadow-lg flex items-center gap-1.5 pointer-events-auto z-20 ${batteryLevel > 50 ? 'bg-green-600/90 text-white' :
               batteryLevel > 20 ? 'bg-yellow-600/90 text-white' :
-              'bg-red-600/90 text-white'
-            }`}>
+                'bg-red-600/90 text-white'
+              }`}>
               <Battery size={12} />
               {batteryLevel}%
             </div>
           </div>
         </div>
       )}
-      
+
       {/* Сообщение об ошибке карты или отсутствии карты */}
       {(!mapImage || mapError) && (
         <div className="mb-3 sm:mb-4 rounded-lg border border-dark-border bg-dark-card/50 p-4 flex items-center justify-center min-h-[150px]">
@@ -1139,7 +1129,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
         )}
         {isPaused && (
           <button
-            onClick={handleStart}
+            onClick={() => handleStart()}
             disabled={localLoading || loading}
             className="flex-1 min-w-[80px] px-3 sm:px-4 py-2.5 sm:py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
             title="המשך"
@@ -1181,12 +1171,12 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
             <Menu size={16} className="sm:w-5 sm:h-5" />
             <span className="text-xs sm:text-sm font-medium hidden sm:inline">שירותים</span>
           </button>
-          
+
           {/* Выпадающее меню сервисов */}
           {showServicesMenu && (
             <>
-              <div 
-                className="fixed inset-0 z-40" 
+              <div
+                className="fixed inset-0 z-40"
                 onClick={() => setShowServicesMenu(false)}
               />
               <div className="absolute right-0 top-full mt-2 w-64 sm:w-80 bg-dark-card border border-dark-border rounded-lg shadow-xl z-50 max-h-[70vh] overflow-y-auto">
@@ -1208,22 +1198,19 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                         key={service.id}
                         onClick={() => handleServiceClick(service)}
                         disabled={localLoading || loading}
-                        className={`w-full text-right p-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed group ${
-                          isActive
-                            ? 'bg-blue-600/30 border-2 border-blue-500'
-                            : 'hover:bg-dark-cardHover border border-transparent'
-                        }`}
+                        className={`w-full text-right p-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed group ${isActive
+                          ? 'bg-blue-600/30 border-2 border-blue-500'
+                          : 'hover:bg-dark-cardHover border border-transparent'
+                          }`}
                         title={service.description}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <Icon size={16} className={`flex-shrink-0 ${
-                                isActive ? 'text-blue-400' : 'text-purple-400 group-hover:text-purple-300'
-                              }`} />
-                              <span className={`text-xs sm:text-sm font-medium ${
-                                isActive ? 'text-blue-400' : 'text-white group-hover:text-purple-300'
-                              }`}>
+                              <Icon size={16} className={`flex-shrink-0 ${isActive ? 'text-blue-400' : 'text-purple-400 group-hover:text-purple-300'
+                                }`} />
+                              <span className={`text-xs sm:text-sm font-medium ${isActive ? 'text-blue-400' : 'text-white group-hover:text-purple-300'
+                                }`}>
                                 {service.label}
                               </span>
                               {isActive && (
@@ -1257,11 +1244,10 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                 key={speed}
                 onClick={() => handleSetFanSpeed(speed)}
                 disabled={localLoading || loading}
-                className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded text-[10px] sm:text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                  fanSpeed === speed
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-dark-card hover:bg-dark-cardHover text-dark-textSecondary'
-                }`}
+                className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded text-[10px] sm:text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed ${fanSpeed === speed
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-dark-card hover:bg-dark-cardHover text-dark-textSecondary'
+                  }`}
               >
                 {speed}
               </button>
@@ -1289,7 +1275,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
           </div>
         </div>
       )}
-      
+
       {/* Интерактивный список комнат для выбора на карте */}
       {roomSelectionMode && rooms.length > 0 && (
         <div className="mb-2 sm:mb-3 p-3 bg-gradient-to-r from-green-600/10 to-blue-600/10 rounded-xl border border-green-500/30 shadow-lg">
@@ -1319,11 +1305,10 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                   key={room.id}
                   onClick={() => handleRoomClick(room.id)}
                   disabled={localLoading || loading}
-                  className={`p-3 rounded-lg border transition-all disabled:opacity-50 disabled:cursor-not-allowed text-right ${
-                    isSelected
-                      ? 'bg-green-600/30 border-green-500 text-white'
-                      : 'bg-dark-bg border-dark-border text-dark-textSecondary hover:border-green-500/50 hover:bg-dark-cardHover'
-                  }`}
+                  className={`p-3 rounded-lg border transition-all disabled:opacity-50 disabled:cursor-not-allowed text-right ${isSelected
+                    ? 'bg-green-600/30 border-green-500 text-white'
+                    : 'bg-dark-bg border-dark-border text-dark-textSecondary hover:border-green-500/50 hover:bg-dark-cardHover'
+                    }`}
                   title={isSelected ? 'לחץ לביטול בחירה' : 'לחץ לבחירה'}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -1373,7 +1358,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
             </div>
           </div>
         )}
-        
+
         {/* Время очистки */}
         {(cleaningTime || cleaningTimeSensor) && (
           <div className="bg-dark-card/50 rounded-lg p-2 border border-dark-border">
@@ -1386,7 +1371,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
             </div>
           </div>
         )}
-        
+
         {/* Общая площадь */}
         {totalCleanedArea && (
           <div className="bg-dark-card/50 rounded-lg p-2 border border-dark-border">
@@ -1399,7 +1384,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
             </div>
           </div>
         )}
-        
+
         {/* Общее время */}
         {totalCleaningTime && (
           <div className="bg-dark-card/50 rounded-lg p-2 border border-dark-border">
@@ -1413,7 +1398,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
           </div>
         )}
       </div>
-      
+
       {/* Ошибки */}
       {error && error !== 'No error' && errorMessage !== 'No error' && (
         <div className="mb-2 sm:mb-3 p-2 bg-red-900/20 border border-red-500/30 rounded-lg">
@@ -1426,15 +1411,15 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
           </div>
         </div>
       )}
-      
+
       {/* Модальное окно настроек уборки с полным функционалом Dreame */}
       {showStartOptions && (
         <>
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
             onClick={() => setShowStartOptions(false)}
           >
-            <div 
+            <div
               className="bg-dark-card border border-dark-border rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
@@ -1465,11 +1450,10 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                         <button
                           key={type.id}
                           onClick={() => setSelectedCleaningType(type.id)}
-                          className={`p-3 rounded-lg border transition-all ${
-                            selectedCleaningType === type.id
-                              ? 'border-blue-500 bg-blue-500/20 text-white'
-                              : 'border-dark-border bg-dark-bg text-dark-textSecondary hover:border-blue-500/50'
-                          }`}
+                          className={`p-3 rounded-lg border transition-all ${selectedCleaningType === type.id
+                            ? 'border-blue-500 bg-blue-500/20 text-white'
+                            : 'border-dark-border bg-dark-bg text-dark-textSecondary hover:border-blue-500/50'
+                            }`}
                           title={type.description}
                         >
                           <div className="flex flex-col items-center gap-2">
@@ -1530,11 +1514,10 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                               <button
                                 key={room.id}
                                 onClick={() => handleRoomClick(room.id)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                                  isSelected
-                                    ? 'bg-green-600 text-white border border-green-500'
-                                    : 'bg-dark-card text-dark-textSecondary border border-dark-border hover:border-green-500/50'
-                                }`}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${isSelected
+                                  ? 'bg-green-600 text-white border border-green-500'
+                                  : 'bg-dark-card text-dark-textSecondary border border-dark-border hover:border-green-500/50'
+                                  }`}
                               >
                                 {room.name}
                               </button>
@@ -1567,7 +1550,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                   >
                     <Play size={18} />
                     <span>
-                      {selectedRooms.size > 0 
+                      {selectedRooms.size > 0
                         ? `התחל ניקוי ${selectedRooms.size} חדרים`
                         : 'התחל ניקוי'
                       }
@@ -1599,12 +1582,12 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
             <Settings size={12} />
             <span>הגדרות מתקדמות</span>
           </div>
-          <ChevronDown 
-            size={12} 
-            className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`} 
+          <ChevronDown
+            size={12}
+            className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
           />
         </button>
-        
+
         {showAdvanced && (
           <div className="mt-2 space-y-3 pt-2 border-t border-dark-border">
             {/* Статистика уборки */}
@@ -1646,11 +1629,11 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                     <Calendar size={10} />
                     ניקוי אחרון:
                   </span>
-                  <span className="text-white font-medium">{new Date(lastCleaningTime).toLocaleString('he-IL', { 
-                    day: '2-digit', 
-                    month: '2-digit', 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
+                  <span className="text-white font-medium">{new Date(lastCleaningTime).toLocaleString('he-IL', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
                   })}</span>
                 </div>
               )}
@@ -1664,118 +1647,110 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                 </div>
               )}
             </div>
-            
+
             {/* Состояние компонентов */}
-            {(mainBrushLife !== undefined || sideBrushLife !== undefined || filterLife !== undefined || 
-              waterBoxLife !== undefined || mopLife !== undefined || mopPadLife !== undefined || 
+            {(mainBrushLife !== undefined || sideBrushLife !== undefined || filterLife !== undefined ||
+              waterBoxLife !== undefined || mopLife !== undefined || mopPadLife !== undefined ||
               dustCollectionLife !== undefined || sensorDirtyLife !== undefined) && (
-              <div className="space-y-1.5 pt-1 border-t border-dark-border/50">
-                <div className="text-[10px] text-dark-textSecondary mb-1.5 flex items-center gap-1.5">
-                  <Gauge size={11} />
-                  מצב רכיבים:
+                <div className="space-y-1.5 pt-1 border-t border-dark-border/50">
+                  <div className="text-[10px] text-dark-textSecondary mb-1.5 flex items-center gap-1.5">
+                    <Gauge size={11} />
+                    מצב רכיבים:
+                  </div>
+                  {mainBrushLife !== undefined && (
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-dark-textSecondary">מברשת ראשית:</span>
+                      <span className={`font-medium ${mainBrushLife > 50 ? 'text-green-400' :
+                        mainBrushLife > 20 ? 'text-yellow-400' :
+                          'text-red-400'
+                        }`}>
+                        {mainBrushLife}%
+                      </span>
+                    </div>
+                  )}
+                  {sideBrushLife !== undefined && (
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-dark-textSecondary">מברשת צד:</span>
+                      <span className={`font-medium ${sideBrushLife > 50 ? 'text-green-400' :
+                        sideBrushLife > 20 ? 'text-yellow-400' :
+                          'text-red-400'
+                        }`}>
+                        {sideBrushLife}%
+                      </span>
+                    </div>
+                  )}
+                  {filterLife !== undefined && (
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-dark-textSecondary">מסנן:</span>
+                      <span className={`font-medium ${filterLife > 50 ? 'text-green-400' :
+                        filterLife > 20 ? 'text-yellow-400' :
+                          'text-red-400'
+                        }`}>
+                        {filterLife}%
+                      </span>
+                    </div>
+                  )}
+                  {sensorDirtyLife !== undefined && (
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-dark-textSecondary">חיישן לכלוך:</span>
+                      <span className={`font-medium ${sensorDirtyLife > 50 ? 'text-green-400' :
+                        sensorDirtyLife > 20 ? 'text-yellow-400' :
+                          'text-red-400'
+                        }`}>
+                        {sensorDirtyLife}%
+                      </span>
+                    </div>
+                  )}
+                  {waterBoxLife !== undefined && (
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-dark-textSecondary flex items-center gap-1">
+                        <Droplet size={10} />
+                        מיכל מים:
+                      </span>
+                      <span className={`font-medium ${waterBoxLife > 50 ? 'text-green-400' :
+                        waterBoxLife > 20 ? 'text-yellow-400' :
+                          'text-red-400'
+                        }`}>
+                        {waterBoxLife}%
+                      </span>
+                    </div>
+                  )}
+                  {mopLife !== undefined && (
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-dark-textSecondary">סמרטוט:</span>
+                      <span className={`font-medium ${mopLife > 50 ? 'text-green-400' :
+                        mopLife > 20 ? 'text-yellow-400' :
+                          'text-red-400'
+                        }`}>
+                        {mopLife}%
+                      </span>
+                    </div>
+                  )}
+                  {mopPadLife !== undefined && (
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-dark-textSecondary">כרית סמרטוט:</span>
+                      <span className={`font-medium ${mopPadLife > 50 ? 'text-green-400' :
+                        mopPadLife > 20 ? 'text-yellow-400' :
+                          'text-red-400'
+                        }`}>
+                        {mopPadLife}%
+                      </span>
+                    </div>
+                  )}
+                  {dustCollectionLife !== undefined && (
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-dark-textSecondary">מיכל אבק:</span>
+                      <span className={`font-medium ${dustCollectionLife > 50 ? 'text-green-400' :
+                        dustCollectionLife > 20 ? 'text-yellow-400' :
+                          'text-red-400'
+                        }`}>
+                        {dustCollectionLife}%
+                      </span>
+                    </div>
+                  )}
                 </div>
-                {mainBrushLife !== undefined && (
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-dark-textSecondary">מברשת ראשית:</span>
-                    <span className={`font-medium ${
-                      mainBrushLife > 50 ? 'text-green-400' :
-                      mainBrushLife > 20 ? 'text-yellow-400' :
-                      'text-red-400'
-                    }`}>
-                      {mainBrushLife}%
-                    </span>
-                  </div>
-                )}
-                {sideBrushLife !== undefined && (
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-dark-textSecondary">מברשת צד:</span>
-                    <span className={`font-medium ${
-                      sideBrushLife > 50 ? 'text-green-400' :
-                      sideBrushLife > 20 ? 'text-yellow-400' :
-                      'text-red-400'
-                    }`}>
-                      {sideBrushLife}%
-                    </span>
-                  </div>
-                )}
-                {filterLife !== undefined && (
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-dark-textSecondary">מסנן:</span>
-                    <span className={`font-medium ${
-                      filterLife > 50 ? 'text-green-400' :
-                      filterLife > 20 ? 'text-yellow-400' :
-                      'text-red-400'
-                    }`}>
-                      {filterLife}%
-                    </span>
-                  </div>
-                )}
-                {sensorDirtyLife !== undefined && (
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-dark-textSecondary">חיישן לכלוך:</span>
-                    <span className={`font-medium ${
-                      sensorDirtyLife > 50 ? 'text-green-400' :
-                      sensorDirtyLife > 20 ? 'text-yellow-400' :
-                      'text-red-400'
-                    }`}>
-                      {sensorDirtyLife}%
-                    </span>
-                  </div>
-                )}
-                {waterBoxLife !== undefined && (
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-dark-textSecondary flex items-center gap-1">
-                      <Droplet size={10} />
-                      מיכל מים:
-                    </span>
-                    <span className={`font-medium ${
-                      waterBoxLife > 50 ? 'text-green-400' :
-                      waterBoxLife > 20 ? 'text-yellow-400' :
-                      'text-red-400'
-                    }`}>
-                      {waterBoxLife}%
-                    </span>
-                  </div>
-                )}
-                {mopLife !== undefined && (
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-dark-textSecondary">סמרטוט:</span>
-                    <span className={`font-medium ${
-                      mopLife > 50 ? 'text-green-400' :
-                      mopLife > 20 ? 'text-yellow-400' :
-                      'text-red-400'
-                    }`}>
-                      {mopLife}%
-                    </span>
-                  </div>
-                )}
-                {mopPadLife !== undefined && (
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-dark-textSecondary">כרית סמרטוט:</span>
-                    <span className={`font-medium ${
-                      mopPadLife > 50 ? 'text-green-400' :
-                      mopPadLife > 20 ? 'text-yellow-400' :
-                      'text-red-400'
-                    }`}>
-                      {mopPadLife}%
-                    </span>
-                  </div>
-                )}
-                {dustCollectionLife !== undefined && (
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-dark-textSecondary">מיכל אבק:</span>
-                    <span className={`font-medium ${
-                      dustCollectionLife > 50 ? 'text-green-400' :
-                      dustCollectionLife > 20 ? 'text-yellow-400' :
-                      'text-red-400'
-                    }`}>
-                      {dustCollectionLife}%
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-            
+              )}
+
             {/* Настройки и режимы */}
             <div className="space-y-1.5 pt-1 border-t border-dark-border/50">
               <div className="text-[10px] text-dark-textSecondary mb-1.5 flex items-center gap-1.5">
@@ -1827,7 +1802,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                 </div>
               )}
             </div>
-            
+
             {/* Информация об устройстве */}
             {(firmwareVersion || serialNumber || model) && (
               <div className="space-y-1.5 pt-1 border-t border-dark-border/50">
@@ -1855,7 +1830,7 @@ const VacuumUnit = ({ vacuumConfig, entity, mapEntity, relatedEntities, api, loa
                 )}
               </div>
             )}
-            
+
             {/* Все атрибуты для отладки */}
             <details className="text-[10px] text-dark-textSecondary pt-1 border-t border-dark-border/50">
               <summary className="cursor-pointer hover:text-white flex items-center gap-1.5">
@@ -1967,8 +1942,8 @@ const VacuumWidget = () => {
         const state = states[allEntityIds.indexOf(id)]
         if (state) {
           // Если это map entity, добавляем в mapEntities
-          if (id.includes('map') || id.includes('mappin') || 
-              id.startsWith('camera.') || id.startsWith('image.')) {
+          if (id.includes('map') || id.includes('mappin') ||
+            id.startsWith('camera.') || id.startsWith('image.')) {
             newMapEntities.set(id, state)
           } else {
             // Остальные связанные entities сохраняем для использования в виджете
@@ -1998,20 +1973,19 @@ const VacuumWidget = () => {
 
   return (
     <div className="h-full p-2 sm:p-3 md:p-4 overflow-y-auto">
-      <div className={`grid gap-3 sm:gap-4 ${
-        vacuumConfigs.length === 1 
-          ? 'grid-cols-1' 
-          : vacuumConfigs.length === 2 
-          ? 'grid-cols-1 md:grid-cols-2' 
+      <div className={`grid gap-3 sm:gap-4 ${vacuumConfigs.length === 1
+        ? 'grid-cols-1'
+        : vacuumConfigs.length === 2
+          ? 'grid-cols-1 md:grid-cols-2'
           : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-      }`}>
+        }`}>
         {Array.isArray(vacuumConfigs) && vacuumConfigs.map((vacuumConfig, index) => {
           // Используем первую карту из массива mapEntityIds, если есть, иначе mapEntityId для обратной совместимости
           const primaryMapId = vacuumConfig.mapEntityIds && vacuumConfig.mapEntityIds.length > 0
             ? vacuumConfig.mapEntityIds[0]
             : vacuumConfig.mapEntityId
           const primaryMapEntity = primaryMapId ? mapEntities.get(primaryMapId) || null : null
-          
+
           return (
             <VacuumUnit
               key={vacuumConfig.entityId || index}

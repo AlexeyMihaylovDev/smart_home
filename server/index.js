@@ -29,6 +29,11 @@ function hashPassword(password) {
 async function initializeUsers() {
   try {
     const isDev = process.env.NODE_ENV !== 'production'
+
+    // Read default credentials from environment variables
+    const defaultUsername = process.env.DEFAULT_USERNAME || 'admin'
+    const defaultPassword = process.env.DEFAULT_PASSWORD || 'admin'
+
     let users
     try {
       users = await readDataFile('users.json')
@@ -36,24 +41,42 @@ async function initializeUsers() {
       // Файл не существует, это нормально
       users = null
     }
-    
+
     if (!users || !Array.isArray(users) || users.length === 0) {
-      // Создаем дефолтного пользователя
+      // Создаем дефолтного пользователя из environment variables
       const defaultUsers = [
         {
           id: '1',
-          username: 'mihuliki',
-          passwordHash: hashPassword('1q1q1q'),
+          username: defaultUsername,
+          passwordHash: hashPassword(defaultPassword),
           createdAt: new Date().toISOString()
         }
       ]
       await writeDataFile('users.json', defaultUsers)
-      console.log('✓ Создан дефолтный пользователь: mihuliki / 1q1q1q')
+      console.log(`✓ Создан дефолтный пользователь: ${defaultUsername} / ${defaultPassword}`)
+      if (process.env.NODE_ENV === 'production') {
+        console.log('⚠️  ВАЖНО: Измените пароль по умолчанию через переменные окружения!')
+      }
       users = defaultUsers
     } else {
       console.log(`✓ Загружено пользователей: ${users.length}`)
+
+      // В production режиме проверяем, совпадает ли дефолтный юзер с ENV
+      // Если ENV изменился, обновляем пользователя
+      if (process.env.NODE_ENV === 'production') {
+        const existingDefaultUser = users.find(u => u.id === '1')
+        if (existingDefaultUser &&
+          (existingDefaultUser.username !== defaultUsername ||
+            existingDefaultUser.passwordHash !== hashPassword(defaultPassword))) {
+          console.log(`🔄 Обновление дефолтного пользователя из переменных окружения...`)
+          existingDefaultUser.username = defaultUsername
+          existingDefaultUser.passwordHash = hashPassword(defaultPassword)
+          await writeDataFile('users.json', users)
+          console.log(`✓ Дефолтный пользователь обновлен: ${defaultUsername}`)
+        }
+      }
     }
-    
+
     // В dev режиме добавляем тестового пользователя, если его еще нет
     if (isDev) {
       const testUserExists = users.some(u => u.username === 'test')
@@ -117,7 +140,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const isDev = process.env.NODE_ENV !== 'production'
-    
+
     // В dev режиме разрешаем вход с test/test
     if (isDev && username === 'test' && password === 'test') {
       // Проверяем, существует ли пользователь в файле, если нет - создаем
@@ -127,7 +150,7 @@ app.post('/api/auth/login', async (req, res) => {
       } catch (error) {
         users = []
       }
-      
+
       let testUser = users.find(u => u.username === 'test')
       if (!testUser) {
         testUser = {
@@ -139,7 +162,7 @@ app.post('/api/auth/login', async (req, res) => {
         users.push(testUser)
         await writeDataFile('users.json', users)
       }
-      
+
       return res.json({
         success: true,
         user: {
@@ -403,10 +426,92 @@ app.post('/api/config/dashboard-layouts', requireAuth, async (req, res) => {
   }
 })
 
+// Proxy to Home Assistant
+// Перехватываем все запросы к /api/ (кроме тех, что обработаны выше)
+// Должен быть ПОСЛЕДНИМ handler-ом перед health check
+const axios = require('axios');
+
+app.use('/api', requireAuth, async (req, res) => {
+  const userId = req.userId;
+  // Убираем '/api' из начала url, так как мы монтируем на '/api'
+  // Но Home Assistant API тоже начинается с /api, так что ...
+  // Если запрос пришел на /api/states, то req.url будет /states
+  // HA ждет /api/states. Значит нам нужно добавить /api обратно
+
+  const haPath = req.url; // /states, /services/..., etc
+
+  try {
+    // 1. Загружаем конфиг пользователя
+    const connection = await readDataFile(`connection_${userId}.json`);
+
+    if (!connection || !connection.url) {
+      console.error(`[Proxy] Нет конфигурации подключения для пользователя ${userId}`);
+      return res.status(502).json({ error: 'Home Assistant не настроен. Перейдите в настройки.' });
+    }
+
+    const haUrl = connection.url.replace(/\/$/, ''); // Удаляем trailing slash
+    const token = connection.token;
+
+    // 2. Формируем целевой URL
+    const targetUrl = `${haUrl}/api${haPath}`;
+
+    console.log(`[Proxy] Proxying ${req.method} ${req.originalUrl} to ${targetUrl}`);
+
+    // 3. Проксируем запрос
+    const response = await axios({
+      method: req.method,
+      url: targetUrl,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      data: req.body,
+      responseType: 'stream' // Важно для pipe
+    });
+
+    // 4. Отправляем ответ обратно клиенту
+    res.status(response.status);
+    Object.keys(response.headers).forEach(key => {
+      const lowerKey = key.toLowerCase();
+      if (['content-length', 'content-encoding', 'transfer-encoding'].includes(lowerKey)) {
+        return;
+      }
+      res.setHeader(key, response.headers[key]);
+    });
+
+    response.data.pipe(res);
+
+  } catch (error) {
+    console.error(`[Proxy] Ошибка проксирования: ${error.message}`);
+    if (error.response) {
+      // Ошибка от HA
+      res.status(error.response.status).send(error.response.data);
+    } else {
+      // Ошибка соединения
+      res.status(502).json({ error: 'Не удалось подключиться к Home Assistant', details: error.message });
+    }
+  }
+});
+
 // Проверка здоровья сервера
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' })
 })
+
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  const DIST_DIR = path.join(__dirname, '../dist')
+  app.use(express.static(DIST_DIR))
+
+  // Handle SPA routing
+  app.get('*', (req, res) => {
+    // Не перехватываем API запросы
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ error: 'API endpoint not found' })
+    }
+    res.sendFile(path.join(DIST_DIR, 'index.html'))
+  })
+}
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Сервер настроек запущен на http://0.0.0.0:${PORT}`)

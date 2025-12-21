@@ -23,7 +23,7 @@ import MotorWidget from './widgets/MotorWidget'
 import BoseWidget from './widgets/BoseWidget'
 import VacuumWidget from './widgets/VacuumWidget'
 import CamerasWidget from './widgets/CamerasWidget'
-import { getDashboardLayout, getDashboardLayoutSync, updateWidgetLayout, saveDashboardLayout, WidgetLayout, getDashboardLayoutByDashboardId } from '../services/widgetLayout'
+import { getDashboardLayout, getDashboardLayoutSync, updateWidgetLayout, WidgetLayout, getDashboardLayoutByDashboardId } from '../services/widgetLayout'
 import { isWidgetEnabledSync, getNavigationIconsSync } from '../services/widgetConfig'
 import { GripVertical, Pencil, X } from 'lucide-react'
 
@@ -98,8 +98,8 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
   }
 
   const [layout, setLayout] = useState<Layout[]>([])
-  const [isLayoutLoading, setIsLayoutLoading] = useState(true)
-  
+  const [_isLayoutLoading, setIsLayoutLoading] = useState(true)
+
   // Загружаем layout при монтировании или изменении currentTab
   useEffect(() => {
     const loadLayout = async () => {
@@ -110,47 +110,47 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
           // Если выбран конкретный dashboard, загружаем его layout
           if (currentTab && currentTab !== 'home') {
             const navigationIcons = getNavigationIconsSync()
-            
+
             const dashboardIcon = navigationIcons.find(icon => {
               const dashboardId = icon.dashboardId || icon.id
-              return dashboardId === currentTab || 
-                     icon.id === currentTab ||
-                     icon.widgetId === currentTab || 
-                     icon.iconName === currentTab
+              return dashboardId === currentTab ||
+                icon.id === currentTab ||
+                icon.widgetId === currentTab ||
+                icon.iconName === currentTab
             })
-            
+
             if (dashboardIcon) {
               const dashboardId = dashboardIcon.dashboardId || dashboardIcon.id
-              
+
               const savedLayout = await getDashboardLayoutByDashboardId(dashboardId)
               const currentCols = getCols()
               const savedCols = savedLayout.cols || 12
-              
+
               // Получаем виджеты, которые добавлены в этот dashboard
               const dashboardWidgets = dashboardIcon.widgets || []
-              
+
               if (dashboardWidgets.length === 0) {
                 return []
               }
-              
+
               // Получаем layout для существующих виджетов
               const existingLayouts = savedLayout.layouts.filter(l => dashboardWidgets.includes(l.i))
               const existingWidgetIds = new Set(existingLayouts.map(l => l.i))
-              
+
               // Создаем layout для новых виджетов, которых нет в сохраненном layout
               const newWidgets = dashboardWidgets.filter(widgetId => !existingWidgetIds.has(widgetId))
-              
-              const maxY = existingLayouts.length > 0 
+
+              const maxY = existingLayouts.length > 0
                 ? Math.max(...existingLayouts.map(l => l.y + l.h))
                 : -1
-              
+
               // Используем улучшенные размеры для новых виджетов
               const newLayouts = newWidgets.map((widgetId, index) => {
                 const defaultLayout = DEFAULT_LAYOUTS[widgetId] || { x: 0, y: 0, w: 6, h: 3, minW: 3, minH: 2 }
                 // Адаптируем размеры в зависимости от количества колонок
                 let optimalW = defaultLayout.w
                 let optimalH = defaultLayout.h
-                
+
                 if (currentCols <= 4) {
                   optimalW = currentCols
                   optimalH = Math.max(2, Math.round(defaultLayout.h * 0.7))
@@ -161,7 +161,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
                   optimalW = Math.min(currentCols / 2, defaultLayout.w * 1.2)
                   optimalH = Math.max(3, Math.round(defaultLayout.h * 1.1))
                 }
-                
+
                 // Распределяем виджеты равномерно
                 const colsPerWidget = Math.floor(currentCols / 3)
                 const col = index % 3
@@ -177,15 +177,15 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
                   maxH: defaultLayout.maxH,
                 }
               })
-              
+
               // Объединяем существующие и новые layouts
               const allLayouts = [...existingLayouts, ...newLayouts]
-              
+
               return allLayouts.map(l => {
                 const scale = currentCols / savedCols
                 let newW = Math.max(1, Math.round(l.w * scale))
                 let newH = l.h
-                
+
                 if (typeof window !== 'undefined' && window.innerWidth < 640) {
                   newW = currentCols
                   newH = Math.max(2, Math.round(l.h * 0.7))
@@ -194,7 +194,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
                 } else if (typeof window !== 'undefined' && window.innerWidth >= 1920) {
                   newH = Math.max(1, Math.round(l.h * 1.1))
                 }
-                
+
                 return {
                   i: l.i,
                   x: (typeof window !== 'undefined' && window.innerWidth < 640) ? 0 : Math.round(l.x * scale),
@@ -211,23 +211,23 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
               return []
             }
           }
-          
+
           // Для home загружаем layout с сервера асинхронно
           const savedLayout = await getDashboardLayout()
           const currentCols = getCols()
           const savedCols = savedLayout.cols || 12
-          
+
           // Если layout пустой, возвращаем пустой массив (layout будет создан автоматически)
           if (!savedLayout.layouts || savedLayout.layouts.length === 0) {
             console.log('[WidgetGrid] Layout пустой, будет создан автоматически')
             return []
           }
-          
+
           return savedLayout.layouts.map(l => {
             const scale = currentCols / savedCols
             let newW = Math.max(1, Math.round(l.w * scale))
             let newH = l.h
-            
+
             if (typeof window !== 'undefined' && window.innerWidth < 640) {
               newW = currentCols
               newH = Math.max(2, Math.round(l.h * 0.7))
@@ -236,7 +236,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
             } else if (typeof window !== 'undefined' && window.innerWidth >= 1920) {
               newH = Math.max(1, Math.round(l.h * 1.1))
             }
-            
+
             return {
               i: l.i,
               x: (typeof window !== 'undefined' && window.innerWidth < 640) ? 0 : Math.round(l.x * scale),
@@ -250,13 +250,13 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
             }
           })
         }
-        
+
         const loadedLayout = await getLayout()
         console.log('[WidgetGrid] Layout загружен:', {
           layoutCount: loadedLayout.length,
           widgets: loadedLayout.map(l => l.i)
         })
-        
+
         // Если layout пустой, загружаем его заново с сервера (он должен быть создан автоматически)
         if (loadedLayout.length === 0 && currentTab === 'home') {
           console.log('[WidgetGrid] Layout пустой, загружаем заново с сервера...')
@@ -269,7 +269,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
                 const scale = currentCols / savedCols
                 let newW = Math.max(1, Math.round(l.w * scale))
                 let newH = l.h
-                
+
                 if (typeof window !== 'undefined' && window.innerWidth < 640) {
                   newW = currentCols
                   newH = Math.max(2, Math.round(l.h * 0.7))
@@ -278,7 +278,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
                 } else if (typeof window !== 'undefined' && window.innerWidth >= 1920) {
                   newH = Math.max(1, Math.round(l.h * 1.1))
                 }
-                
+
                 return {
                   i: l.i,
                   x: (typeof window !== 'undefined' && window.innerWidth < 640) ? 0 : Math.round(l.x * scale),
@@ -315,7 +315,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
     }
     loadLayout()
   }, [currentTab])
-  const [isLoading, setIsLoading] = useState(true)
+  // const [isLoading, setIsLoading] = useState(true)
   const [cols, setCols] = useState(getCols())
   const [rowHeight, setRowHeight] = useState(getRowHeight())
   const [editMode, setEditMode] = useState(false)
@@ -335,21 +335,21 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
       const newRowHeight = getRowHeight()
       const colsChanged = newCols !== cols
       const rowHeightChanged = newRowHeight !== rowHeight
-      
+
       if (colsChanged || rowHeightChanged) {
         setCols(newCols)
         setRowHeight(newRowHeight)
-        
+
         // Пересчитываем layout при изменении размера экрана
         if (colsChanged) {
           setLayout(prevLayout => {
             const oldCols = cols || 12
             const scale = newCols / oldCols
-            
+
             return prevLayout.map(l => {
               let newW = Math.max(1, Math.round(l.w * scale))
               let newH = l.h
-              
+
               // Для мобильных устройств делаем виджеты на всю ширину
               if (window.innerWidth < 640) {
                 newW = newCols
@@ -359,7 +359,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
               } else if (window.innerWidth >= 1920) {
                 newH = Math.max(1, Math.round(l.h * 1.1))
               }
-              
+
               return {
                 ...l,
                 x: window.innerWidth < 640 ? 0 : Math.round(l.x * scale),
@@ -373,7 +373,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
         }
       }
     }
-    
+
     // Слушаем кастомное событие для обновления при изменении виджетов
     const handleWidgetsChanged = async () => {
       setIsLayoutLoading(true)
@@ -384,31 +384,31 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
             const navigationIcons = getNavigationIconsSync()
             const dashboardIcon = navigationIcons.find(icon => {
               const dashboardId = icon.dashboardId || icon.id
-              return dashboardId === currentTab || 
-                     icon.id === currentTab ||
-                     icon.widgetId === currentTab || 
-                     icon.iconName === currentTab
+              return dashboardId === currentTab ||
+                icon.id === currentTab ||
+                icon.widgetId === currentTab ||
+                icon.iconName === currentTab
             })
-            
+
             if (dashboardIcon) {
               const dashboardId = dashboardIcon.dashboardId || dashboardIcon.id
               const savedLayout = await getDashboardLayoutByDashboardId(dashboardId)
               const dashboardWidgets = dashboardIcon.widgets || []
-              
+
               if (dashboardWidgets.length === 0) return []
-              
+
               const existingLayouts = savedLayout.layouts.filter(l => dashboardWidgets.includes(l.i))
               const existingWidgetIds = new Set(existingLayouts.map(l => l.i))
               const newWidgets = dashboardWidgets.filter(widgetId => !existingWidgetIds.has(widgetId))
               const maxY = existingLayouts.length > 0 ? Math.max(...existingLayouts.map(l => l.y + l.h)) : -1
-              
+
               // Используем улучшенные размеры для новых виджетов
               const newLayouts = newWidgets.map((widgetId, index) => {
                 const defaultLayout = DEFAULT_LAYOUTS[widgetId] || { x: 0, y: 0, w: 6, h: 3, minW: 3, minH: 2 }
                 // Адаптируем размеры в зависимости от количества колонок
                 let optimalW = defaultLayout.w
                 let optimalH = defaultLayout.h
-                
+
                 const savedColsValue = savedLayout.cols || 12
                 if (savedColsValue <= 4) {
                   optimalW = savedColsValue
@@ -420,7 +420,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
                   optimalW = Math.min(savedColsValue / 2, defaultLayout.w * 1.2)
                   optimalH = Math.max(3, Math.round(defaultLayout.h * 1.1))
                 }
-                
+
                 // Распределяем виджеты равномерно
                 const colsPerWidget = Math.floor(savedColsValue / 3)
                 const col = index % 3
@@ -436,7 +436,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
                   maxH: defaultLayout.maxH,
                 }
               })
-              
+
               return [...existingLayouts, ...newLayouts].map(l => ({
                 ...l,
                 minW: l.minW,
@@ -447,11 +447,11 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
             }
             return []
           }
-          
+
           const savedLayout = getDashboardLayoutSync()
           return savedLayout.layouts
         }
-        
+
         const loadedLayout = await getLayout()
         setLayout(loadedLayout)
       } catch (error) {
@@ -461,7 +461,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
         setIsLayoutLoading(false)
       }
     }
-    
+
     window.addEventListener('widgets-changed', handleWidgetsChanged)
     window.addEventListener('resize', handleResize)
     return () => {
@@ -486,12 +486,12 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
       dashboardId = dashboardIcon?.dashboardId
     }
     setLayout(newLayout)
-    
+
     // Очищаем предыдущий таймер сохранения
     if (saveLayoutTimeoutRef.current) {
       clearTimeout(saveLayoutTimeoutRef.current)
     }
-    
+
     // Сохраняем layout при изменении с debounce (500ms) для оптимизации
     // Это обеспечивает синхронизацию между устройствами
     saveLayoutTimeoutRef.current = setTimeout(async () => {
@@ -582,7 +582,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
     }
 
     setLongPressProgress(0)
-    
+
     // Таймер для прогресса
     const startTime = Date.now()
     progressTimerRef.current = setInterval(() => {
@@ -631,7 +631,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
 
     // Обработчик тройного клика
     container.addEventListener('click', handleTripleClick)
-    
+
     // Обработчики долгого нажатия
     container.addEventListener('mousedown', handleLongPressStart)
     container.addEventListener('mouseup', handleLongPressEnd)
@@ -660,14 +660,14 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
     }
   }, [handleTripleClick, handleLongPressStart, handleLongPressEnd])
 
-  const savedLayout = getDashboardLayoutSync()
+  // const savedLayout = getDashboardLayoutSync()
   const currentCols = cols || getCols()
 
   return (
     <div className="relative" ref={containerRef}>
       {/* Индикатор тройного клика */}
       {tripleClickActivated && !editMode && longPressProgress === 0 && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -687,13 +687,13 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
             >
               <X size={20} className="text-dark-textSecondary hover:text-white" />
             </button>
-                  <div className="text-center">
-                    <Pencil size={48} className="mx-auto mb-4 text-blue-500" />
-                    <div className="text-lg font-medium mb-2">לחיצה משולשת הופעלה</div>
-                    <div className="text-sm text-dark-textSecondary">
-                      כעת החזק לחיצה למשך 5 שניות להפעלת מצב עריכה
-                    </div>
-                  </div>
+            <div className="text-center">
+              <Pencil size={48} className="mx-auto mb-4 text-blue-500" />
+              <div className="text-lg font-medium mb-2">לחיצה משולשת הופעלה</div>
+              <div className="text-sm text-dark-textSecondary">
+                כעת החזק לחיצה למשך 5 שניות להפעלת מצב עריכה
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -702,12 +702,12 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
       {longPressProgress > 0 && !editMode && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-dark-card rounded-lg p-8 border border-dark-border max-w-md mx-4">
-                  <div className="text-center mb-4">
-                    <Pencil size={48} className="mx-auto mb-4 text-blue-500" />
-                    <div className="text-lg font-medium mb-2">הפעלת מצב עריכה</div>
-                    <div className="text-sm text-dark-textSecondary mb-4">
-                      החזק להפעלה...
-                    </div>
+            <div className="text-center mb-4">
+              <Pencil size={48} className="mx-auto mb-4 text-blue-500" />
+              <div className="text-lg font-medium mb-2">הפעלת מצב עריכה</div>
+              <div className="text-sm text-dark-textSecondary mb-4">
+                החזק להפעלה...
+              </div>
               <div className="w-full bg-dark-bg rounded-full h-3 overflow-hidden">
                 <div
                   className="h-full bg-blue-600 transition-all duration-50 ease-linear"
@@ -733,9 +733,9 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
             }}
             className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 shadow-lg"
           >
-                  <Pencil size={16} />
-                  סיים עריכה
-                </button>
+            <Pencil size={16} />
+            סיים עריכה
+          </button>
         </div>
       )}
 
@@ -745,11 +745,11 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
         onLayoutChange={handleLayoutChange}
         cols={currentCols}
         rowHeight={rowHeight}
-        width={typeof window !== 'undefined' ? 
-          (window.innerWidth < 640 ? window.innerWidth - 16 : 
-           window.innerWidth < 1024 ? window.innerWidth - 32 : 
-           window.innerWidth < 1920 ? window.innerWidth - 80 :
-           Math.min(window.innerWidth - 120, 2400)) : 1200}
+        width={typeof window !== 'undefined' ?
+          (window.innerWidth < 640 ? window.innerWidth - 16 :
+            window.innerWidth < 1024 ? window.innerWidth - 32 :
+              window.innerWidth < 1920 ? window.innerWidth - 80 :
+                Math.min(window.innerWidth - 120, 2400)) : 1200}
         isDraggable={editMode}
         isResizable={editMode}
         draggableHandle=".drag-handle"
@@ -763,7 +763,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
           .map((item) => {
             const WidgetComponent = widgetComponents[item.i]
             if (!WidgetComponent) return null
-            
+
             // Проверяем, включен ли виджет
             const isEnabled = isWidgetEnabledSync(item.i)
             if (!isEnabled) return null
@@ -792,7 +792,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
 
       {editMode && (
         <div className="mt-4 p-4 bg-blue-900 bg-opacity-30 border border-blue-700 rounded-lg text-sm text-blue-200">
-          <strong>מצב עריכה:</strong> גרור וידג'טים על ידי האייקון בפינה השמאלית העליונה. 
+          <strong>מצב עריכה:</strong> גרור וידג'טים על ידי האייקון בפינה השמאלית העליונה.
           שנה את הגודל על ידי משיכת הפינות של הווידג'ט.
         </div>
       )}

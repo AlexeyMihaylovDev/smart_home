@@ -19,32 +19,31 @@ export interface ServiceCall {
 
 export class HomeAssistantAPI {
   private client: AxiosInstance
-  private ws: WebSocket | null = null
-  private wsUrl: string
   private apiPathPrefix: string
 
-  constructor(private baseUrl: string, private token: string) {
+  constructor(baseUrl: string, token: string) {
     // Убеждаемся, что baseUrl не заканчивается на /
     const cleanUrl = baseUrl.replace(/\/$/, '')
-    
+
     // В dev режиме используем прокси Vite для обхода CORS
     // В production используем прямой URL
     const isDev = import.meta.env.DEV
     const apiBaseUrl = isDev ? '/api' : cleanUrl
     // Префикс для путей API (в dev режиме baseURL уже содержит /api, поэтому не добавляем)
     this.apiPathPrefix = isDev ? '' : '/api'
-    
+
+    // Получаем ID пользователя из localStorage (как в apiService)
+    const userId = localStorage.getItem('user_id');
+
     this.client = axios.create({
       baseURL: apiBaseUrl,
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${token}`, // Этот токен теперь будет игнорироваться прокси, но пусть будет
         'Content-Type': 'application/json',
+        ...(userId ? { 'x-user-id': userId } : {})
       },
       timeout: 10000, // 10 секунд таймаут
     })
-
-    // Преобразуем HTTP URL в WebSocket URL
-    this.wsUrl = cleanUrl.replace(/^http/, 'ws') + '/api/websocket'
   }
 
   async testConnection(): Promise<void> {
@@ -59,7 +58,7 @@ export class HomeAssistantAPI {
         // Сервер ответил с кодом ошибки
         const status = error.response.status
         let message = `Ошибка ${status}`
-        
+
         if (status === 401) {
           message = 'Ошибка 401: Неверный токен доступа. Проверьте токен в Home Assistant.'
         } else if (status === 404) {
@@ -67,7 +66,7 @@ export class HomeAssistantAPI {
         } else {
           message = `Ошибка ${status}: ${error.response.statusText || 'Проверьте токен доступа'}`
         }
-        
+
         throw new Error(message)
       } else if (error.request) {
         // Запрос был отправлен, но ответа не получено

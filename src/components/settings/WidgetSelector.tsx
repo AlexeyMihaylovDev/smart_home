@@ -1,15 +1,14 @@
-import React from 'react'
-import { Lightbulb, Tv, Music, Gauge, Wind, Droplet, Camera, Navigation } from 'lucide-react'
+import { LucideIcon } from 'lucide-react'
 import ToggleSwitch from '../ui/ToggleSwitch'
 import { isWidgetEnabledSync, setWidgetEnabled } from '../../services/widgetConfig'
 
-export type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | 'water-heater' | 'motors' | 'bose' | 'vacuum' | 'led' | 'clock' | 'tv-preview' | null
+export type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | 'water-heater' | 'motors' | 'bose' | 'vacuum' | 'led' | 'clock' | 'tv-preview' | 'media-player' | 'spotify' | 'media-room' | 'canvas' | 'plex' | 'tv-duration' | 'weather-calendar' | 'living-room' | null
 
 export interface WidgetOption {
   id: WidgetType
   name: string
   description: string
-  icon: React.ComponentType<{ size?: number; className?: string }>
+  icon: LucideIcon
   color: string
 }
 
@@ -20,11 +19,11 @@ interface WidgetSelectorProps {
   onWidgetEnabledChange: (widgetId: string, enabled: boolean) => void
 }
 
-const WidgetSelector = ({ 
-  widgetOptions, 
-  widgetEnabledStates, 
-  onWidgetSelect, 
-  onWidgetEnabledChange 
+const WidgetSelector = ({
+  widgetOptions,
+  widgetEnabledStates,
+  onWidgetSelect,
+  onWidgetEnabledChange
 }: WidgetSelectorProps) => {
   return (
     <div className="bg-dark-card rounded-lg border border-dark-border p-6">

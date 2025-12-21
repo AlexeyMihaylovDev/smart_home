@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../../context/HomeAssistantContext'
 import { Entity } from '../../services/homeAssistantAPI'
 import { getTVPreviewConfigsSync, TVPreviewConfig } from '../../services/widgetConfig'
-import { 
+import {
   Power, Volume2, VolumeX, Volume1, Play, Pause, SkipForward, SkipBack,
   Tv, Radio, Settings, ChevronDown, ChevronUp, Monitor, MonitorSpeaker
 } from 'lucide-react'
@@ -39,15 +39,15 @@ const TVUnit = ({ tvConfig, entity, api, loading, onLoadingChange }: TVUnitProps
   const isOn = entity?.state === 'on' || entity?.state === 'playing'
   const isPlaying = entity?.state === 'playing'
   const isPaused = entity?.state === 'paused'
-  const isOff = entity?.state === 'off' || entity?.state === 'unavailable'
-  
+
+
   const mediaTitle = entity?.attributes.media_title || ''
   const mediaArtist = entity?.attributes.media_artist || ''
   const mediaImage = entity?.attributes.entity_picture || ''
   const source = entity?.attributes.source || ''
   const appName = entity?.attributes.app_name || ''
   const mediaContentType = entity?.attributes.media_content_type || ''
-  
+
   const friendlyName = tvConfig.name || entity?.attributes.friendly_name || tvConfig.entityId || 'TV'
 
   const handlePower = async () => {
@@ -205,14 +205,14 @@ const TVUnit = ({ tvConfig, entity, api, loading, onLoadingChange }: TVUnitProps
       <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-lg border-4 border-gray-700 shadow-2xl overflow-hidden relative">
         {/* Верхняя часть телевизора (рамка) */}
         <div className="h-2 sm:h-3 bg-gray-800 border-b border-gray-600"></div>
-        
+
         {/* Экран телевизора */}
         <div className="flex-1 relative bg-black overflow-hidden">
           {isOn ? (
             <>
               {/* Изображение или градиент */}
               {mediaImage ? (
-                <div 
+                <div
                   className="w-full h-full bg-cover bg-center"
                   style={{
                     backgroundImage: `url(${mediaImage})`,
@@ -235,7 +235,7 @@ const TVUnit = ({ tvConfig, entity, api, loading, onLoadingChange }: TVUnitProps
                   </div>
                 </div>
               )}
-              
+
               {/* Информация о медиа */}
               {(mediaTitle || source || appName) && (
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-3 sm:p-4">
@@ -266,7 +266,7 @@ const TVUnit = ({ tvConfig, entity, api, loading, onLoadingChange }: TVUnitProps
             </div>
           )}
         </div>
-        
+
         {/* Нижняя часть телевизора (подставка) */}
         <div className="h-1 sm:h-2 bg-gray-800 border-t border-gray-600"></div>
         <div className="h-2 sm:h-3 bg-gray-700 rounded-b-lg"></div>
@@ -294,11 +294,10 @@ const TVUnit = ({ tvConfig, entity, api, loading, onLoadingChange }: TVUnitProps
           <button
             onClick={handlePower}
             disabled={localLoading || loading}
-            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-all flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ${
-              isOn 
-                ? 'bg-red-600 hover:bg-red-700 text-white' 
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-all flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ${isOn
+                ? 'bg-red-600 hover:bg-red-700 text-white'
                 : 'bg-green-600 hover:bg-green-700 text-white'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
             title={isOn ? 'כבה' : 'הדלק'}
           >
             <Power size={16} className="sm:w-[18px] sm:h-[18px]" />
@@ -411,11 +410,10 @@ const TVUnit = ({ tvConfig, entity, api, loading, onLoadingChange }: TVUnitProps
                       handleSourceSelect(sourceName)
                       setShowAdvanced(false)
                     }}
-                    className={`w-full text-right p-2 rounded-lg transition-colors text-xs sm:text-sm ${
-                      source === sourceName
+                    className={`w-full text-right p-2 rounded-lg transition-colors text-xs sm:text-sm ${source === sourceName
                         ? 'bg-blue-600 text-white'
                         : 'bg-dark-card hover:bg-dark-cardHover text-white'
-                    }`}
+                      }`}
                   >
                     {sourceName}
                   </button>
@@ -564,13 +562,12 @@ const TVPreviewWidget = () => {
 
   return (
     <div className="h-full p-2 sm:p-3 md:p-4 overflow-y-auto">
-      <div className={`grid gap-3 sm:gap-4 ${
-        tvConfigs.length === 1 
-          ? 'grid-cols-1' 
-          : tvConfigs.length === 2 
-          ? 'grid-cols-1 md:grid-cols-2' 
-          : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-      }`}>
+      <div className={`grid gap-3 sm:gap-4 ${tvConfigs.length === 1
+          ? 'grid-cols-1'
+          : tvConfigs.length === 2
+            ? 'grid-cols-1 md:grid-cols-2'
+            : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+        }`}>
         {tvConfigs.map((tvConfig, index) => (
           <TVUnit
             key={tvConfig.entityId || index}

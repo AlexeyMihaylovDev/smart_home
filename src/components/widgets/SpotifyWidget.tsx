@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ChevronLeft, Play, Pause, ChevronRight, Power } from 'lucide-react'
+import { ChevronLeft, Play, Pause, ChevronRight } from 'lucide-react'
 import { getSpotifyConfigSync, SpotifyConfig } from '../../services/widgetConfig'
 
 const SpotifyWidget = () => {
@@ -46,7 +46,7 @@ const SpotifyWidget = () => {
           <option>{config.deviceName}</option>
         </select>
       </div>
-      
+
       <div className="mb-4 h-32 bg-gradient-to-br from-green-500/20 via-blue-500/20 to-purple-500/20 rounded-xl flex items-center justify-center border border-white/10 backdrop-blur-sm">
         <div className="text-center text-white">
           <div className="text-4xl mb-2">{config.coverEmoji || '🎵'}</div>

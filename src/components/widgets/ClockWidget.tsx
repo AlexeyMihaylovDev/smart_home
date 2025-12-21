@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getClockConfigSync, ClockConfig } from '../../services/widgetConfig'
-import { Clock } from 'lucide-react'
+
 
 const ClockWidget = () => {
   const [clockConfig, setClockConfig] = useState<ClockConfig>(() => {
@@ -78,7 +78,7 @@ const ClockWidget = () => {
   const formatDate = (date: Date): string => {
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-    
+
     const dayOfWeek = daysOfWeek[date.getDay()]
     const month = months[date.getMonth()]
     const day = date.getDate()

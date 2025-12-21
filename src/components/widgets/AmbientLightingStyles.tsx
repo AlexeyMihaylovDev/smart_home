@@ -13,7 +13,7 @@ interface AmbientLightingStyleProps {
 }
 
 // Стиль 1: Список (текущий)
-export const ListStyle = ({ lights, entities, onToggle, getEntityState, getDisplayName, getIcon }: AmbientLightingStyleProps) => {
+export const ListStyle = ({ lights, entities: _entities, onToggle, getEntityState, getDisplayName, getIcon }: AmbientLightingStyleProps) => {
   return (
     <div className="space-y-2 overflow-y-auto flex-1 min-h-0" style={{ maxHeight: 'calc(5 * (2.5rem + 0.5rem))' }}>
       {Array.isArray(lights) && lights.map((light, index) => {
@@ -114,7 +114,7 @@ export const CardsStyle = ({ lights, entities, onToggle, getEntityState, getDisp
 }
 
 // Стиль 3: Компактный
-export const CompactStyle = ({ lights, entities, onToggle, getEntityState, getDisplayName, getIcon }: AmbientLightingStyleProps) => {
+export const CompactStyle = ({ lights, entities: _entities, onToggle, getEntityState, getDisplayName, getIcon }: AmbientLightingStyleProps) => {
   return (
     <div className="space-y-1 overflow-y-auto flex-1 min-h-0">
       {Array.isArray(lights) && lights.map((light, index) => {
@@ -126,9 +126,8 @@ export const CompactStyle = ({ lights, entities, onToggle, getEntityState, getDi
         return (
           <div
             key={index}
-            className={`flex items-center justify-between p-1.5 rounded transition-colors flex-shrink-0 ${
-              isOn ? 'bg-yellow-500/10' : 'hover:bg-white/5'
-            }`}
+            className={`flex items-center justify-between p-1.5 rounded transition-colors flex-shrink-0 ${isOn ? 'bg-yellow-500/10' : 'hover:bg-white/5'
+              }`}
             onClick={() => hasEntity && onToggle(light)}
           >
             <div className="flex items-center gap-1.5 flex-1 min-w-0">
@@ -146,7 +145,7 @@ export const CompactStyle = ({ lights, entities, onToggle, getEntityState, getDi
 }
 
 // Стиль 4: Минималистичный
-export const MinimalStyle = ({ lights, entities, onToggle, getEntityState, getDisplayName, getIcon }: AmbientLightingStyleProps) => {
+export const MinimalStyle = ({ lights, entities: _entities, onToggle, getEntityState, getDisplayName, getIcon }: AmbientLightingStyleProps) => {
   return (
     <div className="flex flex-wrap gap-2 overflow-y-auto flex-1 min-h-0 p-1">
       {Array.isArray(lights) && lights.map((light, index) => {
@@ -158,11 +157,10 @@ export const MinimalStyle = ({ lights, entities, onToggle, getEntityState, getDi
         return (
           <div
             key={index}
-            className={`flex items-center gap-2 px-3 py-2 rounded-full border transition-all cursor-pointer ${
-              isOn
+            className={`flex items-center gap-2 px-3 py-2 rounded-full border transition-all cursor-pointer ${isOn
                 ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400'
                 : 'bg-dark-card border-dark-border text-dark-textSecondary hover:border-dark-textSecondary'
-            } ${!hasEntity ? 'opacity-50' : ''}`}
+              } ${!hasEntity ? 'opacity-50' : ''}`}
             onClick={() => hasEntity && onToggle(light)}
             title={displayName}
           >

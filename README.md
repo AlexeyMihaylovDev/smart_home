@@ -1,106 +1,225 @@
-# Smart Home Dashboard
+# Smart Home Dashboard | לוח בקרה בית חכם
 
-Персональная панель управления для Home Assistant в современном темном стиле.
+<div dir="rtl">
 
-## 🚀 Быстрый старт
+## סקירה כללית
 
-### Требования
+לוח בקרה מתקדם לניהול מכשירי בית חכם הבנוי על React ו-TypeScript, עם אינטגרציה מלאה ל-Home Assistant.
 
-- Node.js 18+ и npm
-- Home Assistant с настроенным Long-Lived Access Token
+</div>
 
-### Установка
+## Features | תכונות
 
-1. Установите зависимости:
+- 🔐 **Secure Authentication** - User authentication with encrypted passwords
+- 🏠 **Home Assistant Integration** - Full integration with Home Assistant API  
+- 📱 **Responsive Design** - Works on desktop, tablet, and mobile
+- 🎨 **Modern UI** - Beautiful dark mode interface with Hebrew RTL support
+- 🐳 **Docker Support** - Easy deployment with Docker and docker-compose
+- ⚙️ **Configurable Environment** - Manage credentials via environment variables
+
+## Quick Start with Docker | התחלה מהירה עם Docker
+
+<div dir="rtl">
+
+### דרישות מקדימות
+
+- Docker ו-Docker Compose מותקנים במערכת
+- Home Assistant פועל ונגיש ברשת
+
+### שלב 1: שכפול הפרויקט
+
 ```bash
+git clone <repository-url>
+cd smart_home
+```
+
+### שלב 2: הגדרת משתני סביבה
+
+העתק את קובץ הדוגמה:
+
+```bash
+cp .env.example .env
+```
+
+ערוך את הקובץ `.env` והגדר את הערכים שלך:
+
+```env
+# פרטי משתמש ברירת מחדל
+DEFAULT_USERNAME=admin
+DEFAULT_PASSWORD=YourSecurePassword123
+
+# חיבור ל-Home Assistant
+HOME_ASSISTANT_URL=http://homeassistant.local:8123
+HOME_ASSISTANT_TOKEN=your_long_lived_access_token_here
+```
+
+### שלב 3: קבלת Access Token מ-Home Assistant
+
+1. היכנס ל-Home Assistant שלך
+2. לחץ על הפרופיל שלך (פינה שמאלית תחתונה)
+3. גלול למטה ל-"Long-Lived Access Tokens"
+4. לחץ "Create Token"
+5. תן שם ל-token (למשל: "Smart Home Dashboard")
+6. העתק את ה-token והדבק אותו ב-`.env` file
+
+### שלב 4: הרצת הפרויקט
+
+```bash
+docker-compose up --build
+```
+
+הדשבורד יהיה זמין ב: **http://localhost:3001**
+
+### שלב 5: כניסה למערכת
+
+השתמש בשם המשתמש והסיסמה שהגדרת בקובץ `.env`
+
+</div>
+
+## Development | פיתוח
+
+<div dir="rtl">
+
+### התקנה מקומית
+
+```bash
+# התקנת תלויות
 npm install
-```
 
-2. Запустите dev-сервер:
-```bash
+# הרצה במצב פיתוח (סרבר + קליינט)
 npm run dev
+
+# הרצה נפרדת
+npm run dev:server  # Port 3001
+npm run dev:client  # Port 5173
 ```
 
-3. Откройте браузер по адресу `http://localhost:3000`
-
-### Подключение к Home Assistant
-
-1. При первом запуске откроется модальное окно подключения
-2. Введите URL вашего Home Assistant (например: `http://192.168.3.12:8123`)
-3. Введите Long-Lived Access Token:
-   - Откройте Home Assistant
-   - Перейдите в **Профиль** (иконка внизу слева)
-   - Прокрутите вниз до раздела **Long-Lived Access Tokens**
-   - Создайте новый токен и скопируйте его полностью
-4. Нажмите "Подключиться"
-
-Токен и URL сохраняются в localStorage браузера.
-
-**Важно:** В dev режиме используется прокси Vite для обхода проблем с CORS. Если возникают проблемы с подключением, см. файл `TROUBLESHOOTING.md`.
-
-## 📦 Сборка для продакшена
+### בניית הפרויקט
 
 ```bash
+# בניית הקליינט
 npm run build
+
+# בניית Docker image
+docker build -t smart-home-dashboard .
 ```
 
-Собранные файлы будут в папке `dist/`.
+</div>
 
-## 🎨 Особенности
+## Environment Variables | משתני סביבה
 
-- **Темная тема** - современный темный интерфейс
-- **Виджеты** - модульная система виджетов для различных устройств
-- **Боковая панель** - навигация по разделам
-- **Верхняя панель** - быстрый доступ к категориям устройств
-- **Интеграция с Home Assistant** - полная поддержка REST API
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `DEFAULT_USERNAME` | Default admin username | `admin` | No |
+| `DEFAULT_PASSWORD` | Default admin password | `admin` | No |
+| `HOME_ASSISTANT_URL` | Home Assistant URL | `http://homeassistant.local:8123` | No* |
+| `HOME_ASSISTANT_TOKEN` | HA Long-Lived Access Token | - | No* |
+| `NODE_ENV` | Environment mode | `production` | No |
 
-## 🔧 Настройка виджетов
+<div dir="rtl">
 
-Виджеты находятся в `src/components/widgets/`. Каждый виджет можно настроить для работы с конкретными сущностями Home Assistant.
+*הערה: ניתן להגדיר את פרטי החיבור ל-Home Assistant דרך ממשק המשתמש במקום משתני הסביבה.
 
-Пример настройки виджета для работы с реальными данными:
+</div>
 
-```typescript
-import { useHomeAssistant } from '../context/HomeAssistantContext'
-import { useEffect, useState } from 'react'
+## Docker Compose with Home Assistant | Docker Compose עם Home Assistant
 
-const MyWidget = () => {
-  const { api } = useHomeAssistant()
-  const [entity, setEntity] = useState(null)
+<div dir="rtl">
 
-  useEffect(() => {
-    if (api) {
-      api.getState('light.living_room').then(setEntity)
-    }
-  }, [api])
+### חיבור ל-Home Assistant הרץ ב-Docker
 
-  // ... остальной код виджета
-}
+אם Home Assistant שלך רץ ב-Docker באותה מכונה, הוסף אותו ל `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: homeassistant
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./homeassistant_config:/config
+    environment:
+      - TZ=Asia/Jerusalem
+
+  smart-home:
+    build: .
+    image: smart-home-dashboard
+    container_name: smart-home-dashboard
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./server/data:/app/server/data
+    environment:
+      - NODE_ENV=production
+      - DEFAULT_USERNAME=${DEFAULT_USERNAME:-admin}
+      - DEFAULT_PASSWORD=${DEFAULT_PASSWORD:-admin}
+      - HOME_ASSISTANT_URL=http://localhost:8123
+    network_mode: host
+    depends_on:
+      - homeassistant
 ```
 
-## 📁 Структура проекта
+</div>
 
+## Security Notes | הערות אבטחה
+
+<div dir="rtl">
+
+### ⚠️ חשוב לאבטחה
+
+1. **שנה סיסמת ברירת מחדל**: אל תשתמש ב- `admin/admin` בייצור!
+2. **הגן על .env**: ודא תמיד ש-`.env` ברשימת `.gitignore`
+3. **Token Security**: ה-Access Token מאוחסן בקובץ JSON פשוט - הגבל גישה לתיקייה `server/data/`
+4. **Network Security**: הגרסה דורשת `network_mode: host` - הגבל גישה לרשת מקומית בלבד
+
+### שינוי סיסמה
+
+הסיסמה מתעדכנת אוטומטית כשמשתנים משתני הסביבה:
+
+1. עדכן את `.env` עם הסיסמה החדשה
+2. הפעל מחדש את הקונטיינר: `docker-compose restart smart-home`
+
+</div>
+
+## Troubleshooting | פתרון בעיות
+
+<div dir="rtl">
+
+### הדשבורד לא מתחבר ל-Home Assistant
+
+1. **בדוק את ה-URL**: ודא ש-`HOME_ASSISTANT_URL` נכון
+2. **Token תקף**: ודא שה-Access Token עדיין תקף ב-Home Assistant
+3. **רשת**: אם משתמש ב-`network_mode: host`, ודא ש-HA נגיש ב-localhost
+4. **Logs**: בדוק לוגים: `docker-compose logs smart-home`
+
+### שגיאת כניסה
+
+1. **סיסמה שגויה**: בדוק משתני סביבה ב-`.env`
+2. **נתונים קיימים**: מחק `server/data/users.json` והפעל מחדש
+
+### Port כבר בשימוש
+
+אם פורט 3001 תפוס, שנה ב-`docker-compose.yml`:
+
+```yaml
+ports:
+  - "3002:3001"  # משתמש בפורט 3002 חיצונית
 ```
-src/
-├── components/          # React компоненты
-│   ├── widgets/        # Виджеты дашборда
-│   └── ui/            # UI компоненты (кнопки, переключатели)
-├── context/           # React Context для Home Assistant
-├── services/          # API сервисы
-└── App.tsx            # Главный компонент
-```
 
-## 🛠 Технологии
+</div>
 
-- **React 18** - UI библиотека
-- **TypeScript** - типизация
-- **Vite** - сборщик
-- **Tailwind CSS** - стилизация
-- **Lucide React** - иконки
-- **Axios** - HTTP клиент
+## API Endpoints
 
-## 📝 Лицензия
+- `POST /api/auth/login` - User login
+- `GET/POST /api/config/widget` - Widget configuration
+- `GET/POST /api/config/layout` - Dashboard layout
+- `GET/POST /api/config/connection` - Home Assistant connection
+- `GET /api/health` - Server health check
+
+## License
 
 MIT
-
-

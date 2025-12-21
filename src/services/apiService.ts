@@ -32,7 +32,7 @@ apiClient.interceptors.request.use(
     const userId = getUserId()
     // Для запроса логина userId еще не установлен - это нормально
     const isLoginRequest = config.url === '/api/auth/login'
-    
+
     if (userId) {
       config.headers['x-user-id'] = userId
       console.log(`[API] Запрос к ${config.url} с userId: ${userId}`)
@@ -139,7 +139,7 @@ export interface WidgetConfig {
     icons: Array<{
       id: string
       label: string
-      iconName: 'camera' | 'home' | 'network' | 'vacuum'
+      iconName: 'camera' | 'home' | 'network' | 'vacuum' | 'widget'
       enabled: boolean
       order: number
     }>
@@ -200,16 +200,16 @@ const cleanForSerialization = (obj: any): any => {
   if (obj === null || typeof obj !== 'object') {
     return obj
   }
-  
+
   // Пропускаем DOM-элементы и React-компоненты
   if (obj instanceof HTMLElement || obj instanceof Element || obj.constructor?.name === 'FiberNode') {
     return undefined
   }
-  
+
   if (Array.isArray(obj)) {
     return obj.map(cleanForSerialization).filter(item => item !== undefined)
   }
-  
+
   const cleaned: any = {}
   for (const key in obj) {
     if (obj.hasOwnProperty(key)) {
@@ -217,7 +217,7 @@ const cleanForSerialization = (obj: any): any => {
       if (key.startsWith('__react') || key.startsWith('__FIBER') || key === 'stateNode') {
         continue
       }
-      
+
       try {
         const value = cleanForSerialization(obj[key])
         if (value !== undefined) {
