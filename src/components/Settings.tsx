@@ -58,7 +58,23 @@ const PreviewContent = ({ lights, entities, style }: { lights: LightConfig[], en
 }
 
 
+import ConfirmModal from './ui/ConfirmModal'
+// ... existing imports
+
 const Settings = () => {
+  // ... existing state
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => { },
+    type: 'danger' as 'danger' | 'warning' | 'info'
+  })
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning' | 'info' = 'danger') => {
+    setConfirmModal({ isOpen: true, title, message, onConfirm, type })
+  }
+
   const { api, connect } = useHomeAssistant()
   const [activeTab, setActiveTab] = useState<Tab>('devices')
   const [selectedWidget, setSelectedWidget] = useState<WidgetType>(null)
@@ -657,20 +673,20 @@ const Settings = () => {
       return
     }
 
-    if (confirm(`למחוק ${selectedItems.size} אלמנטים נבחרים?`)) {
+    showConfirm(`למחוק ${selectedItems.size} אלמנטים נבחרים?`, 'פעולה זו תמחק את האלמנטים הנבחרים לצמיתות.', () => {
       const newConfigs = lightConfigs.filter((_, index) => !selectedItems.has(index))
       setLightConfigs(newConfigs)
       setSelectedItems(new Set())
       setHasUnsavedChanges(true)
-    }
+    })
   }
 
   const handleDeleteAll = () => {
-    if (confirm('למחוק את כל האלמנטים מהווידג\'ט?')) {
+    showConfirm('למחוק את כל האלמנטים מהווידג\'ט?', 'פעולה זו תמחק את כל האלמנטים מהווידג\'ט לצמיתות.', () => {
       setLightConfigs([])
       setSelectedItems(new Set())
       setHasUnsavedChanges(true)
-    }
+    })
   }
 
   const handleAddNew = () => {
@@ -685,14 +701,14 @@ const Settings = () => {
   }
 
   const handleDeleteItem = (index: number) => {
-    if (confirm('למחוק את האלמנט הזה?')) {
+    showConfirm('למחוק את האלמנט הזה?', 'פעולה זו תמחק את האלמנט.', () => {
       const newConfigs = lightConfigs.filter((_, i) => i !== index)
       setLightConfigs(newConfigs)
       const newSelected = new Set(selectedItems)
       newSelected.delete(index)
       setSelectedItems(newSelected)
       setHasUnsavedChanges(true)
-    }
+    })
   }
 
   return (
@@ -1237,11 +1253,11 @@ const Settings = () => {
                               <div className="flex items-center gap-2">
                                 <button
                                   onClick={() => {
-                                    if (confirm('למחוק את החיישן הזה?')) {
+                                    showConfirm('למחוק את החיישן הזה?', 'פעולה זו תמחק את החיישן.', () => {
                                       const newConfigs = sensorConfigs.filter((_, i) => i !== index)
                                       setSensorConfigs(newConfigs)
                                       setHasUnsavedChanges(true)
-                                    }
+                                    })
                                   }}
                                   className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0"
                                   title="מחק את החיישן הזה"
@@ -1677,11 +1693,11 @@ const Settings = () => {
                             </div>
                             <button
                               onClick={() => {
-                                if (confirm('למחוק את המכשיר המוטורי הזה?')) {
+                                showConfirm('למחוק את המכשיר המוטורי הזה?', 'פעולה זו תמחק את המכשיר המוטורי.', () => {
                                   const newConfigs = motorConfigs.filter((_, i) => i !== index)
                                   setMotorConfigs(newConfigs)
                                   setHasUnsavedChanges(true)
-                                }
+                                })
                               }}
                               className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0 ml-2"
                               title="מחק את המכשיר המוטורי הזה"
@@ -1843,11 +1859,11 @@ const Settings = () => {
                             </div>
                             <button
                               onClick={() => {
-                                if (confirm('למחוק את ה-Bose הזה?')) {
+                                showConfirm('למחוק את ה-Bose הזה?', 'פעולה זו תמחק את ה-Bose.', () => {
                                   const newConfigs = boseConfigs.filter((_, i) => i !== index)
                                   setBoseConfigs(newConfigs)
                                   setHasUnsavedChanges(true)
-                                }
+                                })
                               }}
                               className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0 ml-2"
                               title="מחק את ה-Bose הזה"
@@ -2003,11 +2019,11 @@ const Settings = () => {
                             </div>
                             <button
                               onClick={() => {
-                                if (confirm('למחוק את הטלוויזיה הזו?')) {
+                                showConfirm('למחוק את הטלוויזיה הזו?', 'פעולה זו תמחק את הטלוויזיה.', () => {
                                   const newConfigs = tvPreviewConfigs.filter((_, i) => i !== index)
                                   setTVPreviewConfigs(newConfigs)
                                   setHasUnsavedChanges(true)
-                                }
+                                })
                               }}
                               className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0 ml-2"
                               title="מחק את הטלוויזיה הזו"
@@ -2532,11 +2548,11 @@ const Settings = () => {
                             </div>
                             <button
                               onClick={() => {
-                                if (confirm('למחוק את שואב האבק הזה?')) {
+                                showConfirm('למחוק את שואב האבק הזה?', 'פעולה זו תמחק את שואב האבק.', () => {
                                   const newConfigs = vacuumConfigs.filter((_, i) => i !== index)
                                   setVacuumConfigs(newConfigs)
                                   setHasUnsavedChanges(true)
-                                }
+                                })
                               }}
                               className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0 ml-2"
                               title="מחק את שואב האבק הזה"
@@ -3313,11 +3329,11 @@ const Settings = () => {
                             </div>
                             <button
                               onClick={() => {
-                                if (confirm('Удалить эту камеру?')) {
+                                showConfirm('למחוק את המצלמה הזו?', 'פעולה זו תמחק את המצלמה.', () => {
                                   const newConfigs = cameraConfigs.filter((_, i) => i !== index)
                                   setCameraConfigs(newConfigs)
                                   setHasUnsavedChanges(true)
-                                }
+                                })
                               }}
                               className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0 ml-2"
                               title="Удалить эту камеру"
@@ -3478,11 +3494,11 @@ const Settings = () => {
                             </div>
                             <button
                               onClick={() => {
-                                if (confirm('למחוק את המזגן הזה?')) {
+                                showConfirm('למחוק את המזגן הזה?', 'פעולה זו תמחק את המזגן.', () => {
                                   const newConfigs = acConfigs.filter((_, i) => i !== index)
                                   setACConfigs(newConfigs)
                                   setHasUnsavedChanges(true)
-                                }
+                                })
                               }}
                               className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded transition-colors flex-shrink-0 ml-2"
                               title="מחק את המזגן הזה"
@@ -3808,6 +3824,15 @@ const Settings = () => {
           onClose={() => setToast(null)}
         />
       )}
+      {/* Modal for Confirmation */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+      />
     </div>
   )
 }

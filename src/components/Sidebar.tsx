@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { LayoutGrid, Settings, Zap, User, List, BarChart, Calendar, Play, Camera, LogOut, X } from 'lucide-react'
+import { LayoutGrid, Settings, User, List, Calendar, LogOut, X, Newspaper } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
-type Page = 'dashboard' | 'settings'
+type Page = 'dashboard' | 'settings' | 'calendar' | 'shopping-list' | 'news'
 
 interface SidebarProps {
   currentPage: Page
@@ -17,17 +17,13 @@ const Sidebar = ({ currentPage, onPageChange, isMobileMenuOpen, onMobileMenuTogg
 
   const menuItems = [
     { icon: LayoutGrid, label: 'לוח בקרה', page: 'dashboard' as Page },
-    { icon: Settings, label: 'הגדרות', page: 'settings' as Page },
-    { icon: Zap, label: 'אנרגיה' },
-    { icon: User, label: 'פרופיל' },
-    { icon: List, label: 'מכשירים' },
-    { icon: BarChart, label: 'ניתוח נתונים' },
-    { icon: Calendar, label: 'לוח זמנים' },
-    { icon: Play, label: 'סצנות' },
+    { icon: List, label: 'רשימת קניות', page: 'shopping-list' as Page },
+    { icon: Calendar, label: 'לוח זמנים', page: 'calendar' as Page },
+    { icon: Newspaper, label: 'חדשות ישראל', page: 'news' as Page },
   ]
 
   const bottomItems = [
-    { icon: Camera, label: 'מצלמות' },
+    { icon: Settings, label: 'הגדרות', page: 'settings' as Page },
     { icon: LogOut, label: 'יציאה', action: 'logout' },
   ]
 
@@ -152,7 +148,7 @@ const Sidebar = ({ currentPage, onPageChange, isMobileMenuOpen, onMobileMenuTogg
                   if (isLogout) {
                     handleLogout()
                   } else {
-                    handleItemClick()
+                    handleItemClick(item.page)
                   }
                 }}
                 className="w-full lg:w-auto flex items-center gap-3 lg:justify-center p-3 rounded-lg text-dark-textSecondary hover:bg-dark-cardHover hover:text-white transition-colors"

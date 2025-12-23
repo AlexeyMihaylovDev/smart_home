@@ -671,7 +671,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
   const currentCols = cols || getCols()
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className={`relative ${editMode ? 'edit-mode' : ''}`} ref={containerRef}>
       {/* Индикатор тройного клика */}
       {tripleClickActivated && !editMode && longPressProgress === 0 && (
         <div
@@ -757,8 +757,8 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
             window.innerWidth < 1024 ? window.innerWidth - 32 :
               window.innerWidth < 1920 ? window.innerWidth - 80 :
                 Math.min(window.innerWidth - 120, 2400)) : 1200}
-        isDraggable={editMode}
-        isResizable={editMode}
+        isDraggable={true}
+        isResizable={true}
         draggableHandle=".drag-handle"
         compactType="vertical"
         preventCollision={false}
@@ -777,17 +777,12 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
 
             return (
               <div key={item.i} className="relative">
-                {editMode && (
-                  <div className="absolute top-2 left-2 z-10 flex items-center gap-2">
-                    <div className="drag-handle cursor-move p-1 bg-dark-cardHover rounded opacity-75 hover:opacity-100">
-                      <GripVertical size={16} className="text-white" />
-                    </div>
-                    <div className="px-2 py-1 bg-dark-cardHover rounded text-xs text-white opacity-75">
-                      {item.w}×{item.h}
-                    </div>
+                <div className="absolute top-2 left-2 z-10 flex items-center gap-2">
+                  <div className="drag-handle cursor-move p-1 bg-dark-cardHover/80 rounded opacity-60 hover:opacity-100 transition-opacity">
+                    <GripVertical size={16} className="text-white" />
                   </div>
-                )}
-                <div className={`h-full ${editMode ? 'opacity-90' : ''} widget-wrapper`}>
+                </div>
+                <div className={`h-full widget-wrapper`}>
                   <div className="widget-card h-full">
                     <WidgetComponent />
                   </div>

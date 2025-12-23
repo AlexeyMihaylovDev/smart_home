@@ -7,7 +7,7 @@ interface TopBarProps {
   onMenuClick?: () => void
   onTabChange?: (tabId: string) => void
   currentTab?: string
-  currentPage?: 'dashboard' | 'settings'
+  currentPage?: 'dashboard' | 'settings' | 'calendar' | 'shopping-list' | 'news'
 }
 
 const iconMap: Record<string, LucideIcon> = {

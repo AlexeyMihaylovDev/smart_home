@@ -543,6 +543,87 @@ app.post('/api/config/dashboard-layouts', requireAuth, async (req, res) => {
   }
 })
 
+
+
+// Проверка здоровья сервера
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' })
+})
+
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  const DIST_DIR = path.join(__dirname, '../dist')
+  app.use(express.static(DIST_DIR))
+
+  // Handle SPA routing - Express v5 compatible
+  app.use((req, res, next) => {
+    // Не перехватываем API запросы
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ error: 'API endpoint not found' })
+    }
+    res.sendFile(path.join(DIST_DIR, 'index.html'))
+  })
+}
+
+// API для получения событий календаря
+app.get('/api/calendar', async (req, res) => {
+  try {
+    const userId = req.headers['x-user-id']
+    if (!userId) {
+      return res.status(401).json({ error: 'Требуется аутентификация' })
+    }
+    const events = await readDataFile(`calendar_${userId}.json`) || []
+    res.json(events)
+  } catch (error) {
+    console.error('Ошибка получения календаря:', error)
+    res.status(500).json({ error: 'Ошибка сервера' })
+  }
+})
+
+// API для сохранения событий календаря
+app.post('/api/calendar', async (req, res) => {
+  try {
+    const userId = req.headers['x-user-id']
+    if (!userId) {
+      return res.status(401).json({ error: 'Требуется аутентификация' })
+    }
+    await writeDataFile(`calendar_${userId}.json`, req.body)
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Ошибка сохранения календаря:', error)
+    res.status(500).json({ error: 'Ошибка сервера' })
+  }
+})
+
+// API для списка покупок
+app.get('/api/shopping-list', async (req, res) => {
+  try {
+    const userId = req.headers['x-user-id']
+    if (!userId) {
+      return res.status(401).json({ error: 'Требуется аутентификация' })
+    }
+    const items = await readDataFile(`shopping_list_${userId}.json`) || []
+    res.json(items)
+  } catch (error) {
+    console.error('Ошибка получения списка покупок:', error)
+    res.status(500).json({ error: 'Ошибка сервера' })
+  }
+})
+
+app.post('/api/shopping-list', async (req, res) => {
+  try {
+    const userId = req.headers['x-user-id']
+    if (!userId) {
+      return res.status(401).json({ error: 'Требуется аутентификация' })
+    }
+    await writeDataFile(`shopping_list_${userId}.json`, req.body)
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Ошибка сохранения списка покупок:', error)
+    res.status(500).json({ error: 'Ошибка сервера' })
+  }
+})
+
 // Proxy to Home Assistant
 // Перехватываем все запросы к /api/ (кроме тех, что обработаны выше)
 // Должен быть ПОСЛЕДНИМ handler-ом перед health check
@@ -609,26 +690,6 @@ app.use('/api', requireAuth, async (req, res) => {
     }
   }
 });
-
-// Проверка здоровья сервера
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' })
-})
-
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-  const DIST_DIR = path.join(__dirname, '../dist')
-  app.use(express.static(DIST_DIR))
-
-  // Handle SPA routing - Express v5 compatible
-  app.use((req, res, next) => {
-    // Не перехватываем API запросы
-    if (req.path.startsWith('/api')) {
-      return res.status(404).json({ error: 'API endpoint not found' })
-    }
-    res.sendFile(path.join(DIST_DIR, 'index.html'))
-  })
-}
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Сервер настроек запущен на http://0.0.0.0:${PORT}`)

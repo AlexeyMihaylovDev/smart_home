@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Dashboard from './components/Dashboard'
+
 import { HomeAssistantProvider } from './context/HomeAssistantContext'
 import { AuthProvider } from './context/AuthContext'
 
@@ -12,6 +13,9 @@ function App() {
           <Routes>
             <Route path="/dashboard" element={<Dashboard initialPage="dashboard" />} />
             <Route path="/settings" element={<Dashboard initialPage="settings" />} />
+            <Route path="/calendar" element={<Dashboard initialPage="calendar" />} />
+            <Route path="/shopping-list" element={<Dashboard initialPage="shopping-list" />} />
+            <Route path="/news" element={<Dashboard initialPage="news" />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </BrowserRouter>
@@ -21,5 +25,3 @@ function App() {
 }
 
 export default App
-
-

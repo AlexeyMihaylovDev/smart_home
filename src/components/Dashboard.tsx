@@ -7,8 +7,11 @@ import TopBar from './TopBar'
 import LoginModal from './LoginModal'
 import WidgetGrid from './WidgetGrid'
 import Settings from './Settings'
+import CalendarPage from './CalendarPage'
+import ShoppingListPage from './ShoppingListPage'
+import NewsPage from './NewsPage'
 
-type Page = 'dashboard' | 'settings'
+export type Page = 'dashboard' | 'settings' | 'calendar' | 'shopping-list' | 'news'
 
 interface DashboardProps {
   initialPage?: Page
@@ -25,6 +28,9 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
   // Определяем текущую страницу из URL
   const getCurrentPage = (): Page => {
     if (location.pathname === '/settings') return 'settings'
+    if (location.pathname === '/calendar') return 'calendar'
+    if (location.pathname === '/shopping-list') return 'shopping-list'
+    if (location.pathname === '/news') return 'news'
     return 'dashboard'
   }
 
@@ -97,6 +103,10 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
       navigate('/dashboard')
     } else if (page === 'settings') {
       navigate('/settings')
+    } else if (page === 'calendar') {
+      navigate('/calendar')
+    } else if (page === 'shopping-list') {
+      navigate('/shopping-list')
     }
   }
 
@@ -128,8 +138,12 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
           currentTab={currentPage === 'settings' ? undefined : currentTab}
           currentPage={currentPage}
         />
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-dark-bg">
-          {currentPage === 'dashboard' ? <WidgetGrid currentTab={currentTab} /> : <Settings />}
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 dashboard-bg">
+          {currentPage === 'dashboard' ? <WidgetGrid currentTab={currentTab} /> :
+            currentPage === 'settings' ? <Settings /> :
+              currentPage === 'calendar' ? <CalendarPage /> :
+                currentPage === 'shopping-list' ? <ShoppingListPage /> :
+                  currentPage === 'news' ? <NewsPage /> : null}
         </div>
       </div>
     </div>

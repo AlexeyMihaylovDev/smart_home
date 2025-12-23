@@ -47,23 +47,20 @@ export const ListStyle = ({ lights, entities: _entities, onToggle, getEntityStat
 
 // Стиль 2: Карточный (как на фото)
 export const CardsStyle = ({ lights, entities, onToggle, getEntityState, getDisplayName, getIcon }: AmbientLightingStyleProps) => {
-  const getCardColor = (isOn: boolean, hasEntity: boolean, index: number) => {
-    if (!hasEntity) return 'bg-gray-800 border-gray-700'
+  const getCardColor = (isOn: boolean, hasEntity: boolean) => {
+    if (!hasEntity) return 'bg-gray-800/50 border-gray-700/50'
     if (isOn) {
-      // Чередуем цвета для включенных
-      const colors = ['bg-white', 'bg-purple-900', 'bg-red-900', 'bg-blue-900']
-      return colors[index % colors.length] + ' border-transparent'
+      return 'bg-green-900/40 border-green-500/50'
     }
-    return 'bg-gray-800 border-gray-700'
+    return 'bg-gray-800/30 border-gray-700/30'
   }
 
-  const getIconColor = (isOn: boolean, hasEntity: boolean, index: number) => {
-    if (!hasEntity) return 'bg-gray-700'
+  const getIconColor = (isOn: boolean, hasEntity: boolean) => {
+    if (!hasEntity) return 'bg-gray-700/50'
     if (isOn) {
-      const colors = ['bg-amber-600', 'bg-purple-600', 'bg-red-600', 'bg-blue-600']
-      return colors[index % colors.length]
+      return 'bg-green-600'
     }
-    return 'bg-gray-600'
+    return 'bg-gray-600/50'
   }
 
   const getStatusText = (isOn: boolean, hasEntity: boolean, entityId: string | null) => {
@@ -83,25 +80,25 @@ export const CardsStyle = ({ lights, entities, onToggle, getEntityState, getDisp
         const isOn = getEntityState(light.entityId)
         const hasEntity = light.entityId !== null
         const displayName = getDisplayName(light)
-        const cardColor = getCardColor(isOn, hasEntity, index)
-        const iconColor = getIconColor(isOn, hasEntity, index)
+        const cardColor = getCardColor(isOn, hasEntity)
+        const iconColor = getIconColor(isOn, hasEntity)
         const statusText = getStatusText(isOn, hasEntity, light.entityId)
 
         return (
           <div
             key={index}
-            className={`rounded-lg border p-3 cursor-pointer transition-all hover:scale-105 hover:shadow-lg ${cardColor}`}
+            className={`rounded-lg border p-3 cursor-pointer transition-all hover:scale-105 hover:shadow-lg ${cardColor} ${isOn ? 'shadow-green-500/20 shadow-lg' : ''}`}
             onClick={() => hasEntity && onToggle(light)}
           >
             <div className="flex flex-col items-center text-center gap-2">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${iconColor} transition-colors flex-shrink-0`}>
-                <Icon size={24} className="text-white" />
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${iconColor} transition-colors flex-shrink-0 ${isOn ? 'shadow-green-400/50 shadow-lg' : ''}`}>
+                <Icon size={24} className={isOn ? 'text-white' : 'text-gray-400'} />
               </div>
               <div className="flex-1 min-h-0 w-full">
-                <div className={`text-sm font-medium truncate ${isOn && hasEntity && cardColor.includes('bg-white') ? 'text-gray-900' : 'text-white'}`}>
+                <div className={`text-sm font-medium truncate ${isOn ? 'text-green-300' : 'text-gray-400'}`}>
                   {displayName}
                 </div>
-                <div className={`text-xs mt-1 ${isOn && hasEntity && cardColor.includes('bg-white') ? 'text-gray-600' : 'text-gray-400'}`}>
+                <div className={`text-xs mt-1 ${isOn ? 'text-green-400/80' : 'text-gray-500'}`}>
                   {statusText}
                 </div>
               </div>
@@ -158,8 +155,8 @@ export const MinimalStyle = ({ lights, entities: _entities, onToggle, getEntityS
           <div
             key={index}
             className={`flex items-center gap-2 px-3 py-2 rounded-full border transition-all cursor-pointer ${isOn
-                ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400'
-                : 'bg-dark-card border-dark-border text-dark-textSecondary hover:border-dark-textSecondary'
+              ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400'
+              : 'bg-dark-card border-dark-border text-dark-textSecondary hover:border-dark-textSecondary'
               } ${!hasEntity ? 'opacity-50' : ''}`}
             onClick={() => hasEntity && onToggle(light)}
             title={displayName}
