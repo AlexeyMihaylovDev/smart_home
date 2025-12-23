@@ -130,6 +130,123 @@ function requireAuth(req, res, next) {
   req.userId = userId
   next()
 }
+// Home Assistant API Proxy (to bypass CORS and resolve internal hostnames)
+app.all('/api/homeassistant/*', async (req, res) => {
+  try {
+    // Get Home Assistant URL from user's config or environment
+    const userId = req.headers['x-user-id']
+    let haUrl = process.env.HOME_ASSISTANT_URL || 'http://127.0.0.1:8123'
+    let haToken = process.env.HOME_ASSISTANT_TOKEN || ''
+
+    // Try to get user-specific config
+    if (userId) {
+      try {
+        const connection = await readDataFile(`connection_${userId}.json`)
+        if (connection) {
+          haUrl = connection.url
+          haToken = connection.token || ''
+        }
+      } catch (error) {
+        // Use defaults if no user config
+        console.log(`[HA Proxy] No connection config for user ${userId}, using defaults`)
+      }
+    }
+
+    // Extract the path after /api/homeassistant/
+    const haPath = req.path.replace('/api/homeassistant', '')
+    // Home Assistant API endpoints требуют /api prefix
+    // IMPORTANT: Ensure we don't double slash or miss slash
+    const targetUrl = `${haUrl.replace(/\/$/, '')}/api${haPath}`
+
+    console.log(`[HA Proxy] ${req.method} ${targetUrl}`)
+
+    // Prepare headers
+    const headers = {
+      'Content-Type': 'application/json'
+    }
+    if (haToken) {
+      headers['Authorization'] = `Bearer ${haToken}`
+    }
+
+    // Forward the request to Home Assistant
+    const axios = require('axios')
+    const response = await axios({
+      method: req.method,
+      url: targetUrl,
+      headers: headers,
+      data: req.body,
+      params: req.query,
+      validateStatus: () => true // Don't throw on any status
+    })
+
+    // Forward the response back
+    res.status(response.status).json(response.data)
+  } catch (error) {
+    console.error('Home Assistant proxy error:', error.message)
+    res.status(500).json({
+      error: 'Proxy error',
+      message: error.message
+    })
+  }
+})
+// Home Assistant API Proxy (to bypass CORS)
+app.all('/api/homeassistant/*', async (req, res) => {
+  try {
+    // Get Home Assistant URL from user's config or environment
+    const userId = req.headers['x-user-id']
+    let haUrl = process.env.HOME_ASSISTANT_URL || 'http://127.0.0.1:8123'
+    let haToken = process.env.HOME_ASSISTANT_TOKEN || ''
+
+    // Try to get user-specific config
+    if (userId) {
+      try {
+        const connection = await readDataFile(`connection_${userId}.json`)
+        if (connection) {
+          haUrl = connection.url
+          haToken = connection.token || ''
+        }
+      } catch (error) {
+        // Use defaults if no user config
+        console.log(`[HA Proxy] No connection config for user ${userId}, using defaults`)
+      }
+    }
+
+    // Extract the path after /api/homeassistant/
+    const haPath = req.path.replace('/api/homeassistant', '')
+    // Home Assistant API endpoints требуют /api prefix
+    const targetUrl = `${haUrl}/api${haPath}`
+
+    console.log(`[HA Proxy] ${req.method} ${targetUrl}`)
+
+    // Prepare headers
+    const headers = {
+      'Content-Type': 'application/json'
+    }
+    if (haToken) {
+      headers['Authorization'] = `Bearer ${haToken}`
+    }
+
+    // Forward the request to Home Assistant
+    const axios = require('axios')
+    const response = await axios({
+      method: req.method,
+      url: targetUrl,
+      headers: headers,
+      data: req.body,
+      params: req.query,
+      validateStatus: () => true // Don't throw on any status
+    })
+
+    // Forward the response back
+    res.status(response.status).json(response.data)
+  } catch (error) {
+    console.error('Home Assistant proxy error:', error.message)
+    res.status(500).json({
+      error: 'Proxy error',
+      message: error.message
+    })
+  }
+})
 
 // API для аутентификации
 app.post('/api/auth/login', async (req, res) => {
@@ -503,8 +620,8 @@ if (process.env.NODE_ENV === 'production') {
   const DIST_DIR = path.join(__dirname, '../dist')
   app.use(express.static(DIST_DIR))
 
-  // Handle SPA routing
-  app.get('*', (req, res) => {
+  // Handle SPA routing - Express v5 compatible
+  app.use((req, res, next) => {
     // Не перехватываем API запросы
     if (req.path.startsWith('/api')) {
       return res.status(404).json({ error: 'API endpoint not found' })

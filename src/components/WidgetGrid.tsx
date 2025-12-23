@@ -437,23 +437,29 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
                 }
               })
 
-              return [...existingLayouts, ...newLayouts].map(l => ({
+              // Explicitly type to fix return type inference
+              const mergedLayouts: Layout[] = [...existingLayouts, ...newLayouts].map(l => ({
                 ...l,
                 minW: l.minW,
                 minH: l.minH,
                 maxW: l.maxW,
                 maxH: l.maxH,
-              }))
+              })) as Layout[]
+
+              // @ts-ignore - react-grid-layout v2 uses readonly Layout but we need mutable LayoutItem[]
+              return mergedLayouts
             }
             return []
           }
 
           const savedLayout = getDashboardLayoutSync()
-          return savedLayout.layouts
+          const savedLayouts: Layout[] = savedLayout.layouts as Layout[]
+          // @ts-ignore - react-grid-layout v2 uses readonly Layout but we need mutable LayoutItem[]
+          return savedLayouts
         }
 
         const loadedLayout = await getLayout()
-        setLayout(loadedLayout)
+        setLayout(loadedLayout as Layout[])
       } catch (error) {
         console.error('Ошибка загрузки layout:', error)
         setLayout([])
@@ -475,6 +481,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
   }, [cols, rowHeight, currentTab])
 
   const handleLayoutChange = useCallback(async (newLayout: Layout[]) => {
+
     // Определяем dashboardId для текущего таба
     let dashboardId: string | undefined = undefined
     if (currentTab && currentTab !== 'home') {

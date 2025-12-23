@@ -21,29 +21,33 @@ export class HomeAssistantAPI {
   private client: AxiosInstance
   private apiPathPrefix: string
 
-  constructor(baseUrl: string, token: string) {
-    // Убеждаемся, что baseUrl не заканчивается на /
-    const cleanUrl = baseUrl.replace(/\/$/, '')
-
-    // В dev режиме используем прокси Vite для обхода CORS
-    // В production используем прямой URL
-    const isDev = import.meta.env.DEV
-    const apiBaseUrl = isDev ? '/api' : cleanUrl
-    // Префикс для путей API (в dev режиме baseURL уже содержит /api, поэтому не добавляем)
-    this.apiPathPrefix = isDev ? '' : '/api'
-
-    // Получаем ID пользователя из localStorage (как в apiService)
-    const userId = localStorage.getItem('user_id');
+  constructor(_baseUrl: string, _token: string) {
+    // ВСЕГДА используем proxy через наш backend 
+    // Это позволяет использовать hostname 'homeassistant' внутри Docker сети
+    const apiBaseUrl = '/api/homeassistant'
+    this.apiPathPrefix = ''
 
     this.client = axios.create({
       baseURL: apiBaseUrl,
       headers: {
-        'Authorization': `Bearer ${token}`, // Этот токен теперь будет игнорироваться прокси, но пусть будет
         'Content-Type': 'application/json',
-        ...(userId ? { 'x-user-id': userId } : {})
       },
-      timeout: 10000, // 10 секунд таймаут
+      timeout: 10000,
     })
+
+    // Примечание: Мы больше не передаем Authorization header здесь,
+    // так как токен теперь подставляется на Backend Proxy.
+    // userId передается автоматически через интерцепторы или headers в apiService, 
+    // но axios instance здесь отдельный.
+
+    // Добавим interceptor для добавления userId если он есть в localStorage
+    this.client.interceptors.request.use((config) => {
+      const userId = localStorage.getItem('user_id');
+      if (userId) {
+        config.headers['x-user-id'] = userId;
+      }
+      return config;
+    });
   }
 
   async testConnection(): Promise<void> {
@@ -51,29 +55,29 @@ export class HomeAssistantAPI {
       const endpoint = `${this.apiPathPrefix}/`
       const response = await this.client.get(endpoint)
       if (response.status !== 200) {
-        throw new Error(`Ошибка подключения: статус ${response.status}`)
+        throw new Error(`שגיאת חיבור: סטטוס ${response.status}`)
       }
     } catch (error: any) {
       if (error.response) {
         // Сервер ответил с кодом ошибки
         const status = error.response.status
-        let message = `Ошибка ${status}`
+        let message = `שגיאה ${status}`
 
         if (status === 401) {
-          message = 'Ошибка 401: Неверный токен доступа. Проверьте токен в Home Assistant.'
+          message = 'שגיאה 401: טוקן גישה שגוי. בדוק את הטוקן ב-Home Assistant.'
         } else if (status === 404) {
-          message = 'Ошибка 404: Endpoint не найден. Проверьте URL Home Assistant.'
+          message = 'שגיאה 404: נקודת קצה לא נמצאה. בדוק את כתובת ה-URL של Home Assistant.'
         } else {
-          message = `Ошибка ${status}: ${error.response.statusText || 'Проверьте токен доступа'}`
+          message = `שגיאה ${status}: ${error.response.statusText || 'בדוק את טוקן הגישה'}`
         }
 
         throw new Error(message)
       } else if (error.request) {
         // Запрос был отправлен, но ответа не получено
-        throw new Error('Не удалось подключиться к серверу. Проверьте URL и доступность Home Assistant.')
+        throw new Error('לא ניתן להתחבר לשרת. בדוק את כתובת ה-URL וזמינות Home Assistant.')
       } else {
         // Ошибка при настройке запроса
-        throw new Error(`Ошибка подключения: ${error.message}`)
+        throw new Error(`שגיאת חיבור: ${error.message}`)
       }
     }
   }
@@ -159,5 +163,3 @@ export class HomeAssistantAPI {
     })
   }
 }
-
-

@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:24-alpine
 
 WORKDIR /app
 
@@ -6,7 +6,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+# We need legacy-peer-deps because of React 19 / related dependency conflicts
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
@@ -14,17 +15,11 @@ COPY . .
 # Build frontend
 RUN npm run build
 
-# Remove development dependencies
+# Prune dev dependencies to keep image smaller
 RUN npm prune --production
 
-# Create data directory
-RUN mkdir -p server/data
-
-# Exposure port
+# Expose port
 EXPOSE 3001
 
-# Set production environment
-ENV NODE_ENV=production
-
-# Start command
+# Start server
 CMD ["node", "server/index.js"]

@@ -7,12 +7,8 @@ function App() {
   return (
     <AuthProvider>
       <HomeAssistantProvider>
-        <BrowserRouter
-          future={{
-            v7_startTransition: true,
-            v7_relativeSplatPath: true,
-          }}
-        >
+        <BrowserRouter>
+
           <Routes>
             <Route path="/dashboard" element={<Dashboard initialPage="dashboard" />} />
             <Route path="/settings" element={<Dashboard initialPage="settings" />} />
