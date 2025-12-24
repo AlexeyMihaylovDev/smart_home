@@ -893,3 +893,99 @@ input[type="range"].slider-rgb::-moz-range-thumb {
 input[type="range"].slider-rgb::-moz-range-thumb:hover {
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
+
+/* =====================================================
+   VOICE CONTROL ANIMATIONS
+   ===================================================== */
+
+/* Slide in from bottom animation */
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-in {
+  animation: slideInFromBottom 0.3s ease-out forwards;
+}
+
+.slide-in-from-bottom-4 {
+  animation: slideInFromBottom 0.3s ease-out forwards;
+}
+
+/* Microphone listening pulse */
+@keyframes micPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+
+  50% {
+    box-shadow: 0 0 0 15px rgba(239, 68, 68, 0);
+  }
+}
+
+.voice-button-listening {
+  animation: micPulse 1.5s ease-in-out infinite;
+}
+
+/* Voice waves animation */
+@keyframes voiceWaves {
+
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+
+  50% {
+    transform: scaleY(1.5);
+  }
+}
+
+.voice-wave {
+  display: inline-block;
+  width: 3px;
+  height: 12px;
+  background: currentColor;
+  border-radius: 2px;
+  margin: 0 2px;
+  animation: voiceWaves 0.5s ease-in-out infinite;
+}
+
+.voice-wave:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.voice-wave:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.voice-wave:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+/* Success checkmark animation */
+@keyframes checkmark {
+  0% {
+    transform: scale(0);
+  }
+
+  50% {
+    transform: scale(1.2);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.voice-success-icon {
+  animation: checkmark 0.4s ease-out forwards;
+}

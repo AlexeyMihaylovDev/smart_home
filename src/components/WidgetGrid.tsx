@@ -762,7 +762,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
       )}
 
       {/* Кнопки управления в режиме редактирования */}
-      {editMode && (
+      {editMode ? (
         <div className="fixed top-20 right-6 z-40 flex gap-2">
           {/* Кнопка автоматической сетки */}
           <button
@@ -792,6 +792,15 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
             סיים עריכה
           </button>
         </div>
+      ) : (
+        /* Кнопка входа в режим редактирования - всегда видима справа */
+        <button
+          onClick={() => setEditMode(true)}
+          className="fixed top-20 right-6 z-40 p-3 bg-dark-card/90 hover:bg-blue-600 border border-dark-border hover:border-blue-500 text-dark-textSecondary hover:text-white rounded-xl transition-all shadow-lg backdrop-blur-sm"
+          title="ערוך וידג'טים"
+        >
+          <Pencil size={20} />
+        </button>
       )}
 
       <GridLayout
@@ -805,8 +814,8 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
             window.innerWidth < 1024 ? window.innerWidth - 32 :
               window.innerWidth < 1920 ? window.innerWidth - 80 :
                 Math.min(window.innerWidth - 120, 2400)) : 1200}
-        isDraggable={true}
-        isResizable={true}
+        isDraggable={editMode}
+        isResizable={editMode}
         draggableHandle=".drag-handle"
         compactType="vertical"
         preventCollision={false}
@@ -825,11 +834,13 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
 
             return (
               <div key={item.i} className="relative">
-                <div className="absolute top-2 left-2 z-10 flex items-center gap-2">
-                  <div className="drag-handle cursor-move p-1 bg-dark-cardHover/80 rounded opacity-60 hover:opacity-100 transition-opacity">
-                    <GripVertical size={16} className="text-white" />
+                {editMode && (
+                  <div className="absolute top-2 left-2 z-10 flex items-center gap-2">
+                    <div className="drag-handle cursor-move p-1 bg-dark-cardHover/80 rounded opacity-60 hover:opacity-100 transition-opacity">
+                      <GripVertical size={16} className="text-white" />
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className={`h-full widget-wrapper`}>
                   <div className="widget-card h-full">
                     <WidgetComponent />

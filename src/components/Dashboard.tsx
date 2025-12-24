@@ -10,6 +10,7 @@ import Settings from './Settings'
 import CalendarPage from './CalendarPage'
 import ShoppingListPage from './ShoppingListPage'
 import NewsPage from './NewsPage'
+import VoiceControlButton from './VoiceControlButton'
 
 export type Page = 'dashboard' | 'settings' | 'calendar' | 'shopping-list' | 'news'
 
@@ -146,6 +147,9 @@ const Dashboard = ({ initialPage }: DashboardProps) => {
                   currentPage === 'news' ? <NewsPage /> : null}
         </div>
       </div>
+
+      {/* Voice Control Button */}
+      <VoiceControlButton />
     </div>
   )
 }
