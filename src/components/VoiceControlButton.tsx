@@ -1,9 +1,108 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Mic, MicOff, Loader2, CheckCircle, XCircle, Volume2 } from 'lucide-react'
 import voiceControlService, { VoiceCommand } from '../services/voiceControlService'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 
 type VoiceStatus = 'idle' | 'listening' | 'processing' | 'success' | 'error'
+
+// Audio Waveform Component - visualizes audio input
+const AudioWaveform = ({ isListening }: { isListening: boolean }) => {
+    const [audioLevels, setAudioLevels] = useState<number[]>([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+    const audioContextRef = useRef<AudioContext | null>(null)
+    const analyserRef = useRef<AnalyserNode | null>(null)
+    const animationFrameRef = useRef<number | null>(null)
+    const streamRef = useRef<MediaStream | null>(null)
+
+    useEffect(() => {
+        if (isListening) {
+            // Start audio visualization
+            const startAudioVisualization = async () => {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+                    streamRef.current = stream
+
+                    const audioContext = new AudioContext()
+                    audioContextRef.current = audioContext
+
+                    const analyser = audioContext.createAnalyser()
+                    analyser.fftSize = 32
+                    analyserRef.current = analyser
+
+                    const source = audioContext.createMediaStreamSource(stream)
+                    source.connect(analyser)
+
+                    const bufferLength = analyser.frequencyBinCount
+                    const dataArray = new Uint8Array(bufferLength)
+
+                    const updateLevels = () => {
+                        if (!analyserRef.current) return
+
+                        analyserRef.current.getByteFrequencyData(dataArray)
+
+                        // Get 7 levels from the frequency data
+                        const levels: number[] = []
+                        for (let i = 0; i < 7; i++) {
+                            const index = Math.floor((i / 7) * bufferLength)
+                            const value = dataArray[index] / 255
+                            // Minimum height of 0.1, max of 1
+                            levels.push(Math.max(0.1, Math.min(1, value * 1.5)))
+                        }
+                        setAudioLevels(levels)
+
+                        animationFrameRef.current = requestAnimationFrame(updateLevels)
+                    }
+
+                    updateLevels()
+                } catch (error) {
+                    console.error('[AudioWaveform] Failed to start audio visualization:', error)
+                    // Fallback to animated bars without real audio
+                    const animateFallback = () => {
+                        const levels = Array(7).fill(0).map(() => 0.1 + Math.random() * 0.2)
+                        setAudioLevels(levels)
+                        animationFrameRef.current = requestAnimationFrame(animateFallback)
+                    }
+                    animateFallback()
+                }
+            }
+
+            startAudioVisualization()
+        }
+
+        return () => {
+            // Cleanup
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current)
+            }
+            if (audioContextRef.current) {
+                audioContextRef.current.close()
+                audioContextRef.current = null
+            }
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop())
+                streamRef.current = null
+            }
+            setAudioLevels([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+        }
+    }, [isListening])
+
+    const hasAudio = audioLevels.some(level => level > 0.15)
+
+    return (
+        <div className="flex items-center justify-center gap-1 h-8">
+            {audioLevels.map((level, index) => (
+                <div
+                    key={index}
+                    className={`w-1 rounded-full transition-all duration-75 ${hasAudio ? 'bg-red-500' : 'bg-gray-500'
+                        }`}
+                    style={{
+                        height: `${Math.max(4, level * 28)}px`,
+                        opacity: hasAudio ? 1 : 0.5,
+                    }}
+                />
+            ))}
+        </div>
+    )
+}
 
 interface VoiceControlButtonProps {
     onCommand?: (command: VoiceCommand) => void
@@ -230,15 +329,13 @@ const VoiceControlButton = ({ onCommand, className = '' }: VoiceControlButtonPro
                             : 'bg-dark-card/95 border-blue-500/50 text-white'
                     }
         `}>
-                    {/* Listening indicator */}
+                    {/* Listening indicator with audio waveform */}
                     {status === 'listening' && (
-                        <div className="flex items-center gap-2 mb-2">
-                            <div className="flex gap-1">
-                                <span className="w-2 h-2 bg-red-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                <span className="w-2 h-2 bg-red-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                <span className="w-2 h-2 bg-red-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <div className="flex flex-col items-center gap-2 mb-2">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">מקשיב...</span>
                             </div>
-                            <span className="text-sm font-medium">מקשיב...</span>
+                            <AudioWaveform isListening={true} />
                         </div>
                     )}
 
