@@ -261,15 +261,33 @@ const VoiceControlButton = ({ onCommand, className = '' }: VoiceControlButtonPro
     }, [status])
 
     const handleClick = () => {
+        console.log('[VoiceControl] Button clicked. isSupported:', isSupported, 'status:', status)
+
         if (!isSupported) {
-            setError('זיהוי קולי לא נתמך בדפדפן זה')
+            // Show error message for unsupported browsers
+            const isHttps = window.location.protocol === 'https:' || window.location.hostname === 'localhost'
+            if (!isHttps) {
+                setFeedbackMessage('זיהוי קולי דורש HTTPS. השתמש ב-localhost או חיבור מאובטח.')
+            } else {
+                setFeedbackMessage('זיהוי קולי לא נתמך בדפדפן זה. נסה Chrome או Edge.')
+            }
+            setStatus('error')
+            setShowFeedback(true)
             return
         }
 
         if (status === 'listening') {
+            console.log('[VoiceControl] Stopping listening...')
             voiceControlService.stopListening()
         } else if (status === 'idle' || status === 'error' || status === 'success') {
-            voiceControlService.startListening(language)
+            console.log('[VoiceControl] Starting listening with language:', language)
+            const started = voiceControlService.startListening(language)
+            console.log('[VoiceControl] startListening returned:', started)
+            if (!started) {
+                setFeedbackMessage('לא הצלחתי להפעיל את המיקרופון. בדוק את ההרשאות.')
+                setStatus('error')
+                setShowFeedback(true)
+            }
         }
     }
 
@@ -311,9 +329,9 @@ const VoiceControlButton = ({ onCommand, className = '' }: VoiceControlButtonPro
         }
     }
 
-    if (!isSupported) {
-        return null // Don't render if not supported
-    }
+    // Always render button, show error when clicked if not supported
+    const buttonDisabled = status === 'processing'
+    const buttonStyle = !isSupported ? 'bg-gray-600 hover:bg-gray-500' : getButtonStyles()
 
     return (
         <div className={`fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 ${className}`}>
@@ -374,9 +392,9 @@ const VoiceControlButton = ({ onCommand, className = '' }: VoiceControlButtonPro
             {/* Main microphone button */}
             <button
                 onClick={handleClick}
-                className={`w-14 h-14 ${getButtonStyles()}`}
-                title={status === 'listening' ? 'לחץ לעצור' : 'לחץ לדבר'}
-                disabled={status === 'processing'}
+                className={`w-14 h-14 relative flex items-center justify-center rounded-full transition-all duration-200 shadow-lg ${buttonStyle}`}
+                title={!isSupported ? 'זיהוי קולי לא נתמך' : status === 'listening' ? 'לחץ לעצור' : 'לחץ לדבר'}
+                disabled={buttonDisabled}
             >
                 {getIcon()}
 

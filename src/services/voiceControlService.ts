@@ -353,19 +353,25 @@ class VoiceControlService {
     }
 
     startListening(language: 'he-IL' | 'en-US' = 'he-IL'): boolean {
+        console.log('[VoiceControl] startListening called. isSupported:', this.isSupported, 'recognition:', !!this.recognition)
+
         if (!this.isSupported || !this.recognition) {
+            console.warn('[VoiceControl] Not supported or no recognition object')
             this.state.error = 'זיהוי קולי לא נתמך בדפדפן זה'
             return false
         }
 
         if (this.state.isListening) {
+            console.log('[VoiceControl] Already listening')
             return true
         }
 
         try {
             this.state.transcript = ''
             this.recognition.lang = language
+            console.log('[VoiceControl] Starting recognition with language:', language)
             this.recognition.start()
+            console.log('[VoiceControl] Recognition started successfully')
             return true
         } catch (error) {
             console.error('[VoiceControl] Failed to start:', error)
