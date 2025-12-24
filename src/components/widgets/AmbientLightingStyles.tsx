@@ -14,9 +14,18 @@ interface AmbientLightingStyleProps {
 
 // Стиль 1: Список (текущий)
 export const ListStyle = ({ lights, entities: _entities, onToggle, getEntityState, getDisplayName, getIcon }: AmbientLightingStyleProps) => {
+  // Сортируем: включенные светильники сначала
+  const sortedLights = [...lights].sort((a, b) => {
+    const aOn = getEntityState(a.entityId)
+    const bOn = getEntityState(b.entityId)
+    if (aOn && !bOn) return -1
+    if (!aOn && bOn) return 1
+    return 0
+  })
+
   return (
     <div className="space-y-2 overflow-y-auto flex-1 min-h-0" style={{ maxHeight: 'calc(5 * (2.5rem + 0.5rem))' }}>
-      {Array.isArray(lights) && lights.map((light, index) => {
+      {Array.isArray(sortedLights) && sortedLights.map((light, index) => {
         const Icon = getIcon(light.icon)
         const isOn = getEntityState(light.entityId)
         const hasEntity = light.entityId !== null
@@ -47,6 +56,15 @@ export const ListStyle = ({ lights, entities: _entities, onToggle, getEntityStat
 
 // Стиль 2: Карточный (как на фото)
 export const CardsStyle = ({ lights, entities, onToggle, getEntityState, getDisplayName, getIcon }: AmbientLightingStyleProps) => {
+  // Сортируем: включенные светильники сначала
+  const sortedLights = [...lights].sort((a, b) => {
+    const aOn = getEntityState(a.entityId)
+    const bOn = getEntityState(b.entityId)
+    if (aOn && !bOn) return -1
+    if (!aOn && bOn) return 1
+    return 0
+  })
+
   const getCardColor = (isOn: boolean, hasEntity: boolean) => {
     if (!hasEntity) return 'bg-gray-800/50 border-gray-700/50'
     if (isOn) {
@@ -75,7 +93,7 @@ export const CardsStyle = ({ lights, entities, onToggle, getEntityState, getDisp
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto flex-1 min-h-0 p-1">
-      {Array.isArray(lights) && lights.map((light, index) => {
+      {Array.isArray(sortedLights) && sortedLights.map((light, index) => {
         const Icon = getIcon(light.icon)
         const isOn = getEntityState(light.entityId)
         const hasEntity = light.entityId !== null
@@ -112,9 +130,18 @@ export const CardsStyle = ({ lights, entities, onToggle, getEntityState, getDisp
 
 // Стиль 3: Компактный
 export const CompactStyle = ({ lights, entities: _entities, onToggle, getEntityState, getDisplayName, getIcon }: AmbientLightingStyleProps) => {
+  // Сортируем: включенные светильники сначала
+  const sortedLights = [...lights].sort((a, b) => {
+    const aOn = getEntityState(a.entityId)
+    const bOn = getEntityState(b.entityId)
+    if (aOn && !bOn) return -1
+    if (!aOn && bOn) return 1
+    return 0
+  })
+
   return (
     <div className="space-y-1 overflow-y-auto flex-1 min-h-0">
-      {Array.isArray(lights) && lights.map((light, index) => {
+      {Array.isArray(sortedLights) && sortedLights.map((light, index) => {
         const Icon = getIcon(light.icon)
         const isOn = getEntityState(light.entityId)
         const hasEntity = light.entityId !== null
@@ -143,9 +170,18 @@ export const CompactStyle = ({ lights, entities: _entities, onToggle, getEntityS
 
 // Стиль 4: Минималистичный
 export const MinimalStyle = ({ lights, entities: _entities, onToggle, getEntityState, getDisplayName, getIcon }: AmbientLightingStyleProps) => {
+  // Сортируем: включенные светильники сначала
+  const sortedLights = [...lights].sort((a, b) => {
+    const aOn = getEntityState(a.entityId)
+    const bOn = getEntityState(b.entityId)
+    if (aOn && !bOn) return -1
+    if (!aOn && bOn) return 1
+    return 0
+  })
+
   return (
     <div className="flex flex-wrap gap-2 overflow-y-auto flex-1 min-h-0 p-1">
-      {Array.isArray(lights) && lights.map((light, index) => {
+      {Array.isArray(sortedLights) && sortedLights.map((light, index) => {
         const Icon = getIcon(light.icon)
         const isOn = getEntityState(light.entityId)
         const hasEntity = light.entityId !== null

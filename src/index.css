@@ -346,7 +346,7 @@ body {
     0 0 60px rgba(34, 197, 94, 0.15);
 }
 
-/* Inactive/OFF widget - Transparent/dimmed effect */
+/* Inactive/OFF widget - Smooth fade effect */
 .widget-card.widget-inactive,
 .widget-card[data-state="off"] {
   opacity: 0.5;
@@ -358,6 +358,7 @@ body {
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.3),
     0 1px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .widget-card.widget-inactive::before,
@@ -369,6 +370,78 @@ body {
 .widget-card[data-state="off"]:hover {
   opacity: 0.7;
   border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* =====================================================
+   SMOOTH TOGGLE ANIMATIONS
+   ===================================================== */
+
+/* Fast smooth transitions for all toggle states */
+.widget-toggle-container {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Animating content collapse/expand */
+.widget-content-animated {
+  overflow: hidden;
+  transition: max-height 0.2s ease-out, opacity 0.15s ease-out, transform 0.2s ease-out;
+}
+
+.widget-content-animated.collapsed {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.widget-content-animated.expanded {
+  max-height: 500px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Power button animation */
+.power-button-animated {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.power-button-animated:active {
+  transform: scale(0.92);
+}
+
+/* LED/Light item animation when toggling */
+.light-item-animated {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.light-item-animated.is-on {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.light-item-animated.is-off {
+  transform: scale(0.98);
+  opacity: 0.7;
+}
+
+/* Icon glow animation for ON state */
+@keyframes iconGlow {
+
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px currentColor);
+  }
+
+  50% {
+    filter: drop-shadow(0 0 8px currentColor);
+  }
+}
+
+.icon-glow-animated {
+  transition: all 0.2s ease;
+}
+
+.icon-glow-animated.active {
+  animation: iconGlow 2s ease-in-out infinite;
 }
 
 /* =====================================================

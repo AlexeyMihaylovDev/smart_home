@@ -22,10 +22,17 @@ interface LEDStyleProps {
 
 // Стиль 1: Список (по умолчанию)
 export const LEDListStyle = ({ leds, onPowerToggle, onBrightnessChange, onBrightnessMouseDown, onBrightnessMouseUp, onColorChange: _onColorChange }: LEDStyleProps) => {
+  // Сортируем: включенные лампы сначала
+  const sortedLeds = [...leds].sort((a, b) => {
+    if (a.isOn && !b.isOn) return -1
+    if (!a.isOn && b.isOn) return 1
+    return 0
+  })
+
   return (
     <div className="space-y-3 sm:space-y-4">
-      {leds.map((led) => (
-        <div key={led.id} className="p-3 sm:p-4 bg-dark-bg rounded-lg border border-dark-border hover:border-blue-500/50 transition-all">
+      {sortedLeds.map((led) => (
+        <div key={led.id} className={`p-3 sm:p-4 bg-dark-bg rounded-lg border hover:border-blue-500/50 light-item-animated ${led.isOn ? 'is-on border-yellow-500/30' : 'is-off border-dark-border'}`}>
           {/* Заголовок с питанием */}
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -44,19 +51,19 @@ export const LEDListStyle = ({ leds, onPowerToggle, onBrightnessChange, onBright
             {!led.controlsDisabled && onPowerToggle && (
               <button
                 onClick={() => onPowerToggle(led)}
-                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-all flex items-center gap-1.5 flex-shrink-0 ${led.isOn
-                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg flex items-center gap-1.5 flex-shrink-0 power-button-animated ${led.isOn
+                  ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/20'
                   : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
                   }`}
                 title={led.isOn ? 'כבה' : 'הדלק'}
               >
-                <Power size={16} />
+                <Power size={16} className={led.isOn ? 'icon-glow-animated active' : ''} />
               </button>
             )}
           </div>
 
-          {led.isOn && (
-            <div className="space-y-3 sm:space-y-4">
+          <div className={`widget-content-animated ${led.isOn ? 'expanded' : 'collapsed'}`}>
+            <div className="space-y-3 sm:space-y-4 pt-3">
               {/* Ползунок яркости */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -108,7 +115,7 @@ export const LEDListStyle = ({ leds, onPowerToggle, onBrightnessChange, onBright
                 </div>
               )}
             </div>
-          )}
+          </div>
         </div>
       ))}
     </div>
@@ -117,17 +124,24 @@ export const LEDListStyle = ({ leds, onPowerToggle, onBrightnessChange, onBright
 
 // Стиль 2: Карточки
 export const LEDCardStyle = ({ leds, onPowerToggle, onBrightnessChange, onBrightnessMouseDown, onBrightnessMouseUp, onColorChange: _onColorChange }: LEDStyleProps) => {
+  // Сортируем: включенные лампы сначала
+  const sortedLeds = [...leds].sort((a, b) => {
+    if (a.isOn && !b.isOn) return -1
+    if (!a.isOn && b.isOn) return 1
+    return 0
+  })
+
   return (
-    <div className={`grid gap-3 sm:gap-4 ${leds.length === 1
+    <div className={`grid gap-3 sm:gap-4 ${sortedLeds.length === 1
       ? 'grid-cols-1'
-      : leds.length === 2
+      : sortedLeds.length === 2
         ? 'grid-cols-1 md:grid-cols-2'
         : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
       }`}>
-      {leds.map((led) => (
+      {sortedLeds.map((led) => (
         <div
           key={led.id}
-          className={`p-4 bg-dark-bg rounded-lg border transition-all ${led.isOn ? 'border-yellow-500/50 shadow-lg shadow-yellow-500/10' : 'border-dark-border'
+          className={`p-4 bg-dark-bg rounded-lg border light-item-animated ${led.isOn ? 'is-on border-yellow-500/50 shadow-lg shadow-yellow-500/10' : 'is-off border-dark-border'
             }`}
         >
           {/* Заголовок */}
@@ -148,12 +162,12 @@ export const LEDCardStyle = ({ leds, onPowerToggle, onBrightnessChange, onBright
             {!led.controlsDisabled && onPowerToggle && (
               <button
                 onClick={() => onPowerToggle(led)}
-                className={`p-2 rounded-lg transition-all ${led.isOn
-                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                className={`p-2 rounded-lg power-button-animated ${led.isOn
+                  ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/20'
                   : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
                   }`}
               >
-                <Power size={16} />
+                <Power size={16} className={led.isOn ? 'icon-glow-animated active' : ''} />
               </button>
             )}
           </div>
@@ -209,10 +223,17 @@ export const LEDCardStyle = ({ leds, onPowerToggle, onBrightnessChange, onBright
 
 // Стиль 3: Компактный
 export const LEDCompactStyle = ({ leds, onPowerToggle, onBrightnessChange: _onBrightnessChange, onBrightnessMouseDown: _onBrightnessMouseDown, onBrightnessMouseUp: _onBrightnessMouseUp, onColorChange: _onColorChange }: LEDStyleProps) => {
+  // Сортируем: включенные лампы сначала
+  const sortedLeds = [...leds].sort((a, b) => {
+    if (a.isOn && !b.isOn) return -1
+    if (!a.isOn && b.isOn) return 1
+    return 0
+  })
+
   return (
     <div className="space-y-2">
-      {leds.map((led) => (
-        <div key={led.id} className="flex items-center gap-3 p-2.5 bg-dark-bg rounded-lg border border-dark-border hover:bg-dark-card transition-colors">
+      {sortedLeds.map((led) => (
+        <div key={led.id} className={`flex items-center gap-3 p-2.5 bg-dark-bg rounded-lg border hover:bg-dark-card light-item-animated ${led.isOn ? 'is-on border-yellow-500/30' : 'is-off border-dark-border'}`}>
           <div className={`p-1.5 rounded-lg flex-shrink-0 ${led.isOn ? 'bg-yellow-500/20' : 'bg-gray-500/20'}`}>
             <Lightbulb size={16} className={led.isOn ? 'text-yellow-400' : 'text-gray-400'} />
           </div>
@@ -231,12 +252,12 @@ export const LEDCompactStyle = ({ leds, onPowerToggle, onBrightnessChange: _onBr
           {!led.controlsDisabled && onPowerToggle && (
             <button
               onClick={() => onPowerToggle(led)}
-              className={`p-1.5 rounded transition-all ${led.isOn
-                ? 'bg-green-600 hover:bg-green-700 text-white'
+              className={`p-1.5 rounded power-button-animated ${led.isOn
+                ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/20'
                 : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
                 }`}
             >
-              <Power size={14} />
+              <Power size={14} className={led.isOn ? 'icon-glow-animated active' : ''} />
             </button>
           )}
         </div>
@@ -247,9 +268,16 @@ export const LEDCompactStyle = ({ leds, onPowerToggle, onBrightnessChange: _onBr
 
 // Стиль 4: Современный (Modern)
 export const LEDModernStyle = ({ leds, onPowerToggle, onBrightnessChange, onBrightnessMouseDown, onBrightnessMouseUp, onColorChange: _onColorChange }: LEDStyleProps) => {
+  // Сортируем: включенные лампы сначала
+  const sortedLeds = [...leds].sort((a, b) => {
+    if (a.isOn && !b.isOn) return -1
+    if (!a.isOn && b.isOn) return 1
+    return 0
+  })
+
   return (
     <div className="space-y-4">
-      {leds.map((led) => (
+      {sortedLeds.map((led) => (
         <div
           key={led.id}
           className={`relative overflow-hidden rounded-xl border transition-all ${led.isOn
