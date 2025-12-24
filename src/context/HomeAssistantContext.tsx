@@ -50,19 +50,22 @@ export const HomeAssistantProvider: React.FC<HomeAssistantProviderProps> = ({ ch
     }
   }, [])
 
-  const connect = async (url: string, token: string) => {
+  const connect = async (url: string, token: string, shouldSave = true) => {
     const newApi = new HomeAssistantAPI(url, token)
     try {
       await newApi.testConnection()
       setApi(newApi)
       setIsConnected(true)
-      // Сохраняем на сервер (для текущего пользователя)
-      try {
-        await saveConnectionConfig({ url, token })
-        console.log('HomeAssistantContext: настройки сохранены на сервер для пользователя')
-      } catch (error) {
-        console.error('Ошибка сохранения настроек подключения на сервер:', error)
-        // Не сохраняем в localStorage - все настройки должны быть на сервере
+
+      if (shouldSave) {
+        // Сохраняем на сервер (для текущего пользователя)
+        try {
+          await saveConnectionConfig({ url, token })
+          console.log('HomeAssistantContext: настройки сохранены на сервер для пользователя')
+        } catch (error) {
+          console.error('Ошибка сохранения настроек подключения на сервер:', error)
+          // Не сохраняем в localStorage - все настройки должны быть на сервере
+        }
       }
     } catch (error) {
       console.error('Failed to connect to Home Assistant:', error)
@@ -96,7 +99,8 @@ export const HomeAssistantProvider: React.FC<HomeAssistantProviderProps> = ({ ch
         const connection = await getConnectionConfig()
         if (connection && connection.url && connection.token) {
           console.log('HomeAssistantContext: загружены настройки для пользователя, подключаемся...')
-          await connect(connection.url, connection.token)
+          // Не сохраняем обратно на сервер, так как только что загрузили оттуда
+          await connect(connection.url, connection.token, false)
         } else {
           console.log('HomeAssistantContext: настройки Home Assistant не найдены для пользователя')
         }

@@ -144,9 +144,9 @@ const ACUnit = ({ acConfig, entity, api, loading, onLoadingChange }: ACUnitProps
   }
 
   return (
-    <div className={`p-2 sm:p-3 md:p-4 bg-dark-bg rounded-lg border transition-all overflow-hidden ${isOn
-        ? 'border-green-500/50 shadow-lg shadow-green-500/20'
-        : 'border-dark-border hover:border-white/20'
+    <div className={`p-2 sm:p-3 md:p-4 rounded-lg border transition-all overflow-hidden ${isOn
+      ? 'bg-green-900/40 border-green-500/50 shadow-lg shadow-green-500/20'
+      : 'bg-dark-bg border-dark-border hover:border-white/20'
       }`}>
       {/* Заголовок */}
       <div className="flex items-center justify-between mb-2 sm:mb-3">
@@ -204,8 +204,8 @@ const ACUnit = ({ acConfig, entity, api, loading, onLoadingChange }: ACUnitProps
               }}
               disabled={isLoading}
               className={`flex-1 min-w-[35px] sm:min-w-[40px] p-1.5 sm:p-2 rounded-lg transition-all ${isActive
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
-                  : 'bg-white/5 hover:bg-white/10 text-dark-textSecondary border border-white/5'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                : 'bg-white/5 hover:bg-white/10 text-dark-textSecondary border border-white/5'
                 } disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95`}
               title={mode.label}
             >
@@ -229,8 +229,8 @@ const ACUnit = ({ acConfig, entity, api, loading, onLoadingChange }: ACUnitProps
                 onClick={() => handleSetFanMode(fm)}
                 disabled={isLoading}
                 className={`flex-1 min-w-[45px] sm:min-w-[50px] px-1 sm:px-1.5 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs transition-all truncate ${fanMode === fm
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white/5 hover:bg-white/10 text-dark-textSecondary'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white/5 hover:bg-white/10 text-dark-textSecondary'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {fm}
@@ -282,7 +282,7 @@ const ACWidget = () => {
   useEffect(() => {
     if (api && acConfigs.length > 0) {
       loadEntities()
-      const interval = setInterval(loadEntities, 2000)
+      const interval = setInterval(loadEntities, 5000)
       return () => clearInterval(interval)
     }
   }, [api, acConfigs])
@@ -329,10 +329,10 @@ const ACWidget = () => {
   return (
     <div className="h-full p-4 overflow-y-auto">
       <div className={`grid gap-4 ${acConfigs.length === 1
-          ? 'grid-cols-1'
-          : acConfigs.length === 2
-            ? 'grid-cols-1 md:grid-cols-2'
-            : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+        ? 'grid-cols-1'
+        : acConfigs.length === 2
+          ? 'grid-cols-1 md:grid-cols-2'
+          : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
         }`}>
         {Array.isArray(acConfigs) && acConfigs.map((acConfig, index) => (
           <ACUnit

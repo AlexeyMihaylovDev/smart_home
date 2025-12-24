@@ -25,7 +25,132 @@ import VacuumWidget from './widgets/VacuumWidget'
 import CamerasWidget from './widgets/CamerasWidget'
 import { getDashboardLayout, getDashboardLayoutSync, updateWidgetLayout, WidgetLayout, getDashboardLayoutByDashboardId } from '../services/widgetLayout'
 import { isWidgetEnabledSync, getNavigationIconsSync } from '../services/widgetConfig'
-import { GripVertical, Pencil, X } from 'lucide-react'
+import { GripVertical, Pencil, X, LayoutGrid } from 'lucide-react'
+
+// Debounce utility function
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
+  }
+}
+
+// Get screen dimensions - memoized values
+const getScreenDimensions = () => {
+  if (typeof window === 'undefined') return { width: 1200, height: 800 }
+  return { width: window.innerWidth, height: window.innerHeight }
+}
+
+// Calculate columns based on screen width
+const getColsForWidth = (width: number): number => {
+  if (width < 640) return 4    // Mobile
+  if (width < 1024) return 6   // Tablet
+  if (width < 1920) return 12  // Desktop
+  return 16                     // Large screens/TV
+}
+
+// Calculate row height based on screen width
+const getRowHeightForWidth = (width: number): number => {
+  if (width < 640) return 50   // Mobile - compact
+  if (width < 1024) return 55  // Tablet
+  if (width < 1920) return 60  // Desktop
+  return 70                     // Large screens/TV
+}
+
+// Unified layout scaling function - used everywhere instead of duplicate code
+const scaleLayoutItem = (
+  item: Layout,
+  fromCols: number,
+  toCols: number,
+  screenWidth: number
+): Layout => {
+  const scale = toCols / fromCols
+  const isMobile = screenWidth < 640
+  const isTablet = screenWidth >= 640 && screenWidth < 1024
+  const isLargeScreen = screenWidth >= 1920
+
+  let newW = Math.max(1, Math.round(item.w * scale))
+  let newH = item.h
+
+  // Adjust for screen size
+  if (isMobile) {
+    newW = toCols  // Full width on mobile
+    newH = Math.max(2, Math.round(item.h * 0.7))
+  } else if (isTablet) {
+    newH = Math.max(1, Math.round(item.h * 0.9))
+  } else if (isLargeScreen) {
+    newH = Math.max(1, Math.round(item.h * 1.1))
+  }
+
+  return {
+    i: item.i,
+    x: isMobile ? 0 : Math.round(item.x * scale),
+    y: item.y,
+    w: newW,
+    h: newH,
+    minW: isMobile ? toCols : item.minW,
+    minH: item.minH,
+    maxW: isMobile ? toCols : item.maxW,
+    maxH: item.maxH,
+  }
+}
+
+// Auto-arrange algorithm - calculates optimal layout based on screen dimensions
+const autoArrangeLayout = (
+  items: Layout[],
+  cols: number,
+  screenWidth: number,
+  screenHeight: number
+): Layout[] => {
+  if (items.length === 0) return []
+
+  // Calculate optimal widget size based on screen and widget count
+  const aspectRatio = screenWidth / screenHeight
+  const widgetCount = items.length
+
+  // Calculate ideal columns per widget based on aspect ratio
+  let idealWidgetCols = Math.max(3, Math.floor(cols / Math.min(4, Math.ceil(Math.sqrt(widgetCount)))))
+
+  // For wider screens, use more columns per widget
+  if (aspectRatio > 1.5) {
+    idealWidgetCols = Math.max(4, Math.floor(cols / 3))
+  }
+
+  // Calculate widgets per row
+  const widgetsPerRow = Math.max(1, Math.floor(cols / idealWidgetCols))
+
+  // Calculate ideal height (golden ratio: ~0.618)
+  const idealWidgetHeight = Math.max(3, Math.round(idealWidgetCols * 0.618 * 1.5))
+
+  return items.map((item, index) => {
+    const row = Math.floor(index / widgetsPerRow)
+    const col = index % widgetsPerRow
+
+    // Get default min/max from existing item
+    const minW = item.minW || 3
+    const minH = item.minH || 2
+
+    // Calculate final dimensions respecting constraints
+    const finalW = Math.max(minW, Math.min(idealWidgetCols, cols - col * idealWidgetCols))
+    const finalH = Math.max(minH, idealWidgetHeight)
+
+    return {
+      i: item.i,
+      x: col * idealWidgetCols,
+      y: row * idealWidgetHeight,
+      w: finalW,
+      h: finalH,
+      minW: item.minW,
+      minH: item.minH,
+      maxW: item.maxW,
+      maxH: item.maxH,
+    }
+  })
+}
 
 // Дефолтные layout для виджетов (копия из widgetLayout.ts для использования в компоненте)
 const DEFAULT_LAYOUTS: Record<string, Omit<WidgetLayout, 'i'>> = {
@@ -327,12 +452,15 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
   const clickTimerRef = useRef<NodeJS.Timeout | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const saveLayoutTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  // Ref для хранения текущего layout в строковом виде для сравнения
+  const layoutStrRef = useRef<string>('')
 
-  // Обработка изменения размера окна
+  // Обработка изменения размера окна с debounce для предотвращения зависаний
   useEffect(() => {
-    const handleResize = () => {
-      const newCols = getCols()
-      const newRowHeight = getRowHeight()
+    const handleResizeDebounced = debounce(() => {
+      const screenWidth = window.innerWidth
+      const newCols = getColsForWidth(screenWidth)
+      const newRowHeight = getRowHeightForWidth(screenWidth)
       const colsChanged = newCols !== cols
       const rowHeightChanged = newRowHeight !== rowHeight
 
@@ -344,143 +472,46 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
         if (colsChanged) {
           setLayout(prevLayout => {
             const oldCols = cols || 12
-            const scale = newCols / oldCols
-
-            return prevLayout.map(l => {
-              let newW = Math.max(1, Math.round(l.w * scale))
-              let newH = l.h
-
-              // Для мобильных устройств делаем виджеты на всю ширину
-              if (window.innerWidth < 640) {
-                newW = newCols
-                newH = Math.max(2, Math.round(l.h * 0.7))
-              } else if (window.innerWidth < 1024) {
-                newH = Math.max(1, Math.round(l.h * 0.9))
-              } else if (window.innerWidth >= 1920) {
-                newH = Math.max(1, Math.round(l.h * 1.1))
-              }
-
-              return {
-                ...l,
-                x: window.innerWidth < 640 ? 0 : Math.round(l.x * scale),
-                w: newW,
-                h: newH,
-                minW: window.innerWidth < 640 ? newCols : l.minW,
-                maxW: window.innerWidth < 640 ? newCols : l.maxW,
-              }
-            })
+            const newLayout = prevLayout.map(l => scaleLayoutItem(l, oldCols, newCols, screenWidth))
+            layoutStrRef.current = JSON.stringify(newLayout)
+            return newLayout
           })
         }
       }
-    }
+    }, 300) // 300ms debounce для предотвращения лишних ререндеров
 
     // Слушаем кастомное событие для обновления при изменении виджетов
     const handleWidgetsChanged = async () => {
       setIsLayoutLoading(true)
       try {
-        // Используем ту же логику, что и в основном useEffect
-        const getLayout = async (): Promise<Layout[]> => {
-          if (currentTab && currentTab !== 'home') {
-            const navigationIcons = getNavigationIconsSync()
-            const dashboardIcon = navigationIcons.find(icon => {
-              const dashboardId = icon.dashboardId || icon.id
-              return dashboardId === currentTab ||
-                icon.id === currentTab ||
-                icon.widgetId === currentTab ||
-                icon.iconName === currentTab
-            })
-
-            if (dashboardIcon) {
-              const dashboardId = dashboardIcon.dashboardId || dashboardIcon.id
-              const savedLayout = await getDashboardLayoutByDashboardId(dashboardId)
-              const dashboardWidgets = dashboardIcon.widgets || []
-
-              if (dashboardWidgets.length === 0) return []
-
-              const existingLayouts = savedLayout.layouts.filter(l => dashboardWidgets.includes(l.i))
-              const existingWidgetIds = new Set(existingLayouts.map(l => l.i))
-              const newWidgets = dashboardWidgets.filter(widgetId => !existingWidgetIds.has(widgetId))
-              const maxY = existingLayouts.length > 0 ? Math.max(...existingLayouts.map(l => l.y + l.h)) : -1
-
-              // Используем улучшенные размеры для новых виджетов
-              const newLayouts = newWidgets.map((widgetId, index) => {
-                const defaultLayout = DEFAULT_LAYOUTS[widgetId] || { x: 0, y: 0, w: 6, h: 3, minW: 3, minH: 2 }
-                // Адаптируем размеры в зависимости от количества колонок
-                let optimalW = defaultLayout.w
-                let optimalH = defaultLayout.h
-
-                const savedColsValue = savedLayout.cols || 12
-                if (savedColsValue <= 4) {
-                  optimalW = savedColsValue
-                  optimalH = Math.max(2, Math.round(defaultLayout.h * 0.7))
-                } else if (savedColsValue <= 6) {
-                  optimalW = Math.min(6, Math.max(3, defaultLayout.w))
-                  optimalH = Math.max(2, Math.round(defaultLayout.h * 0.9))
-                } else if (savedColsValue >= 16) {
-                  optimalW = Math.min(savedColsValue / 2, defaultLayout.w * 1.2)
-                  optimalH = Math.max(3, Math.round(defaultLayout.h * 1.1))
-                }
-
-                // Распределяем виджеты равномерно
-                const colsPerWidget = Math.floor(savedColsValue / 3)
-                const col = index % 3
-                return {
-                  i: widgetId,
-                  x: col * colsPerWidget,
-                  y: maxY + 1 + Math.floor(index / 3) * Math.ceil(optimalH),
-                  w: Math.max(defaultLayout.minW || 3, Math.min(optimalW, colsPerWidget)),
-                  h: Math.max(defaultLayout.minH || 2, optimalH),
-                  minW: defaultLayout.minW,
-                  minH: defaultLayout.minH,
-                  maxW: defaultLayout.maxW,
-                  maxH: defaultLayout.maxH,
-                }
-              })
-
-              // Explicitly type to fix return type inference
-              const mergedLayouts: Layout[] = [...existingLayouts, ...newLayouts].map(l => ({
-                ...l,
-                minW: l.minW,
-                minH: l.minH,
-                maxW: l.maxW,
-                maxH: l.maxH,
-              })) as Layout[]
-
-              // @ts-ignore - react-grid-layout v2 uses readonly Layout but we need mutable LayoutItem[]
-              return mergedLayouts
-            }
-            return []
-          }
-
-          const savedLayout = getDashboardLayoutSync()
-          const savedLayouts: Layout[] = savedLayout.layouts as Layout[]
-          // @ts-ignore - react-grid-layout v2 uses readonly Layout but we need mutable LayoutItem[]
-          return savedLayouts
-        }
-
-        const loadedLayout = await getLayout()
-        setLayout(loadedLayout as Layout[])
-      } catch (error) {
-        console.error('Ошибка загрузки layout:', error)
-        setLayout([])
+        console.log('[WidgetGrid] Received widgets-changed event')
+        // В будущем здесь можно добавить логику перезагрузки, если это безопасно
+      } catch (e) {
+        console.error(e)
       } finally {
         setIsLayoutLoading(false)
       }
     }
 
     window.addEventListener('widgets-changed', handleWidgetsChanged)
-    window.addEventListener('resize', handleResize)
+    window.addEventListener('resize', handleResizeDebounced)
     return () => {
       window.removeEventListener('widgets-changed', handleWidgetsChanged)
-      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('resize', handleResizeDebounced)
       // Очищаем таймер сохранения при размонтировании
       if (saveLayoutTimeoutRef.current) {
         clearTimeout(saveLayoutTimeoutRef.current)
       }
     }
-  }, [cols, rowHeight, currentTab])
+  }, [cols, rowHeight, currentTab]) // dependencies
 
   const handleLayoutChange = useCallback(async (newLayout: Layout[]) => {
+    // Проверяем, действительно ли изменился layout
+    const newLayoutStr = JSON.stringify(newLayout)
+    if (newLayoutStr === layoutStrRef.current) {
+      return // Layout не изменился, пропускаем
+    }
+    layoutStrRef.current = newLayoutStr
 
     // Определяем dashboardId для текущего таба
     let dashboardId: string | undefined = undefined
@@ -515,7 +546,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
       }))
       try {
         // Сохраняем layout с текущим количеством колонок и высотой строки
-        const currentColsValue = cols || getCols()
+        const currentColsValue = cols || getColsForWidth(window.innerWidth)
         await updateWidgetLayout(widgetLayouts, currentColsValue, rowHeight, dashboardId)
         console.log('[WidgetGrid] Layout сохранен на сервер для синхронизации между устройствами')
       } catch (error) {
@@ -523,6 +554,7 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
       }
     }, 500) // 500ms debounce
   }, [cols, rowHeight, currentTab])
+
 
   const TRIPLE_CLICK_TIMEOUT = 500 // 500ms между кликами
   const REQUIRED_CLICKS = 3
@@ -729,9 +761,25 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
         </div>
       )}
 
-      {/* Кнопка выхода из режима редактирования */}
+      {/* Кнопки управления в режиме редактирования */}
       {editMode && (
-        <div className="fixed top-20 right-6 z-40">
+        <div className="fixed top-20 right-6 z-40 flex gap-2">
+          {/* Кнопка автоматической сетки */}
+          <button
+            onClick={() => {
+              const screenDims = getScreenDimensions()
+              const arrangedLayout = autoArrangeLayout(layout, cols, screenDims.width, screenDims.height)
+              setLayout(arrangedLayout)
+              // Сохраняем новый layout на сервер
+              handleLayoutChange(arrangedLayout)
+            }}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 shadow-lg"
+            title="Автоматически расположить виджеты по размеру экрана"
+          >
+            <LayoutGrid size={16} />
+            סידור אוטומטי
+          </button>
+          {/* Кнопка выхода из режима редактирования */}
           <button
             onClick={() => {
               setEditMode(false)

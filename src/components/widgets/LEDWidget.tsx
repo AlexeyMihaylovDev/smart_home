@@ -61,7 +61,7 @@ const LEDWidget = () => {
   useEffect(() => {
     if (api && ledConfigs.length > 0) {
       loadEntities()
-      const interval = setInterval(loadEntities, 2000)
+      const interval = setInterval(loadEntities, 5000)
       return () => clearInterval(interval)
     }
   }, [api, ledConfigs])

@@ -257,7 +257,7 @@ const MotorWidget = () => {
     if (motorConfigs.length > 0 && api) {
       loadEntities()
       // Обновляем состояния каждые 2 секунды
-      const interval = setInterval(loadEntities, 2000)
+      const interval = setInterval(loadEntities, 5000)
       return () => clearInterval(interval)
     }
   }, [motorConfigs, api])

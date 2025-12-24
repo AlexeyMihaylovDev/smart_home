@@ -17,6 +17,7 @@ function App() {
             <Route path="/shopping-list" element={<Dashboard initialPage="shopping-list" />} />
             <Route path="/news" element={<Dashboard initialPage="news" />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </BrowserRouter>
       </HomeAssistantProvider>

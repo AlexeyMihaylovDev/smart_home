@@ -444,7 +444,11 @@ const compactLayoutVertical = (layouts: WidgetLayout[], cols: number): WidgetLay
     let newX = 0
 
     // Ищем первое свободное место, начиная сверху
-    while (!placed) {
+    // Добавляем лимит итераций для предотвращения бесконечного цикла
+    let iterations = 0
+    const maxIterations = 1000
+    while (!placed && iterations < maxIterations) {
+      iterations++
       // Проверяем, помещается ли виджет на текущей позиции
       let fits = true
 
@@ -498,6 +502,16 @@ const compactLayoutVertical = (layouts: WidgetLayout[], cols: number): WidgetLay
           newY += 1
         }
       }
+    }
+
+    // Если не удалось найти место за maxIterations, просто добавляем в конец
+    if (!placed) {
+      console.warn(`[compactLayoutVertical] Не удалось найти место для виджета ${item.i} за ${maxIterations} итераций`)
+      compacted.push({
+        ...item,
+        x: 0,
+        y: newY
+      })
     }
   }
 

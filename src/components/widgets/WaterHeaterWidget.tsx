@@ -35,7 +35,7 @@ const WaterHeaterWidget = () => {
   useEffect(() => {
     if (api && configEntityId) {
       loadEntity()
-      const interval = setInterval(loadEntity, 2000)
+      const interval = setInterval(loadEntity, 5000)
       return () => clearInterval(interval)
     }
   }, [api, configEntityId])
@@ -84,7 +84,7 @@ const WaterHeaterWidget = () => {
   const handleTurnOn = async () => {
     if (!api || !configEntityId) return
     const domain = configEntityId.split('.')[0]
-    
+
     setLoading(true)
     try {
       if (domain === 'water_heater') {
@@ -112,7 +112,7 @@ const WaterHeaterWidget = () => {
   const handleTurnOff = async () => {
     if (!api || !configEntityId) return
     const domain = configEntityId.split('.')[0]
-    
+
     setLoading(true)
     try {
       if (domain === 'water_heater') {
@@ -157,12 +157,12 @@ const WaterHeaterWidget = () => {
 
   const attrs = entity.attributes
   const domain = configEntityId?.split('.')[0] || ''
-  
+
   // Для water_heater
   let currentTemp = attrs.current_temperature || 0
   let targetTemp = attrs.temperature || 0
   let isOn = false
-  
+
   // Для climate
   if (domain === 'climate') {
     currentTemp = attrs.current_temperature || 0

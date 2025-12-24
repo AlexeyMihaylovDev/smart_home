@@ -176,6 +176,7 @@ app.all('/api/homeassistant/*', async (req, res) => {
       headers: headers,
       data: req.body,
       params: req.query,
+      timeout: 10000, // 10 second timeout to prevent infinite hangs
       validateStatus: () => true // Don't throw on any status
     })
 
@@ -183,68 +184,18 @@ app.all('/api/homeassistant/*', async (req, res) => {
     res.status(response.status).json(response.data)
   } catch (error) {
     console.error('Home Assistant proxy error:', error.message)
-    res.status(500).json({
-      error: 'Proxy error',
-      message: error.message
-    })
-  }
-})
-// Home Assistant API Proxy (to bypass CORS)
-app.all('/api/homeassistant/*', async (req, res) => {
-  try {
-    // Get Home Assistant URL from user's config or environment
-    const userId = req.headers['x-user-id']
-    let haUrl = process.env.HOME_ASSISTANT_URL || 'http://127.0.0.1:8123'
-    let haToken = process.env.HOME_ASSISTANT_TOKEN || ''
-
-    // Try to get user-specific config
-    if (userId) {
-      try {
-        const connection = await readDataFile(`connection_${userId}.json`)
-        if (connection) {
-          haUrl = connection.url
-          haToken = connection.token || ''
-        }
-      } catch (error) {
-        // Use defaults if no user config
-        console.log(`[HA Proxy] No connection config for user ${userId}, using defaults`)
-      }
+    // Check for timeout error
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      res.status(504).json({
+        error: 'Gateway Timeout',
+        message: 'Home Assistant did not respond in time'
+      })
+    } else {
+      res.status(500).json({
+        error: 'Proxy error',
+        message: error.message
+      })
     }
-
-    // Extract the path after /api/homeassistant/
-    const haPath = req.path.replace('/api/homeassistant', '')
-    // Home Assistant API endpoints требуют /api prefix
-    const targetUrl = `${haUrl}/api${haPath}`
-
-    console.log(`[HA Proxy] ${req.method} ${targetUrl}`)
-
-    // Prepare headers
-    const headers = {
-      'Content-Type': 'application/json'
-    }
-    if (haToken) {
-      headers['Authorization'] = `Bearer ${haToken}`
-    }
-
-    // Forward the request to Home Assistant
-    const axios = require('axios')
-    const response = await axios({
-      method: req.method,
-      url: targetUrl,
-      headers: headers,
-      data: req.body,
-      params: req.query,
-      validateStatus: () => true // Don't throw on any status
-    })
-
-    // Forward the response back
-    res.status(response.status).json(response.data)
-  } catch (error) {
-    console.error('Home Assistant proxy error:', error.message)
-    res.status(500).json({
-      error: 'Proxy error',
-      message: error.message
-    })
   }
 })
 
@@ -664,6 +615,7 @@ app.use('/api', requireAuth, async (req, res) => {
         'Content-Type': 'application/json'
       },
       data: req.body,
+      timeout: 10000, // 10 second timeout to prevent infinite hangs
       responseType: 'stream' // Важно для pipe
     });
 

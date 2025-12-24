@@ -295,8 +295,8 @@ const TVUnit = ({ tvConfig, entity, api, loading, onLoadingChange }: TVUnitProps
             onClick={handlePower}
             disabled={localLoading || loading}
             className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-all flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ${isOn
-                ? 'bg-red-600 hover:bg-red-700 text-white'
-                : 'bg-green-600 hover:bg-green-700 text-white'
+              ? 'bg-red-600 hover:bg-red-700 text-white'
+              : 'bg-green-600 hover:bg-green-700 text-white'
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             title={isOn ? 'כבה' : 'הדלק'}
           >
@@ -411,8 +411,8 @@ const TVUnit = ({ tvConfig, entity, api, loading, onLoadingChange }: TVUnitProps
                       setShowAdvanced(false)
                     }}
                     className={`w-full text-right p-2 rounded-lg transition-colors text-xs sm:text-sm ${source === sourceName
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-dark-card hover:bg-dark-cardHover text-white'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-dark-card hover:bg-dark-cardHover text-white'
                       }`}
                   >
                     {sourceName}
@@ -516,7 +516,7 @@ const TVPreviewWidget = () => {
   useEffect(() => {
     if (api && tvConfigs.length > 0) {
       loadEntities()
-      const interval = setInterval(loadEntities, 2000)
+      const interval = setInterval(loadEntities, 5000)
       return () => clearInterval(interval)
     }
   }, [api, tvConfigs])
@@ -563,10 +563,10 @@ const TVPreviewWidget = () => {
   return (
     <div className="h-full p-2 sm:p-3 md:p-4 overflow-y-auto">
       <div className={`grid gap-3 sm:gap-4 ${tvConfigs.length === 1
-          ? 'grid-cols-1'
-          : tvConfigs.length === 2
-            ? 'grid-cols-1 md:grid-cols-2'
-            : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+        ? 'grid-cols-1'
+        : tvConfigs.length === 2
+          ? 'grid-cols-1 md:grid-cols-2'
+          : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
         }`}>
         {tvConfigs.map((tvConfig, index) => (
           <TVUnit

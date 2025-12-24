@@ -52,7 +52,7 @@ const SensorsWidget = () => {
   useEffect(() => {
     if (sensors.length > 0 && api) {
       loadEntities()
-      const interval = setInterval(loadEntities, 2000)
+      const interval = setInterval(loadEntities, 5000)
       return () => clearInterval(interval)
     }
   }, [sensors, api])
@@ -64,7 +64,7 @@ const SensorsWidget = () => {
       const entityIds = sensors
         .map(s => s.entityId)
         .filter((id): id is string => id !== null)
-      
+
       const batteryEntityIds = sensors
         .filter(s => s.powerType === 'battery' && s.batteryEntityId)
         .map(s => s.batteryEntityId)
@@ -117,10 +117,10 @@ const SensorsWidget = () => {
       const batteryEntity = entities.get(sensor.batteryEntityId)
       if (batteryEntity) {
         const attrs = batteryEntity.attributes || {}
-        
+
         // Пробуем разные варианты получения значения батареи
         let battery: number | null = null
-        
+
         // Проверяем атрибуты
         if (attrs.battery_level !== undefined) {
           battery = typeof attrs.battery_level === 'number' ? attrs.battery_level : parseFloat(String(attrs.battery_level))
@@ -129,7 +129,7 @@ const SensorsWidget = () => {
         } else if (attrs.battery_percentage !== undefined) {
           battery = typeof attrs.battery_percentage === 'number' ? attrs.battery_percentage : parseFloat(String(attrs.battery_percentage))
         }
-        
+
         // Если в атрибутах не нашли, проверяем state
         if (battery === null || isNaN(battery)) {
           const stateValue = batteryEntity.state
@@ -137,21 +137,21 @@ const SensorsWidget = () => {
             battery = typeof stateValue === 'number' ? stateValue : parseFloat(String(stateValue))
           }
         }
-        
+
         if (battery !== null && !isNaN(battery)) {
           return Math.max(0, Math.min(100, battery))
         }
       }
     }
-    
+
     // Fallback: проверяем атрибуты основного entity
     if (!sensor.entityId) return null
     const entity = entities.get(sensor.entityId)
     if (!entity) return null
-    
+
     const attrs = entity.attributes || {}
     let battery: number | null = null
-    
+
     if (attrs.battery_level !== undefined) {
       battery = typeof attrs.battery_level === 'number' ? attrs.battery_level : parseFloat(String(attrs.battery_level))
     } else if (attrs.battery !== undefined) {
@@ -159,11 +159,11 @@ const SensorsWidget = () => {
     } else if (attrs.battery_percentage !== undefined) {
       battery = typeof attrs.battery_percentage === 'number' ? attrs.battery_percentage : parseFloat(String(attrs.battery_percentage))
     }
-    
+
     if (battery !== null && !isNaN(battery)) {
       return Math.max(0, Math.min(100, battery))
     }
-    
+
     return null
   }
 
