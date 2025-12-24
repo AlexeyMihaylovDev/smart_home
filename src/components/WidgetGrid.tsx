@@ -23,6 +23,7 @@ import MotorWidget from './widgets/MotorWidget'
 import BoseWidget from './widgets/BoseWidget'
 import VacuumWidget from './widgets/VacuumWidget'
 import CamerasWidget from './widgets/CamerasWidget'
+import ScenesWidget from './widgets/ScenesWidget'
 import { getDashboardLayout, getDashboardLayoutSync, updateWidgetLayout, WidgetLayout, getDashboardLayoutByDashboardId } from '../services/widgetLayout'
 import { isWidgetEnabledSync, getNavigationIconsSync } from '../services/widgetConfig'
 import { GripVertical, Pencil, X, LayoutGrid } from 'lucide-react'
@@ -174,6 +175,7 @@ const DEFAULT_LAYOUTS: Record<string, Omit<WidgetLayout, 'i'>> = {
   'bose': { x: 0, y: 33, w: 6, h: 6, minW: 4, minH: 5 },
   'vacuum': { x: 6, y: 33, w: 6, h: 6, minW: 4, minH: 5 },
   'cameras': { x: 0, y: 39, w: 12, h: 8, minW: 6, minH: 6 },
+  'scenes': { x: 0, y: 47, w: 6, h: 5, minW: 4, minH: 4 },
 }
 
 // Маппинг виджетов
@@ -198,6 +200,7 @@ const widgetComponents: Record<string, React.ComponentType<any>> = {
   'bose': BoseWidget,
   'vacuum': VacuumWidget,
   'cameras': CamerasWidget,
+  'scenes': ScenesWidget,
 }
 
 interface WidgetGridProps {
@@ -348,29 +351,66 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
             return []
           }
 
+          // Определяем, нужно ли делать scaling
+          // Только если переход между breakpoints (mobile <-> tablet <-> desktop <-> large)
+          const getBreakpoint = (cols: number) => {
+            if (cols <= 4) return 'mobile'
+            if (cols <= 6) return 'tablet'
+            if (cols <= 12) return 'desktop'
+            return 'large'
+          }
+
+          const savedBreakpoint = getBreakpoint(savedCols)
+          const currentBreakpoint = getBreakpoint(currentCols)
+          const needsScaling = savedBreakpoint !== currentBreakpoint
+
+          console.log('[WidgetGrid] Loading layout:', {
+            savedCols,
+            currentCols,
+            savedBreakpoint,
+            currentBreakpoint,
+            needsScaling
+          })
+
           return savedLayout.layouts.map(l => {
+            // Если тот же breakpoint - используем сохраненные позиции напрямую
+            if (!needsScaling) {
+              return {
+                i: l.i,
+                x: l.x,
+                y: l.y,
+                w: l.w,
+                h: l.h,
+                minW: l.minW,
+                minH: l.minH,
+                maxW: l.maxW,
+                maxH: l.maxH,
+              }
+            }
+
+            // Только для мобильных устройств делаем полную ширину
+            const isMobile = currentBreakpoint === 'mobile'
             const scale = currentCols / savedCols
-            let newW = Math.max(1, Math.round(l.w * scale))
+            let newW = isMobile ? currentCols : Math.max(1, Math.round(l.w * scale))
             let newH = l.h
 
-            if (typeof window !== 'undefined' && window.innerWidth < 640) {
-              newW = currentCols
+            if (isMobile) {
               newH = Math.max(2, Math.round(l.h * 0.7))
-            } else if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+            } else if (currentBreakpoint === 'tablet') {
               newH = Math.max(1, Math.round(l.h * 0.9))
-            } else if (typeof window !== 'undefined' && window.innerWidth >= 1920) {
+            } else if (currentBreakpoint === 'large') {
               newH = Math.max(1, Math.round(l.h * 1.1))
             }
 
             return {
               i: l.i,
-              x: (typeof window !== 'undefined' && window.innerWidth < 640) ? 0 : Math.round(l.x * scale),
+              x: isMobile ? 0 : Math.round(l.x * scale),
               y: l.y,
               w: newW,
               h: newH,
-              minW: (typeof window !== 'undefined' && window.innerWidth < 640) ? currentCols : l.minW,
+              minW: isMobile ? currentCols : l.minW,
               minH: l.minH,
-              maxW: (typeof window !== 'undefined' && window.innerWidth < 640) ? currentCols : l.maxW,
+              maxW: isMobile ? currentCols : l.maxW,
               maxH: l.maxH,
             }
           })
@@ -390,29 +430,56 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
             if (freshLayout.layouts && freshLayout.layouts.length > 0) {
               const currentCols = getCols()
               const savedCols = freshLayout.cols || 12
+
+              // Используем ту же логику breakpoint-based scaling
+              const getBreakpoint = (cols: number) => {
+                if (cols <= 4) return 'mobile'
+                if (cols <= 6) return 'tablet'
+                if (cols <= 12) return 'desktop'
+                return 'large'
+              }
+
+              const savedBreakpoint = getBreakpoint(savedCols)
+              const currentBreakpoint = getBreakpoint(currentCols)
+              const needsScaling = savedBreakpoint !== currentBreakpoint
+
               const mappedLayout = freshLayout.layouts.map(l => {
+                if (!needsScaling) {
+                  return {
+                    i: l.i,
+                    x: l.x,
+                    y: l.y,
+                    w: l.w,
+                    h: l.h,
+                    minW: l.minW,
+                    minH: l.minH,
+                    maxW: l.maxW,
+                    maxH: l.maxH,
+                  }
+                }
+
+                const isMobile = currentBreakpoint === 'mobile'
                 const scale = currentCols / savedCols
-                let newW = Math.max(1, Math.round(l.w * scale))
+                let newW = isMobile ? currentCols : Math.max(1, Math.round(l.w * scale))
                 let newH = l.h
 
-                if (typeof window !== 'undefined' && window.innerWidth < 640) {
-                  newW = currentCols
+                if (isMobile) {
                   newH = Math.max(2, Math.round(l.h * 0.7))
-                } else if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                } else if (currentBreakpoint === 'tablet') {
                   newH = Math.max(1, Math.round(l.h * 0.9))
-                } else if (typeof window !== 'undefined' && window.innerWidth >= 1920) {
+                } else if (currentBreakpoint === 'large') {
                   newH = Math.max(1, Math.round(l.h * 1.1))
                 }
 
                 return {
                   i: l.i,
-                  x: (typeof window !== 'undefined' && window.innerWidth < 640) ? 0 : Math.round(l.x * scale),
+                  x: isMobile ? 0 : Math.round(l.x * scale),
                   y: l.y,
                   w: newW,
                   h: newH,
-                  minW: (typeof window !== 'undefined' && window.innerWidth < 640) ? currentCols : l.minW,
+                  minW: isMobile ? currentCols : l.minW,
                   minH: l.minH,
-                  maxW: (typeof window !== 'undefined' && window.innerWidth < 640) ? currentCols : l.maxW,
+                  maxW: isMobile ? currentCols : l.maxW,
                   maxH: l.maxH,
                 }
               })

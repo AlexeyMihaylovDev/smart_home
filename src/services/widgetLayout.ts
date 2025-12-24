@@ -76,6 +76,7 @@ const DEFAULT_LAYOUTS: Record<string, Omit<WidgetLayout, 'i'>> = {
   'bose': { x: 0, y: 33, w: 6, h: 6, minW: 4, minH: 5 },
   'vacuum': { x: 6, y: 33, w: 6, h: 6, minW: 4, minH: 5 },
   'cameras': { x: 0, y: 39, w: 12, h: 8, minW: 6, minH: 6 },
+  'scenes': { x: 0, y: 47, w: 6, h: 5, minW: 4, minH: 4 },
 }
 
 export const getDashboardLayout = async (): Promise<DashboardLayout> => {

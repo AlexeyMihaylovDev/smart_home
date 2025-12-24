@@ -82,6 +82,7 @@ export type SensorsStyle = 'list' | 'card' | 'compact' | 'grid'
 export type MotorsStyle = 'list' | 'card' | 'compact'
 export type CamerasStyle = 'list' | 'card' | 'compact' | 'grid'
 export type LEDStyle = 'list' | 'card' | 'compact' | 'modern'
+export type ScenesStyle = 'grid' | 'list' | 'compact' | 'cards'
 
 export interface SpotifyConfig {
   accountName: string
@@ -140,6 +141,10 @@ export interface WidgetConfig {
   led: {
     leds: LEDConfig[]
     style?: LEDStyle
+  }
+  scenes: {
+    style?: ScenesStyle
+    enabled: boolean
   }
   enabledWidgets: {
     [widgetId: string]: boolean
@@ -211,6 +216,10 @@ const DEFAULT_CONFIG: WidgetConfig = {
   led: {
     leds: [],
     style: 'list'
+  },
+  scenes: {
+    style: 'grid',
+    enabled: true
   },
   enabledWidgets: {},
   navigationIcons: {

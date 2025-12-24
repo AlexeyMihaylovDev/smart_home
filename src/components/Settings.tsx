@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useHomeAssistant } from '../context/HomeAssistantContext'
 import { Entity } from '../services/homeAssistantAPI'
 import { Search, RefreshCw, Lightbulb, Power, Settings as SettingsIcon, List, Tv, Camera, Gauge, Save, ArrowLeft, Wind, Music, Droplet, Gauge as GaugeIcon, Clock, Navigation, Plus, Sparkles, Activity, User, ChevronDown } from 'lucide-react'
@@ -76,7 +77,25 @@ const Settings = () => {
   }
 
   const { api, connect } = useHomeAssistant()
-  const [activeTab, setActiveTab] = useState<Tab>('devices')
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Initialize tab from URL or default to 'devices'
+  const getInitialTab = useCallback((): Tab => {
+    const urlTab = searchParams.get('tab')
+    if (urlTab && ['devices', 'widgets', 'navigation', 'home-assistant'].includes(urlTab)) {
+      return urlTab as Tab
+    }
+    return 'devices'
+  }, [searchParams])
+
+  const [activeTab, setActiveTab] = useState<Tab>(getInitialTab)
+
+  // Update URL when tab changes
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab)
+    setSearchParams({ tab })
+  }
+
   const [selectedWidget, setSelectedWidget] = useState<WidgetType>(null)
   const [entities, setEntities] = useState<Entity[]>([])
   const [filteredEntities, setFilteredEntities] = useState<Entity[]>([])
@@ -376,6 +395,13 @@ const Settings = () => {
       name: 'Cameras Widget',
       description: 'ניהול מצלמות',
       icon: Camera,
+      color: 'bg-purple-500'
+    },
+    {
+      id: 'scenes',
+      name: 'Scenes Widget',
+      description: 'ניהול סצנות Home Assistant',
+      icon: Sparkles,
       color: 'bg-purple-500'
     }
   ]
@@ -723,7 +749,7 @@ const Settings = () => {
       {/* Вкладки */}
       <div className="flex gap-2 mb-4 sm:mb-6 border-b border-dark-border overflow-x-auto">
         <button
-          onClick={() => setActiveTab('devices')}
+          onClick={() => handleTabChange('devices')}
           className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'devices'
             ? 'border-blue-500 text-white'
             : 'border-transparent text-dark-textSecondary hover:text-white'
@@ -735,7 +761,7 @@ const Settings = () => {
           </div>
         </button>
         <button
-          onClick={() => setActiveTab('widgets')}
+          onClick={() => handleTabChange('widgets')}
           className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'widgets'
             ? 'border-blue-500 text-white'
             : 'border-transparent text-dark-textSecondary hover:text-white'
@@ -747,7 +773,7 @@ const Settings = () => {
           </div>
         </button>
         <button
-          onClick={() => setActiveTab('navigation')}
+          onClick={() => handleTabChange('navigation')}
           className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'navigation'
             ? 'border-blue-500 text-white'
             : 'border-transparent text-dark-textSecondary hover:text-white'
@@ -759,7 +785,7 @@ const Settings = () => {
           </div>
         </button>
         <button
-          onClick={() => setActiveTab('home-assistant')}
+          onClick={() => handleTabChange('home-assistant')}
           className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'home-assistant'
             ? 'border-blue-500 text-white'
             : 'border-transparent text-dark-textSecondary hover:text-white'
@@ -3706,6 +3732,72 @@ const Settings = () => {
                           <div className="font-medium text-white">Water Heater</div>
                         </div>
                         <WaterHeaterPreview config={waterHeaterConfig} style={waterHeaterStyle} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {selectedWidget === 'scenes' && (
+                <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
+                  <div className="p-4 border-b border-dark-border">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() => setSelectedWidget(null)}
+                          className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
+                          title="חזור לבחירת וידג'ט"
+                        >
+                          <ArrowLeft size={20} />
+                        </button>
+                        <div>
+                          <h2 className="font-medium text-lg">Scenes Widget</h2>
+                          <p className="text-sm text-dark-textSecondary mt-1">
+                            הפעלת סצנות מ-Home Assistant
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-center gap-4 p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+                      <div className="p-3 bg-purple-500/20 rounded-xl">
+                        <Sparkles size={32} className="text-purple-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-lg text-white">טעינה אוטומטית</h3>
+                        <p className="text-sm text-dark-textSecondary mt-1">
+                          הווידג'ט הזה טוען אוטומטית את כל הסצנות מ-Home Assistant.
+                          לא נדרשת הגדרה נוספת!
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-6 space-y-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <div className="w-2 h-2 rounded-full bg-green-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium">כל הסצנות נטענות אוטומטית</p>
+                          <p className="text-sm text-dark-textSecondary">סצנות מופיעות לפי סדר אלפביתי</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <div className="w-2 h-2 rounded-full bg-blue-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium">לחיצה אחת להפעלה</p>
+                          <p className="text-sm text-dark-textSecondary">לחץ על סצנה כדי להפעיל אותה</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <div className="w-2 h-2 rounded-full bg-orange-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium">אייקונים חכמים</p>
+                          <p className="text-sm text-dark-textSecondary">אייקונים מותאמים לפי שם הסצנה (לילה, סרט, מסיבה...)</p>
+                        </div>
                       </div>
                     </div>
                   </div>
