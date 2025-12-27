@@ -24,7 +24,7 @@ export const ListStyle = ({ lights, entities: _entities, onToggle, getEntityStat
   })
 
   return (
-    <div className="space-y-2 overflow-y-auto flex-1 min-h-0" style={{ maxHeight: 'calc(5 * (2.5rem + 0.5rem))' }}>
+    <div className="space-y-2 overflow-y-auto flex-1 min-h-0">
       {Array.isArray(sortedLights) && sortedLights.map((light, index) => {
         const Icon = getIcon(light.icon)
         const isOn = getEntityState(light.entityId)

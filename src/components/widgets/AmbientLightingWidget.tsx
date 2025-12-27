@@ -79,14 +79,21 @@ const AmbientLightingWidget = () => {
       if (!entity) return
 
       const isOn = entity.state === 'on'
+
+      // Отправляем запрос на сервер и ждём ответ
       if (isOn) {
         await api.turnOff(light.entityId)
       } else {
         await api.turnOn(light.entityId)
       }
 
-      // Обновляем состояние сразу
-      loadEntities()
+      // После успешного ответа - получаем актуальное состояние
+      const newState = await api.getState(light.entityId)
+      if (newState) {
+        const newEntities = new Map(entities)
+        newEntities.set(light.entityId, newState)
+        setEntities(newEntities)
+      }
     } catch (error) {
       console.error('Ошибка переключения:', error)
     }

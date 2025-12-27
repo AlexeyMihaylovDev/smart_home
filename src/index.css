@@ -598,7 +598,7 @@ body {
 }
 
 /* Interactive elements inside widgets */
-.widget-card button {
+.widget-card button:not(.toggle-switch) {
   background: linear-gradient(135deg, rgba(40, 40, 50, 0.8) 0%, rgba(30, 30, 40, 0.9) 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
@@ -606,14 +606,14 @@ body {
   transition: all 0.2s ease;
 }
 
-.widget-card button:hover {
+.widget-card button:not(.toggle-switch):hover {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
   border-color: rgba(59, 130, 246, 0.4);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
-.widget-card button:active {
+.widget-card button:not(.toggle-switch):active {
   transform: translateY(0) scale(0.98);
 }
 

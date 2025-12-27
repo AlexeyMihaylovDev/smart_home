@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { useHomeAssistant } from '../../context/HomeAssistantContext'
 import { Entity } from '../../services/homeAssistantAPI'
 import { Play, Settings, Check, AlertCircle, Sparkles } from 'lucide-react'
+import { getScenesStyleSync, getHiddenScenesSync, ScenesStyle } from '../../services/widgetConfig'
 
-export type ScenesStyle = 'grid' | 'list' | 'compact' | 'cards'
+export type { ScenesStyle } from '../../services/widgetConfig'
 
 interface SceneEntity extends Entity {
     entity_id: string
@@ -21,8 +22,22 @@ const ScenesWidget = () => {
     const [loading, setLoading] = useState(true)
     const [activatingScene, setActivatingScene] = useState<string | null>(null)
     const [lastActivated, setLastActivated] = useState<string | null>(null)
-    const [style, _setStyle] = useState<ScenesStyle>('grid')
+    const [style, setStyle] = useState<ScenesStyle>('grid')
+    const [hiddenScenes, setHiddenScenes] = useState<string[]>([])
     const [error, setError] = useState<string | null>(null)
+
+    // Загрузка конфигурации
+    useEffect(() => {
+        const loadConfig = () => {
+            setStyle(getScenesStyleSync())
+            setHiddenScenes(getHiddenScenesSync())
+        }
+        loadConfig()
+
+        const handleWidgetsChanged = () => loadConfig()
+        window.addEventListener('widgets-changed', handleWidgetsChanged)
+        return () => window.removeEventListener('widgets-changed', handleWidgetsChanged)
+    }, [])
 
     // Загрузка всех сцен из Home Assistant
     useEffect(() => {
@@ -37,9 +52,10 @@ const ScenesWidget = () => {
                 setError(null)
                 const states = await api.getStates()
 
-                // Фильтруем только scene entities
+                // Фильтруем только scene entities и исключаем скрытые
                 const sceneEntities = states
                     .filter(entity => entity.entity_id.startsWith('scene.'))
+                    .filter(entity => !hiddenScenes.includes(entity.entity_id))
                     .sort((a, b) => {
                         const nameA = a.attributes.friendly_name || a.entity_id
                         const nameB = b.attributes.friendly_name || b.entity_id
@@ -61,7 +77,7 @@ const ScenesWidget = () => {
         // Обновляем каждые 30 секунд (сцены меняются редко)
         const interval = setInterval(loadScenes, 30000)
         return () => clearInterval(interval)
-    }, [api])
+    }, [api, hiddenScenes])
 
     // Активация сцены
     const activateScene = async (sceneId: string) => {

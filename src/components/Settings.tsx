@@ -60,6 +60,289 @@ const PreviewContent = ({ lights, entities, style }: { lights: LightConfig[], en
 
 
 import ConfirmModal from './ui/ConfirmModal'
+import { getScenesStyleSync, updateScenesStyle, getHiddenScenesSync, updateHiddenScenes, ScenesStyle } from '../services/widgetConfig'
+
+// ScenesSettings Component
+interface ScenesSettingsProps {
+  onBack: () => void
+  api: any
+  setToast: (toast: { message: string; type: 'success' | 'error' | 'info' } | null) => void
+}
+
+interface SceneItem {
+  entity_id: string
+  friendly_name: string
+  icon?: string
+}
+
+const ScenesSettings = ({ onBack, api, setToast }: ScenesSettingsProps) => {
+  const [style, setStyle] = useState<ScenesStyle>(getScenesStyleSync())
+  const [hiddenScenes, setHiddenScenes] = useState<string[]>(getHiddenScenesSync())
+  const [allScenes, setAllScenes] = useState<SceneItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [hasChanges, setHasChanges] = useState(false)
+
+  // Load all scenes from Home Assistant
+  useEffect(() => {
+    const loadScenes = async () => {
+      if (!api) {
+        setLoading(false)
+        return
+      }
+      try {
+        const states = await api.getStates()
+        const scenes = states
+          .filter((e: any) => e.entity_id.startsWith('scene.'))
+          .map((e: any) => ({
+            entity_id: e.entity_id,
+            friendly_name: e.attributes.friendly_name || e.entity_id.replace('scene.', '').replace(/_/g, ' '),
+            icon: e.attributes.icon
+          }))
+          .sort((a: SceneItem, b: SceneItem) => a.friendly_name.localeCompare(b.friendly_name))
+        setAllScenes(scenes)
+      } catch (err) {
+        console.error('Error loading scenes:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadScenes()
+  }, [api])
+
+  const toggleSceneVisibility = (entityId: string) => {
+    setHiddenScenes(prev => {
+      if (prev.includes(entityId)) {
+        return prev.filter(id => id !== entityId)
+      } else {
+        return [...prev, entityId]
+      }
+    })
+    setHasChanges(true)
+  }
+
+  const handleSave = async () => {
+    try {
+      await updateScenesStyle(style)
+      await updateHiddenScenes(hiddenScenes)
+      setHasChanges(false)
+      window.dispatchEvent(new Event('widgets-changed'))
+      setToast({ message: 'הגדרות סצנות נשמרו!', type: 'success' })
+    } catch (err) {
+      console.error('Error saving scenes config:', err)
+      setToast({ message: 'שגיאה בשמירת ההגדרות', type: 'error' })
+    }
+  }
+
+  const visibleScenes = allScenes.filter(s => !hiddenScenes.includes(s.entity_id))
+
+  const getSceneIcon = (scene: SceneItem) => {
+    const iconName = scene.icon
+    if (iconName?.includes('night')) return '🌙'
+    if (iconName?.includes('movie')) return '🎬'
+    if (iconName?.includes('party')) return '🎉'
+    if (iconName?.includes('romantic')) return '💕'
+    if (iconName?.includes('work')) return '💼'
+    if (iconName?.includes('relax')) return '😌'
+    if (iconName?.includes('morning')) return '🌅'
+    if (iconName?.includes('evening')) return '🌆'
+    return '▶️'
+  }
+
+  return (
+    <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
+      <div className="p-4 border-b border-dark-border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onBack}
+              className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
+              title="חזור לבחירת וידג'ט"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <div>
+              <h2 className="font-medium text-lg">Scenes Widget</h2>
+              <p className="text-sm text-dark-textSecondary mt-1">
+                הפעלת סצנות מ-Home Assistant
+              </p>
+            </div>
+          </div>
+          {hasChanges && (
+            <button
+              onClick={handleSave}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+            >
+              <Save size={16} />
+              שמור שינויים
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+        {/* Left: Settings */}
+        <div className="space-y-4">
+          {/* Style Selector */}
+          <div className="bg-dark-bg rounded-lg border border-dark-border p-4">
+            <h3 className="font-medium mb-3">סגנון תצוגה</h3>
+            <select
+              value={style}
+              onChange={(e) => {
+                setStyle(e.target.value as ScenesStyle)
+                setHasChanges(true)
+              }}
+              className="w-full bg-dark-card border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="grid">רשת (Grid) - 2 עמודות</option>
+              <option value="list">רשימה (List)</option>
+              <option value="compact">קומפקטי (Compact)</option>
+              <option value="cards">כרטיסים (Cards)</option>
+            </select>
+          </div>
+
+          {/* Scene List */}
+          <div className="bg-dark-bg rounded-lg border border-dark-border p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium">סצנות ({allScenes.length})</h3>
+              <span className="text-xs text-dark-textSecondary">
+                מוצגות: {visibleScenes.length} | מוסתרות: {hiddenScenes.length}
+              </span>
+            </div>
+
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500" />
+              </div>
+            ) : allScenes.length === 0 ? (
+              <div className="text-center py-8 text-dark-textSecondary">
+                <p>לא נמצאו סצנות ב-Home Assistant</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                {allScenes.map(scene => {
+                  const isHidden = hiddenScenes.includes(scene.entity_id)
+                  return (
+                    <div
+                      key={scene.entity_id}
+                      className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${isHidden
+                          ? 'bg-dark-card/50 border-dark-border/50 opacity-60'
+                          : 'bg-dark-card border-dark-border'
+                        }`}
+                    >
+                      <span className="text-lg">{getSceneIcon(scene)}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className={`font-medium truncate capitalize ${isHidden ? 'line-through' : ''}`}>
+                          {scene.friendly_name}
+                        </p>
+                        <p className="text-xs text-dark-textSecondary truncate">
+                          {scene.entity_id}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => toggleSceneVisibility(scene.entity_id)}
+                        className={`p-2 rounded-lg transition-colors ${isHidden
+                            ? 'bg-green-500/20 hover:bg-green-500/30 text-green-400'
+                            : 'bg-red-500/20 hover:bg-red-500/30 text-red-400'
+                          }`}
+                        title={isHidden ? 'הצג סצנה' : 'הסתר סצנה'}
+                      >
+                        {isHidden ? (
+                          <Plus size={16} />
+                        ) : (
+                          <Activity size={16} />
+                        )}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Preview */}
+        <div className="bg-dark-bg rounded-lg border border-dark-border p-4">
+          <h3 className="font-medium mb-3">תצוגה מקדימה</h3>
+          <div className="bg-dark-card rounded-xl border border-dark-border p-4 min-h-[300px]">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="text-purple-400" size={20} />
+              <h4 className="text-lg font-medium">סצנות</h4>
+              <span className="text-xs text-dark-textSecondary bg-dark-bg px-2 py-0.5 rounded-full">
+                {visibleScenes.length}
+              </span>
+            </div>
+
+            {visibleScenes.length === 0 ? (
+              <div className="text-center py-8 text-dark-textSecondary">
+                <p>אין סצנות מוצגות</p>
+              </div>
+            ) : (
+              <div className={`
+                ${style === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-3' : ''}
+                ${style === 'list' ? 'space-y-2' : ''}
+                ${style === 'compact' ? 'flex flex-wrap gap-2' : ''}
+                ${style === 'cards' ? 'grid grid-cols-1 md:grid-cols-2 gap-3' : ''}
+              `}>
+                {visibleScenes.slice(0, 6).map(scene => {
+                  const icon = getSceneIcon(scene)
+
+                  if (style === 'compact') {
+                    return (
+                      <div
+                        key={scene.entity_id}
+                        className="px-3 py-2 rounded-lg border border-dark-border bg-dark-bg flex items-center gap-2 text-sm"
+                      >
+                        <span>{icon}</span>
+                        <span className="capitalize truncate max-w-20">{scene.friendly_name}</span>
+                      </div>
+                    )
+                  }
+
+                  if (style === 'list') {
+                    return (
+                      <div
+                        key={scene.entity_id}
+                        className="w-full p-3 rounded-lg border border-dark-border bg-dark-bg flex items-center gap-3"
+                      >
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-purple-500/20">
+                          <span className="text-sm">{icon}</span>
+                        </div>
+                        <span className="flex-1 font-medium truncate capitalize">{scene.friendly_name}</span>
+                      </div>
+                    )
+                  }
+
+                  // Grid and Cards style
+                  return (
+                    <div
+                      key={scene.entity_id}
+                      className="p-4 rounded-xl border border-dark-border bg-dark-cardHover flex items-center gap-3"
+                    >
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-purple-500/20 text-xl">
+                        {icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate capitalize">{scene.friendly_name}</p>
+                        <p className="text-xs text-dark-textSecondary truncate">{scene.entity_id}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {visibleScenes.length > 6 && (
+              <p className="text-xs text-dark-textSecondary text-center mt-3">
+                + {visibleScenes.length - 6} סצנות נוספות
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ... existing imports
 
 const Settings = () => {
@@ -3738,70 +4021,11 @@ const Settings = () => {
                 </div>
               )}
               {selectedWidget === 'scenes' && (
-                <div className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
-                  <div className="p-4 border-b border-dark-border">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-4">
-                        <button
-                          onClick={() => setSelectedWidget(null)}
-                          className="p-2 hover:bg-dark-cardHover rounded-lg transition-colors"
-                          title="חזור לבחירת וידג'ט"
-                        >
-                          <ArrowLeft size={20} />
-                        </button>
-                        <div>
-                          <h2 className="font-medium text-lg">Scenes Widget</h2>
-                          <p className="text-sm text-dark-textSecondary mt-1">
-                            הפעלת סצנות מ-Home Assistant
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <div className="flex items-center gap-4 p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl">
-                      <div className="p-3 bg-purple-500/20 rounded-xl">
-                        <Sparkles size={32} className="text-purple-400" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-lg text-white">טעינה אוטומטית</h3>
-                        <p className="text-sm text-dark-textSecondary mt-1">
-                          הווידג'ט הזה טוען אוטומטית את כל הסצנות מ-Home Assistant.
-                          לא נדרשת הגדרה נוספת!
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-6 space-y-4">
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <div className="w-2 h-2 rounded-full bg-green-500" />
-                        </div>
-                        <div>
-                          <p className="font-medium">כל הסצנות נטענות אוטומטית</p>
-                          <p className="text-sm text-dark-textSecondary">סצנות מופיעות לפי סדר אלפביתי</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <div className="w-2 h-2 rounded-full bg-blue-500" />
-                        </div>
-                        <div>
-                          <p className="font-medium">לחיצה אחת להפעלה</p>
-                          <p className="text-sm text-dark-textSecondary">לחץ על סצנה כדי להפעיל אותה</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <div className="w-2 h-2 rounded-full bg-orange-500" />
-                        </div>
-                        <div>
-                          <p className="font-medium">אייקונים חכמים</p>
-                          <p className="text-sm text-dark-textSecondary">אייקונים מותאמים לפי שם הסצנה (לילה, סרט, מסיבה...)</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <ScenesSettings
+                  onBack={() => setSelectedWidget(null)}
+                  api={api}
+                  setToast={setToast}
+                />
               )}
             </>
           )}

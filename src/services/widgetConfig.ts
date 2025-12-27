@@ -145,6 +145,7 @@ export interface WidgetConfig {
   scenes: {
     style?: ScenesStyle
     enabled: boolean
+    hiddenScenes?: string[]
   }
   enabledWidgets: {
     [widgetId: string]: boolean
@@ -852,5 +853,45 @@ export const updateLEDStyle = async (style: LEDStyle): Promise<void> => {
     config.led = { leds: [], style: 'list' }
   }
   config.led.style = style
+  await saveWidgetConfig(config)
+}
+
+// Scenes Config functions
+export const getScenesStyleSync = (): ScenesStyle => {
+  const config = getWidgetConfigSync()
+  return config.scenes?.style || 'grid'
+}
+
+export const getScenesStyle = async (): Promise<ScenesStyle> => {
+  const config = await getWidgetConfig()
+  return config.scenes?.style || 'grid'
+}
+
+export const updateScenesStyle = async (style: ScenesStyle): Promise<void> => {
+  const config = await getWidgetConfig()
+  if (!config.scenes) {
+    config.scenes = { style, enabled: true, hiddenScenes: [] }
+  } else {
+    config.scenes.style = style
+  }
+  await saveWidgetConfig(config)
+}
+
+export const getHiddenScenes = async (): Promise<string[]> => {
+  const config = await getWidgetConfig()
+  return (config.scenes as any)?.hiddenScenes || []
+}
+
+export const getHiddenScenesSync = (): string[] => {
+  const config = getWidgetConfigSync()
+  return (config.scenes as any)?.hiddenScenes || []
+}
+
+export const updateHiddenScenes = async (hiddenScenes: string[]): Promise<void> => {
+  const config = await getWidgetConfig()
+  if (!config.scenes) {
+    config.scenes = { style: 'grid', enabled: true }
+  }
+  ; (config.scenes as any).hiddenScenes = hiddenScenes
   await saveWidgetConfig(config)
 }
