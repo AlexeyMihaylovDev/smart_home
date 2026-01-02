@@ -187,34 +187,38 @@ const WeatherCalendarWidget = () => {
     <div className="h-full overflow-hidden flex flex-col">
       {/* Погода */}
       {weatherData && (
-        <div className="p-2 border-b border-dark-border flex-shrink-0">
+        <div className="p-3 border-b border-white/5 flex-shrink-0 bg-gradient-to-r from-accent-blue/5 to-transparent">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
-              {getWeatherIcon(weatherData.condition)}
+              <div className="p-2 rounded-xl bg-accent-blue/10">
+                {getWeatherIcon(weatherData.condition)}
+              </div>
               <div>
-                <div className="font-medium text-lg">{weatherData.condition}</div>
-                <div className="text-sm text-yellow-400">{weatherData.location}</div>
+                <div className="font-medium text-base text-white">{weatherData.condition}</div>
+                <div className="text-xs text-accent-cyan">{weatherData.location}</div>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold">{weatherData.temperature.toFixed(1)}°C</div>
-              <div className="flex items-center gap-1 text-sm text-dark-textSecondary">
-                <Wind size={14} className="text-yellow-400" />
+              <div className="text-2xl font-bold text-white" style={{ textShadow: '0 0 20px rgba(59, 130, 246, 0.3)' }}>
+                {weatherData.temperature.toFixed(1)}°C
+              </div>
+              <div className="flex items-center gap-1 text-xs text-dark-textSecondary">
+                <Wind size={12} className="text-accent-cyan" />
                 {weatherData.windSpeed.toFixed(1)} km/h {weatherData.windDirection && `(${weatherData.windDirection})`}
               </div>
             </div>
           </div>
 
           {/* Прогноз на 5 дней */}
-          <div className="flex gap-4 justify-between">
+          <div className="flex gap-2 justify-between">
             {weatherData.forecast.map((day, index) => (
-              <div key={index} className="flex-1 text-center">
-                <div className="text-xs text-dark-textSecondary mb-1">{day.day}</div>
+              <div key={index} className="flex-1 text-center p-2 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                <div className="text-[10px] text-dark-textSecondary mb-1">{day.day}</div>
                 <div className="flex justify-center mb-1">
                   {getWeatherIcon(day.condition)}
                 </div>
-                <div className="text-sm font-medium">{day.high.toFixed(1)}°</div>
-                <div className="text-xs text-yellow-400">{day.low.toFixed(1)}°</div>
+                <div className="text-xs font-semibold text-white">{day.high.toFixed(0)}°</div>
+                <div className="text-[10px] text-accent-cyan">{day.low.toFixed(0)}°</div>
               </div>
             ))}
           </div>
@@ -222,17 +226,17 @@ const WeatherCalendarWidget = () => {
       )}
 
       {/* Календарь */}
-      <div className="p-2 flex-1 flex flex-col min-h-0 overflow-hidden">
-        <div className="mb-1 flex-shrink-0">
-          <h3 className="text-sm font-bold">לוח שנה</h3>
+      <div className="p-3 flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="mb-2 flex-shrink-0">
+          <h3 className="text-sm font-semibold text-white">לוח שנה</h3>
         </div>
 
-        {/* Текущее время - перемещено вверх */}
-        <div className="mb-1.5 pb-1.5 border-b border-dark-border text-center flex-shrink-0">
-          <div className="text-sm font-bold">
+        {/* Текущее время */}
+        <div className="mb-2 pb-2 border-b border-white/5 text-center flex-shrink-0 bg-gradient-to-r from-accent-purple/10 via-transparent to-accent-blue/10 rounded-lg p-2">
+          <div className="text-lg font-bold text-white" style={{ fontVariantNumeric: 'tabular-nums' }}>
             {currentTime.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </div>
-          <div className="text-[10px] text-dark-textSecondary leading-tight">
+          <div className="text-[10px] text-dark-textSecondary leading-tight mt-1">
             {currentTime.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })}
           </div>
         </div>
@@ -278,15 +282,15 @@ const WeatherCalendarWidget = () => {
             <button
               key={index}
               onClick={() => day && setSelectedDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), day))}
-              className={`flex items-center justify-center text-[10px] rounded transition-colors ${!day
+              className={`flex items-center justify-center text-[11px] rounded-lg transition-all ${!day
                 ? 'cursor-default'
                 : isToday(day)
-                  ? 'bg-blue-600 text-white font-bold'
+                  ? 'bg-accent-blue text-white font-bold shadow-lg shadow-blue-500/30'
                   : selectedDate.getDate() === day &&
                     selectedDate.getMonth() === currentDate.getMonth() &&
                     selectedDate.getFullYear() === currentDate.getFullYear()
-                    ? 'bg-dark-cardHover text-white'
-                    : 'hover:bg-dark-cardHover text-dark-textSecondary'
+                    ? 'bg-white/10 text-white border border-white/10'
+                    : 'hover:bg-white/5 text-dark-textSecondary'
                 }`}
               style={{ minHeight: '20px' }}
             >

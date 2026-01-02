@@ -33,13 +33,26 @@ export default defineConfig(({ mode }) => {
         }
       }
     },
-    // Настройка для правильной работы роутинга
+    // Настройка для оптимизации сборки и code splitting
     build: {
       rollupOptions: {
         output: {
-          manualChunks: undefined
+          // Code splitting для больших компонентов
+          manualChunks: {
+            // Выносим большие виджеты в отдельные chunks
+            'widget-vacuum': ['./src/components/widgets/VacuumWidget'],
+            'widget-settings': ['./src/components/Settings'],
+            'widget-bose': ['./src/components/widgets/BoseWidget'],
+            'widget-tv-preview': ['./src/components/widgets/TVPreviewWidget'],
+            // React и его зависимости в отдельный vendor chunk
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            // UI библиотеки
+            'vendor-ui': ['react-grid-layout', 'lucide-react']
+          }
         }
-      }
+      },
+      // Увеличиваем лимит предупреждений о размере
+      chunkSizeWarningLimit: 500
     }
   }
 })

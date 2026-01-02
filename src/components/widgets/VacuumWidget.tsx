@@ -1882,7 +1882,8 @@ const VacuumWidget = () => {
   useEffect(() => {
     if (api && vacuumConfigs.length > 0) {
       loadEntities()
-      const interval = setInterval(loadEntities, 3000)
+      // Увеличиваем интервал до 10 секунд для лучшей производительности
+      const interval = setInterval(loadEntities, 10000)
       return () => clearInterval(interval)
     }
   }, [api, vacuumConfigs])

@@ -59,7 +59,7 @@ const NotConfiguredBadge = ({ message }: { message: string }) => (
 )
 
 export const SensorsListStyle = ({ sensors }: SensorsStyleProps) => (
-  <div className="space-y-2">
+  <div className="space-y-2.5">
     {sensors.map(sensor => {
       const BatteryIcon = getBatteryIcon(sensor.batteryLevel)
       const batteryColor = getBatteryColor(sensor.batteryLevel)
@@ -67,10 +67,10 @@ export const SensorsListStyle = ({ sensors }: SensorsStyleProps) => (
       return (
         <div
           key={sensor.id}
-          className="flex items-center justify-between p-2.5 rounded-lg border border-dark-border hover:bg-dark-card transition-colors"
+          className="flex items-center justify-between p-3 rounded-xl border border-white/5 bg-gradient-to-r from-dark-card/80 to-dark-bg/50 hover:border-white/10 transition-all"
         >
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className={`p-1.5 rounded-lg flex-shrink-0 ${getTypeColor(sensor)}`}>
+            <div className={`p-2 rounded-xl flex-shrink-0 ${getTypeColor(sensor)} ${sensor.isActive ? 'animate-pulse-slow' : ''}`}>
               {getTypeIcon(sensor)}
             </div>
             <div className="min-w-0">
@@ -84,16 +84,15 @@ export const SensorsListStyle = ({ sensors }: SensorsStyleProps) => (
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {sensor.powerType === 'battery' && (
-              <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full bg-dark-bg border border-dark-border text-xs ${batteryColor}`}>
+              <div className={`flex items-center gap-1 px-2 py-1 rounded-lg bg-dark-bg/50 border border-white/5 text-xs ${batteryColor}`}>
                 <BatteryIcon size={12} />
                 <span>{sensor.batteryLevel !== null ? `${sensor.batteryLevel}%` : '--'}</span>
               </div>
             )}
-            <div className={`px-2 py-1 rounded text-xs font-medium ${
-              sensor.isActive
-                ? sensor.type === 'motion' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'
-                : 'bg-gray-500/20 text-gray-400'
-            }`}>
+            <div className={`px-2.5 py-1 rounded-lg text-xs font-medium ${sensor.isActive
+                ? sensor.type === 'motion' ? 'bg-accent-blue/20 text-accent-blue shadow-sm shadow-blue-500/20' : 'bg-accent-green/20 text-accent-green shadow-sm shadow-green-500/20'
+                : 'bg-white/5 text-dark-textSecondary'
+              }`}>
               {getStatusLabel(sensor)}
             </div>
           </div>
@@ -112,11 +111,12 @@ export const SensorsCardStyle = ({ sensors }: SensorsStyleProps) => (
       return (
         <div
           key={sensor.id}
-          className="p-4 rounded-xl border border-dark-border bg-gradient-to-br from-dark-card to-dark-bg shadow-inner"
+          className="p-4 rounded-2xl border border-white/5 bg-gradient-to-br from-dark-card via-dark-card/80 to-dark-bg shadow-lg hover:border-white/10 transition-all"
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getTypeColor(sensor)}`}>
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${getTypeColor(sensor)} ${sensor.isActive ? 'shadow-lg' : ''}`}
+                style={sensor.isActive ? { boxShadow: sensor.type === 'motion' ? '0 0 20px rgba(59, 130, 246, 0.3)' : '0 0 20px rgba(34, 197, 94, 0.3)' } : {}}>
                 {sensor.type === 'motion' ? <Radio size={18} className="text-white" /> : sensor.isActive ? <Activity size={18} className="text-white" /> : <User size={18} className="text-white" />}
               </div>
               <div>
@@ -126,14 +126,14 @@ export const SensorsCardStyle = ({ sensors }: SensorsStyleProps) => (
                 </div>
               </div>
             </div>
-            <div className={`text-xs font-medium ${sensor.hasEntity ? 'text-green-400' : 'text-red-400'}`}>
+            <div className={`text-xs font-medium px-2 py-1 rounded-lg ${sensor.hasEntity ? 'text-accent-green bg-accent-green/10' : 'text-red-400 bg-red-500/10'}`}>
               {sensor.hasEntity ? 'מחובר' : 'לא מוגדר'}
             </div>
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-[11px] uppercase tracking-wide text-dark-textSecondary">סטטוס</div>
-              <div className={`text-lg font-semibold ${sensor.isActive ? 'text-white' : 'text-dark-textSecondary'}`}>
+              <div className="text-[10px] uppercase tracking-wider text-dark-textSecondary mb-0.5">סטטוס</div>
+              <div className={`text-lg font-bold ${sensor.isActive ? 'text-white' : 'text-dark-textSecondary'}`}>
                 {getStatusLabel(sensor)}
               </div>
             </div>
@@ -143,7 +143,7 @@ export const SensorsCardStyle = ({ sensors }: SensorsStyleProps) => (
                 <span className="text-dark-textSecondary">{sensor.batteryLevel !== null ? `${sensor.batteryLevel}%` : '--'}</span>
               </div>
             ) : (
-              <div className="text-xs text-green-400 bg-green-500/10 px-2 py-1 rounded-full">חשמל</div>
+              <div className="text-xs text-accent-green bg-accent-green/10 px-2.5 py-1 rounded-lg">חשמל</div>
             )}
           </div>
         </div>
@@ -177,11 +177,10 @@ export const SensorsCompactStyle = ({ sensors }: SensorsStyleProps) => (
               <span>{sensor.batteryLevel !== null ? `${sensor.batteryLevel}%` : '--'}</span>
             </div>
           )}
-          <div className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-            sensor.isActive
+          <div className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${sensor.isActive
               ? sensor.type === 'motion' ? 'bg-blue-500/20 text-blue-300' : 'bg-green-500/20 text-green-300'
               : 'bg-gray-500/20 text-gray-300'
-          }`}>
+            }`}>
             {getStatusLabel(sensor)}
           </div>
         </div>

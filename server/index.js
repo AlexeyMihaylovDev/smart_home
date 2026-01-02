@@ -426,13 +426,32 @@ app.post('/api/config/dashboard-layouts', requireAuth, async (req, res) => {
   }
 })
 
+// Проверка здоровья сервера - ДОЛЖЕН БЫТЬ ПЕРЕД proxy middleware!
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: Date.now() })
+})
+
 // Proxy to Home Assistant
 // Перехватываем все запросы к /api/ (кроме тех, что обработаны выше)
-// Должен быть ПОСЛЕДНИМ handler-ом перед health check
+// Должен быть ПОСЛЕДНИМ handler-ом
 const axios = require('axios');
+
+// Middleware для логирования времени запросов
+app.use('/api', (req, res, next) => {
+  const startTime = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    if (duration > 1000) {
+      console.warn(`[SLOW] ${req.method} ${req.originalUrl} took ${duration}ms`);
+    }
+  });
+  next();
+});
 
 app.use('/api', requireAuth, async (req, res) => {
   const userId = req.userId;
+  const startTime = Date.now();
+
   // Убираем '/api' из начала url, так как мы монтируем на '/api'
   // Но Home Assistant API тоже начинается с /api, так что ...
   // Если запрос пришел на /api/states, то req.url будет /states
@@ -457,7 +476,7 @@ app.use('/api', requireAuth, async (req, res) => {
 
     console.log(`[Proxy] Proxying ${req.method} ${req.originalUrl} to ${targetUrl}`);
 
-    // 3. Проксируем запрос
+    // 3. Проксируем запрос с таймаутом
     const response = await axios({
       method: req.method,
       url: targetUrl,
@@ -466,7 +485,8 @@ app.use('/api', requireAuth, async (req, res) => {
         'Content-Type': 'application/json'
       },
       data: req.body,
-      responseType: 'stream' // Важно для pipe
+      responseType: 'stream',
+      timeout: 10000 // 10 секунд таймаут
     });
 
     // 4. Отправляем ответ обратно клиенту
@@ -481,21 +501,24 @@ app.use('/api', requireAuth, async (req, res) => {
 
     response.data.pipe(res);
 
+    const duration = Date.now() - startTime;
+    if (duration > 500) {
+      console.log(`[Proxy] ${req.originalUrl} completed in ${duration}ms`);
+    }
+
   } catch (error) {
-    console.error(`[Proxy] Ошибка проксирования: ${error.message}`);
+    const duration = Date.now() - startTime;
+    console.error(`[Proxy] Ошибка проксирования (${duration}ms): ${error.message}`);
     if (error.response) {
       // Ошибка от HA
       res.status(error.response.status).send(error.response.data);
+    } else if (error.code === 'ECONNABORTED') {
+      res.status(504).json({ error: 'Таймаут подключения к Home Assistant', details: error.message });
     } else {
       // Ошибка соединения
       res.status(502).json({ error: 'Не удалось подключиться к Home Assistant', details: error.message });
     }
   }
-});
-
-// Проверка здоровья сервера
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' })
 })
 
 // Serve static files in production

@@ -279,8 +279,8 @@ const BoseUnit = ({ boseConfig, entity, api, loading, onLoadingChange }: BoseUni
           onClick={handlePower}
           disabled={localLoading || loading}
           className={`p-1.5 sm:p-2 rounded-lg transition-all flex-shrink-0 ${isOn
-              ? 'bg-green-600 hover:bg-green-700 text-white'
-              : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
+            ? 'bg-green-600 hover:bg-green-700 text-white'
+            : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           title={isOn ? 'כבה' : 'הדלק'}
         >
@@ -390,8 +390,8 @@ const BoseUnit = ({ boseConfig, entity, api, loading, onLoadingChange }: BoseUni
                 onClick={handlePlayPause}
                 disabled={localLoading || loading}
                 className={`p-3 sm:p-4 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95 ${isPlaying
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/30'
-                    : 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/30'
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/30'
+                  : 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/30'
                   }`}
                 title={isPlaying ? 'השהה' : 'נגן'}
               >
@@ -423,8 +423,8 @@ const BoseUnit = ({ boseConfig, entity, api, loading, onLoadingChange }: BoseUni
                     onClick={() => handleSourceSelect(src)}
                     disabled={localLoading || loading}
                     className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded text-[10px] sm:text-xs transition-all truncate disabled:opacity-50 disabled:cursor-not-allowed ${source === src
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-dark-card hover:bg-dark-cardHover text-dark-textSecondary'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-dark-card hover:bg-dark-cardHover text-dark-textSecondary'
                       }`}
                   >
                     {src}
@@ -565,7 +565,8 @@ const BoseWidget = () => {
   useEffect(() => {
     if (api && boseConfigs.length > 0) {
       loadEntities()
-      const interval = setInterval(loadEntities, 5000)
+      // Увеличиваем интервал до 15 секунд для лучшей производительности
+      const interval = setInterval(loadEntities, 15000)
       return () => clearInterval(interval)
     }
   }, [api, boseConfigs])
@@ -612,10 +613,10 @@ const BoseWidget = () => {
   return (
     <div className="h-full p-2 sm:p-3 md:p-4 overflow-y-auto">
       <div className={`grid gap-3 sm:gap-4 ${boseConfigs.length === 1
-          ? 'grid-cols-1'
-          : boseConfigs.length === 2
-            ? 'grid-cols-1 md:grid-cols-2'
-            : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+        ? 'grid-cols-1'
+        : boseConfigs.length === 2
+          ? 'grid-cols-1 md:grid-cols-2'
+          : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
         }`}>
         {Array.isArray(boseConfigs) && boseConfigs.map((boseConfig, index) => (
           <BoseUnit

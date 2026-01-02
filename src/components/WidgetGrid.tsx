@@ -1,31 +1,41 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import GridLayout from 'react-grid-layout'
 import type { Layout } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
-import TVTimeWidget from './widgets/TVTimeWidget'
-import MediaPlayerWidget from './widgets/MediaPlayerWidget'
-import SpotifyWidget from './widgets/SpotifyWidget'
-import MediaRoomWidget from './widgets/MediaRoomWidget'
-import CanvasWidget from './widgets/CanvasWidget'
-import TVPreviewWidget from './widgets/TVPreviewWidget'
-import ClockWidget from './widgets/ClockWidget'
-import LEDWidget from './widgets/LEDWidget'
-import PlexWidget from './widgets/PlexWidget'
-import TVDurationWidget from './widgets/TVDurationWidget'
-import AmbientLightingWidget from './widgets/AmbientLightingWidget'
-import LivingRoomWidget from './widgets/LivingRoomWidget'
-import WeatherCalendarWidget from './widgets/WeatherCalendarWidget'
-import ACWidget from './widgets/ACWidget'
-import WaterHeaterWidget from './widgets/WaterHeaterWidget'
-import SensorsWidget from './widgets/SensorsWidget'
-import MotorWidget from './widgets/MotorWidget'
-import BoseWidget from './widgets/BoseWidget'
-import VacuumWidget from './widgets/VacuumWidget'
-import CamerasWidget from './widgets/CamerasWidget'
+
+// Lazy load all widgets for code splitting
+const TVTimeWidget = lazy(() => import('./widgets/TVTimeWidget'))
+const MediaPlayerWidget = lazy(() => import('./widgets/MediaPlayerWidget'))
+const SpotifyWidget = lazy(() => import('./widgets/SpotifyWidget'))
+const MediaRoomWidget = lazy(() => import('./widgets/MediaRoomWidget'))
+const CanvasWidget = lazy(() => import('./widgets/CanvasWidget'))
+const TVPreviewWidget = lazy(() => import('./widgets/TVPreviewWidget'))
+const ClockWidget = lazy(() => import('./widgets/ClockWidget'))
+const LEDWidget = lazy(() => import('./widgets/LEDWidget'))
+const PlexWidget = lazy(() => import('./widgets/PlexWidget'))
+const TVDurationWidget = lazy(() => import('./widgets/TVDurationWidget'))
+const AmbientLightingWidget = lazy(() => import('./widgets/AmbientLightingWidget'))
+const LivingRoomWidget = lazy(() => import('./widgets/LivingRoomWidget'))
+const WeatherCalendarWidget = lazy(() => import('./widgets/WeatherCalendarWidget'))
+const ACWidget = lazy(() => import('./widgets/ACWidget'))
+const WaterHeaterWidget = lazy(() => import('./widgets/WaterHeaterWidget'))
+const SensorsWidget = lazy(() => import('./widgets/SensorsWidget'))
+const MotorWidget = lazy(() => import('./widgets/MotorWidget'))
+const BoseWidget = lazy(() => import('./widgets/BoseWidget'))
+const VacuumWidget = lazy(() => import('./widgets/VacuumWidget'))
+const CamerasWidget = lazy(() => import('./widgets/CamerasWidget'))
+
 import { getDashboardLayout, getDashboardLayoutSync, updateWidgetLayout, WidgetLayout, getDashboardLayoutByDashboardId } from '../services/widgetLayout'
 import { isWidgetEnabledSync, getNavigationIconsSync } from '../services/widgetConfig'
 import { GripVertical, Pencil, X } from 'lucide-react'
+
+// Loading skeleton for widgets
+const WidgetSkeleton = () => (
+  <div className="h-full w-full animate-pulse bg-dark-card rounded-lg border border-dark-border flex items-center justify-center">
+    <div className="text-dark-textSecondary text-sm">טוען...</div>
+  </div>
+)
 
 // Дефолтные layout для виджетов (копия из widgetLayout.ts для использования в компоненте)
 const DEFAULT_LAYOUTS: Record<string, Omit<WidgetLayout, 'i'>> = {
@@ -52,7 +62,7 @@ const DEFAULT_LAYOUTS: Record<string, Omit<WidgetLayout, 'i'>> = {
 }
 
 // Маппинг виджетов
-const widgetComponents: Record<string, React.ComponentType<any>> = {
+const widgetComponents: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
   'tv-time': TVTimeWidget,
   'media-player': MediaPlayerWidget,
   'spotify': SpotifyWidget,
@@ -722,22 +732,39 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
         </div>
       )}
 
-      {/* Кнопка выхода из режима редактирования */}
-      {editMode && (
-        <div className="fixed top-20 right-6 z-40">
-          <button
-            onClick={() => {
-              setEditMode(false)
-              setTripleClickActivated(false)
-              clickCountRef.current = 0
-            }}
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 shadow-lg"
-          >
-            <Pencil size={16} />
-            סיים עריכה
-          </button>
-        </div>
-      )}
+      {/* Плавающая кнопка редактирования - всегда видна */}
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+        {editMode ? (
+          <>
+            {/* Кнопка выхода из режима редактирования */}
+            <button
+              onClick={() => {
+                setEditMode(false)
+                setTripleClickActivated(false)
+                clickCountRef.current = 0
+              }}
+              className="group px-5 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl transition-all flex items-center gap-3 shadow-2xl shadow-green-500/30 hover:shadow-green-500/50 hover:scale-105"
+            >
+              <Pencil size={18} className="group-hover:rotate-12 transition-transform" />
+              <span className="font-medium">סיים עריכה</span>
+            </button>
+          </>
+        ) : (
+          <>
+            {/* Кнопка входа в режим редактирования */}
+            <button
+              onClick={() => {
+                setEditMode(true)
+                setTripleClickActivated(false)
+              }}
+              className="group p-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition-all shadow-2xl shadow-blue-500/30 hover:shadow-purple-500/50 hover:scale-110"
+              title="ערוך ווידג'טים"
+            >
+              <Pencil size={22} className="group-hover:rotate-12 transition-transform" />
+            </button>
+          </>
+        )}
+      </div>
 
       <GridLayout
         className="layout layout-loaded"
@@ -755,8 +782,8 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
         draggableHandle=".drag-handle"
         compactType="vertical"
         preventCollision={false}
-        margin={[8, 8]}
-        containerPadding={[0, 0]}
+        margin={[12, 12]}
+        containerPadding={[4, 4]}
         useCSSTransforms={true}
       >
         {layout
@@ -782,7 +809,9 @@ const WidgetGrid = ({ currentTab = 'home' }: WidgetGridProps) => {
                 )}
                 <div className={`h-full ${editMode ? 'opacity-90' : ''} widget-wrapper`}>
                   <div className="widget-card h-full">
-                    <WidgetComponent />
+                    <Suspense fallback={<WidgetSkeleton />}>
+                      <WidgetComponent />
+                    </Suspense>
                   </div>
                 </div>
               </div>

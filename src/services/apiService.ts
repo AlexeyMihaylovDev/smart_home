@@ -2,13 +2,11 @@
 import axios from 'axios'
 
 // Определяем URL сервера настроек
-// Используем тот же хост, что и текущая страница, но порт 3001
+// В dev режиме используем относительные пути (будет проксироваться через Vite)
+// В production режиме запросы идут на тот же сервер
 const getApiBaseUrl = () => {
-  const host = window.location.hostname
-  const protocol = window.location.protocol
-  // Если hostname localhost, используем localhost, иначе используем IP
-  // Это позволяет работать как локально, так и с других компьютеров
-  return `${protocol}//${host}:3001`
+  // Используем относительные пути - Vite proxy в dev, same origin в production
+  return ''
 }
 
 const API_BASE_URL = getApiBaseUrl()
@@ -23,7 +21,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 5000,
+  timeout: 3000, // Уменьшаем таймаут для быстрого fail-over
 })
 
 // Добавляем userId в заголовки всех запросов

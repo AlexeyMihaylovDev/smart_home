@@ -9,13 +9,13 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #0f0f0f;
-  color: #e0e0e0;
+  background: linear-gradient(135deg, #0a0a0f 0%, #0d0d14 50%, #0a0a0f 100%);
+  color: #f0f0f5;
   overflow-x: hidden;
 }
 
@@ -31,16 +31,17 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: #0a0a0f;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2a2a2a;
+  background: linear-gradient(180deg, #1f1f2d 0%, #12121a 100%);
   border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a3a3a;
+  background: linear-gradient(180deg, #2a2a3d 0%, #1a1a25 100%);
 }
 
 /* React Grid Layout стили */
@@ -54,26 +55,26 @@ body {
     min-width: 0 !important;
     width: 100% !important;
   }
-  
+
   .widget-card {
     font-size: 0.875rem;
     padding: 0.75rem;
   }
-  
+
   /* Улучшаем читаемость на мобильных */
   .widget-card h2,
   .widget-card h3 {
     font-size: 1rem;
     margin-bottom: 0.5rem;
   }
-  
+
   .widget-card button {
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
   }
-  
+
   /* Уменьшаем отступы между элементами */
-  .widget-card > * + * {
+  .widget-card>*+* {
     margin-top: 0.5rem;
   }
 }
@@ -88,7 +89,7 @@ body {
   .widget-card {
     font-size: 1.1rem;
   }
-  
+
   .react-grid-item {
     font-size: 1.05rem;
   }
@@ -102,13 +103,13 @@ body {
 
 /* Адаптивные отступы для виджетов */
 @media (max-width: 640px) {
-  .widget-card > * {
+  .widget-card>* {
     padding: 0.5rem;
   }
 }
 
 @media (min-width: 1920px) {
-  .widget-card > * {
+  .widget-card>* {
     padding: 1rem;
   }
 }
@@ -171,16 +172,21 @@ body {
   border-color: rgba(255, 255, 255, 0.8);
 }
 
-/* Стили для виджетов */
+/* Стили для виджетов - Premium Glassmorphism */
 .widget-card {
-  background: linear-gradient(135deg, #1a1a1a 0%, #1f1f1f 100%);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.3),
-    0 2px 4px -1px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(145deg,
+      rgba(18, 18, 26, 0.9) 0%,
+      rgba(15, 15, 22, 0.95) 50%,
+      rgba(12, 12, 18, 0.9) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  box-shadow:
+    0 4px 24px -4px rgba(0, 0, 0, 0.5),
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
 }
@@ -192,22 +198,48 @@ body {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(59, 130, 246, 0.3) 50%,
+      transparent 100%);
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.35s ease;
+}
+
+.widget-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      transparent 50%,
+      rgba(59, 130, 246, 0.1) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
 }
 
 .widget-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 
-    0 10px 15px -3px rgba(0, 0, 0, 0.4),
-    0 4px 6px -2px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
-    0 0 20px rgba(59, 130, 246, 0.1);
-  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-3px);
+  box-shadow:
+    0 12px 32px -8px rgba(0, 0, 0, 0.6),
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(59, 130, 246, 0.15),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  border-color: rgba(59, 130, 246, 0.2);
 }
 
 .widget-card:hover::before {
+  opacity: 1;
+}
+
+.widget-card:hover::after {
   opacity: 1;
 }
 
@@ -216,6 +248,7 @@ body {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -230,6 +263,67 @@ body {
 .react-grid-layout:not(.layout-loaded) .react-grid-item {
   animation: none;
   opacity: 1;
+}
+
+/* ============================================= */
+/* Edit Mode Visual Enhancements                 */
+/* ============================================= */
+
+/* Пульсация границы при редактировании */
+@keyframes editPulse {
+  0%, 100% {
+    border-color: rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.2);
+  }
+  50% {
+    border-color: rgba(59, 130, 246, 0.6);
+    box-shadow: 0 0 12px 2px rgba(59, 130, 246, 0.3);
+  }
+}
+
+/* Стиль виджетов в режиме редактирования */
+.react-grid-item.react-draggable {
+  border: 2px dashed rgba(59, 130, 246, 0.4);
+  border-radius: 18px;
+  animation: editPulse 2s ease-in-out infinite;
+}
+
+.react-grid-item.react-draggable .widget-card {
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Увеличенный handle для ресайза в режиме редактирования */
+.react-grid-item.react-resizable .react-resizable-handle-se {
+  width: 24px;
+  height: 24px;
+  background: rgba(59, 130, 246, 0.2);
+  border-radius: 4px;
+  right: 4px;
+  bottom: 4px;
+}
+
+.react-grid-item.react-resizable .react-resizable-handle-se::after {
+  border-color: rgba(59, 130, 246, 0.8);
+  border-width: 3px;
+}
+
+.react-grid-item.react-resizable .react-resizable-handle-se:hover {
+  background: rgba(59, 130, 246, 0.4);
+}
+
+/* Drag handle стиль */
+.drag-handle {
+  cursor: grab;
+  transition: all 0.2s ease;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+  transform: scale(1.1);
+}
+
+.drag-handle:hover {
+  background: rgba(59, 130, 246, 0.3) !important;
 }
 
 /* Улучшенные кнопки */
@@ -289,9 +383,12 @@ body {
 
 /* Пульсирующая анимация для активных элементов */
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.7;
   }
@@ -471,4 +568,205 @@ input[type="range"].slider-rgb::-moz-range-thumb:hover {
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
+/* ============================================= */
+/* Premium Widget Accent Variants                */
+/* ============================================= */
 
+/* Blue accent widget */
+.widget-accent-blue {
+  border-color: rgba(59, 130, 246, 0.2);
+  background: linear-gradient(145deg,
+      rgba(18, 18, 30, 0.95) 0%,
+      rgba(15, 20, 35, 0.9) 100%);
+}
+
+.widget-accent-blue::before {
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(59, 130, 246, 0.4) 50%,
+      transparent 100%);
+  opacity: 0.6;
+}
+
+/* Cyan accent widget */
+.widget-accent-cyan {
+  border-color: rgba(6, 182, 212, 0.2);
+  background: linear-gradient(145deg,
+      rgba(15, 22, 25, 0.95) 0%,
+      rgba(10, 30, 35, 0.9) 100%);
+}
+
+.widget-accent-cyan::before {
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(6, 182, 212, 0.4) 50%,
+      transparent 100%);
+  opacity: 0.6;
+}
+
+/* Orange accent widget */
+.widget-accent-orange {
+  border-color: rgba(249, 115, 22, 0.2);
+  background: linear-gradient(145deg,
+      rgba(25, 18, 15, 0.95) 0%,
+      rgba(30, 20, 15, 0.9) 100%);
+}
+
+.widget-accent-orange::before {
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(249, 115, 22, 0.4) 50%,
+      transparent 100%);
+  opacity: 0.6;
+}
+
+/* ============================================= */
+/* Status Indicators                             */
+/* ============================================= */
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  position: relative;
+}
+
+.status-indicator-active {
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+.status-indicator-inactive {
+  background: #64748b;
+}
+
+.status-indicator-warning {
+  background: #f97316;
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.6);
+}
+
+@keyframes statusPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+/* ============================================= */
+/* Circular Progress (for temperature widgets)   */
+/* ============================================= */
+
+.circular-progress {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.circular-progress-ring {
+  transform: rotate(-90deg);
+}
+
+.circular-progress-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+.circular-progress-fill {
+  fill: none;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.circular-progress-fill-blue {
+  stroke: url(#gradientBlue);
+}
+
+.circular-progress-fill-cyan {
+  stroke: url(#gradientCyan);
+}
+
+.circular-progress-fill-orange {
+  stroke: url(#gradientOrange);
+}
+
+/* ============================================= */
+/* Premium Button Styles                         */
+/* ============================================= */
+
+.btn-premium {
+  background: linear-gradient(145deg,
+      rgba(30, 30, 45, 0.9) 0%,
+      rgba(20, 20, 35, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 10px 16px;
+  color: #f0f0f5;
+  font-weight: 500;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-premium:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
+}
+
+.btn-premium:active {
+  transform: translateY(0);
+}
+
+.btn-premium-blue {
+  background: linear-gradient(145deg,
+      rgba(59, 130, 246, 0.2) 0%,
+      rgba(37, 99, 235, 0.3) 100%);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.btn-premium-blue:hover {
+  background: linear-gradient(145deg,
+      rgba(59, 130, 246, 0.3) 0%,
+      rgba(37, 99, 235, 0.4) 100%);
+  box-shadow:
+    0 4px 20px rgba(59, 130, 246, 0.25),
+    0 0 0 1px rgba(59, 130, 246, 0.2);
+}
+
+/* ============================================= */
+/* Responsive Typography                         */
+/* ============================================= */
+
+.text-display {
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+.text-heading {
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.text-body {
+  font-size: clamp(0.875rem, 1.5vw, 1rem);
+  font-weight: 400;
+}
+
+.text-caption {
+  font-size: clamp(0.75rem, 1.2vw, 0.875rem);
+  font-weight: 400;
+  color: #8888a0;
+}
