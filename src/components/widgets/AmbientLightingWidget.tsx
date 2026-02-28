@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Clock, Lightbulb } from 'lucide-react'
 import { useHomeAssistant } from '../../context/HomeAssistantContext'
 import { getAmbientLightingConfigSync, getAmbientLightingStyleSync, LightConfig, AmbientLightingStyle } from '../../services/widgetConfig'
@@ -26,11 +26,19 @@ const AmbientLightingWidget = () => {
     }
   }, [])
 
+  // Ref для отслеживания времени последнего toggle (для паузы polling)
+  const lastToggleTimeRef = useRef<number>(0)
+
   useEffect(() => {
     if (lights.length > 0 && api) {
       loadEntities()
-      // Обновляем состояния каждые 2 секунды
-      const interval = setInterval(loadEntities, 5000)
+      // Обновляем состояния каждые 5 секунд
+      const interval = setInterval(() => {
+        // Не обновляем если недавно был toggle (даём HA время обновить состояние)
+        if (Date.now() - lastToggleTimeRef.current > 3000) {
+          loadEntities()
+        }
+      }, 5000)
       return () => clearInterval(interval)
     }
   }, [lights, api])
@@ -74,28 +82,34 @@ const AmbientLightingWidget = () => {
   const handleToggle = async (light: LightConfig) => {
     if (!api || !light.entityId) return
 
+    const entity = entities.get(light.entityId)
+    if (!entity) return
+
+    const isOn = entity.state === 'on'
+
+    // OPTIMISTIC UI: Мгновенно обновляем состояние в UI (до ответа сервера)
+    // Устанавливаем время toggle для паузы polling
+    lastToggleTimeRef.current = Date.now()
+
+    const optimisticEntities = new Map(entities)
+    optimisticEntities.set(light.entityId, {
+      ...entity,
+      state: isOn ? 'off' : 'on' // Переключаем состояние локально
+    })
+    setEntities(optimisticEntities)
+
     try {
-      const entity = entities.get(light.entityId)
-      if (!entity) return
-
-      const isOn = entity.state === 'on'
-
-      // Отправляем запрос на сервер и ждём ответ
+      // Отправляем запрос на сервер
       if (isOn) {
         await api.turnOff(light.entityId)
       } else {
         await api.turnOn(light.entityId)
       }
-
-      // После успешного ответа - получаем актуальное состояние
-      const newState = await api.getState(light.entityId)
-      if (newState) {
-        const newEntities = new Map(entities)
-        newEntities.set(light.entityId, newState)
-        setEntities(newEntities)
-      }
+      // Успех! Optimistic UI уже отображает правильное состояние
     } catch (error) {
       console.error('Ошибка переключения:', error)
+      // При ошибке - возвращаем предыдущее состояние
+      setEntities(entities)
     }
   }
 

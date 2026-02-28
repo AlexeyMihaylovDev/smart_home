@@ -3,11 +3,35 @@ const cors = require('cors')
 const fs = require('fs').promises
 const path = require('path')
 const crypto = require('crypto')
+const axios = require('axios')
 
 const app = express()
 const PORT = 3001
 const DATA_DIR = path.join(__dirname, 'data')
 const USERS_FILE = path.join(DATA_DIR, 'users.json')
+
+// In-memory cache for connection configs (avoid file reads on every request)
+const connectionCache = new Map()
+const CONNECTION_CACHE_TTL = 60000 // 60 seconds
+
+// Get cached connection or read from file
+async function getCachedConnection(userId) {
+  const cached = connectionCache.get(userId)
+  if (cached && Date.now() - cached.timestamp < CONNECTION_CACHE_TTL) {
+    return cached.data
+  }
+
+  const data = await readDataFile(`connection_${userId}.json`)
+  if (data) {
+    connectionCache.set(userId, { data, timestamp: Date.now() })
+  }
+  return data
+}
+
+// Clear connection cache when config is updated
+function clearConnectionCache(userId) {
+  connectionCache.delete(userId)
+}
 
 // Убеждаемся, что папка data существует
 fs.mkdir(DATA_DIR, { recursive: true }).catch(console.error)
@@ -169,7 +193,7 @@ app.all('/api/homeassistant/*', async (req, res) => {
     }
 
     // Forward the request to Home Assistant
-    const axios = require('axios')
+    // axios используется глобальный импорт
     const response = await axios({
       method: req.method,
       url: targetUrl,
@@ -445,6 +469,8 @@ app.post('/api/config/connection', requireAuth, async (req, res) => {
     const userId = req.userId
     const { url, token } = req.body
     await writeDataFile(`connection_${userId}.json`, { url, token })
+    // Очищаем кэш чтобы новые настройки вступили в силу сразу
+    clearConnectionCache(userId)
     res.json({ success: true })
   } catch (error) {
     console.error('Ошибка сохранения connection:', error)
@@ -494,11 +520,75 @@ app.post('/api/config/dashboard-layouts', requireAuth, async (req, res) => {
   }
 })
 
+// Proxy для Home Assistant API
+// Все запросы к /api/homeassistant/* проксируются на реальный Home Assistant
+// Используем кэш подключений для скорости
 
+app.use('/api/homeassistant', requireAuth, async (req, res) => {
+  const userId = req.userId;
+  const startTime = Date.now();
+
+  // Получаем путь без /api/homeassistant префикса
+  const haPath = req.url; // например: /states, /services/light/turn_on
+
+  try {
+    // 1. Загружаем конфиг из кэша (быстро!)
+    const connection = await getCachedConnection(userId);
+
+    if (!connection || !connection.url) {
+      return res.status(502).json({ error: 'Home Assistant לא מוגדר. עבור להגדרות.' });
+    }
+
+    const haUrl = connection.url.replace(/\/$/, '');
+    const token = connection.token;
+
+    if (!token) {
+      return res.status(502).json({ error: 'טוקן Home Assistant לא מוגדר.' });
+    }
+
+    // 2. Формируем целевой URL
+    const targetUrl = `${haUrl}/api${haPath}`;
+
+    // 3. Проксируем запрос с быстрым таймаутом
+    const response = await axios({
+      method: req.method,
+      url: targetUrl,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      data: req.body,
+      timeout: 5000 // 5 секунд - быстрый таймаут
+    });
+
+    const duration = Date.now() - startTime;
+    if (duration > 300) {
+      console.log(`[HA] ${req.method} ${haPath} (${duration}ms)`);
+    }
+
+    // 4. Отправляем ответ обратно клиенту
+    res.status(response.status).json(response.data);
+
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`[HA Proxy] Ошибка (${duration}ms): ${error.message}`);
+
+    if (error.response) {
+      // Ошибка от Home Assistant
+      res.status(error.response.status).json(error.response.data);
+    } else if (error.code === 'ECONNABORTED') {
+      res.status(504).json({ error: 'Таймаут подключения к Home Assistant', details: error.message });
+    } else if (error.code === 'ECONNREFUSED') {
+      res.status(502).json({ error: 'Home Assistant недоступен', details: error.message });
+    } else {
+      res.status(502).json({ error: 'Ошибка подключения к Home Assistant', details: error.message });
+    }
+  }
+});
 
 // Проверка здоровья сервера
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' })
+  res.json({ status: 'ok', timestamp: Date.now() })
 })
 
 // Serve static files in production
@@ -578,7 +668,7 @@ app.post('/api/shopping-list', async (req, res) => {
 // Proxy to Home Assistant
 // Перехватываем все запросы к /api/ (кроме тех, что обработаны выше)
 // Должен быть ПОСЛЕДНИМ handler-ом перед health check
-const axios = require('axios');
+// axios уже импортирован выше
 
 app.use('/api', requireAuth, async (req, res) => {
   const userId = req.userId;

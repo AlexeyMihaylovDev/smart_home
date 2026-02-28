@@ -12,34 +12,42 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0', // Слушаем на всех интерфейсах для доступа по IP
       port: 3000,
       proxy: {
-        '/api': {
+        // Proxy для Home Assistant API - должен быть первым!
+        '/api/homeassistant': {
           target: 'http://localhost:3001',
           changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path.replace(/^\/api/, '/api')
+          secure: false
         },
-        // Прокси для сервера настроек - перенаправляем запросы на сервер настроек
         '/api/config': {
           target: 'http://localhost:3001',
           changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path.replace(/^\/api\/config/, '/api/config')
+          secure: false
         },
         '/api/auth': {
           target: 'http://localhost:3001',
           changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path.replace(/^\/api\/auth/, '/api/auth')
+          secure: false
+        },
+        // Общий proxy для /api
+        '/api': {
+          target: 'http://localhost:3001',
+          changeOrigin: true,
+          secure: false
         }
       }
     },
-    // Настройка для правильной работы роутинга
+    // Настройка для оптимизации сборки и code splitting
     build: {
       rollupOptions: {
         output: {
-          manualChunks: undefined
+          // Code splitting для больших компонентов
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-ui': ['react-grid-layout', 'lucide-react']
+          }
         }
-      }
+      },
+      chunkSizeWarningLimit: 500
     }
   }
 })
