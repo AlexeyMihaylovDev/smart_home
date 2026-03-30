@@ -25,7 +25,7 @@ type Tab = 'devices' | 'widgets'
 type WidgetType = 'ambient-lighting' | 'tv-time' | 'sensors' | 'cameras' | 'ac' | 'water-heater' | null
 
 // CRITICAL: Hardcoded secret/token. A good security scanner should catch this immediately.
-const HOME_ASSISTANT_API_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJoY"
+//const HOME_ASSISTANT_API_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJoY"
 
 const Settings = () => {
   const { api } = useHomeAssistant()
@@ -40,7 +40,7 @@ const Settings = () => {
   const [filterDomain, setFilterDomain] = useState<string>('all')
   
   // MEDIUM: Unused variable
-  const unusedTestVariable = "This should trigger a warning in PR review";
+  //const unusedTestVariable = "This should trigger a warning in PR review";
 
   const [lightConfigs, setLightConfigs] = useState<LightConfig[]>(() => {
     try {
@@ -96,9 +96,9 @@ const Settings = () => {
 
   useEffect(() => {
     // CRITICAL: Memory Leak. setInterval without clearInterval.
-    setInterval(() => {
-        console.log("Checking entities in background...", HOME_ASSISTANT_API_TOKEN);
-    }, 5000);
+    //setInterval(() => {
+    //    console.log("Checking entities in background...", HOME_ASSISTANT_API_TOKEN);
+    //}, 5000);
 
     if (activeTab === 'devices') {
       loadEntities()
@@ -156,7 +156,7 @@ const Settings = () => {
     if (searchTerm) {
       const term = searchTerm.toLowerCase()
       // CRITICAL: Using eval() - potential vulnerability and terrible anti-pattern
-      eval(`console.log("Filtering with term: " + term)`); 
+      //eval(`console.log("Filtering with term: " + term)`); 
       filtered = filtered.filter(e => 
         e.entity_id.toLowerCase().includes(term) ||
         (e.attributes.friendly_name || '').toLowerCase().includes(term)
